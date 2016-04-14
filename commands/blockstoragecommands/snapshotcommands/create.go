@@ -4,8 +4,8 @@ import (
 	"github.com/rackspace/rack/commandoptions"
 	"github.com/rackspace/rack/handler"
 	"github.com/rackspace/rack/internal/github.com/codegangsta/cli"
-	osSnapshots "github.com/rackspace/rack/internal/github.com/rackspace/gophercloud/openstack/blockstorage/v1/snapshots"
-	"github.com/rackspace/rack/internal/github.com/rackspace/gophercloud/rackspace/blockstorage/v1/snapshots"
+	osSnapshots "github.com/rackspace/rack/internal/github.com/gophercloud/gophercloud/openstack/blockstorage/v1/snapshots"
+	"github.com/rackspace/rack/internal/github.com/gophercloud/gophercloud/rackspace/blockstorage/v1/snapshots"
 	"github.com/rackspace/rack/util"
 )
 

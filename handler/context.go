@@ -8,7 +8,7 @@ import (
 	"github.com/rackspace/rack/commandoptions"
 	"github.com/rackspace/rack/internal/github.com/Sirupsen/logrus"
 	"github.com/rackspace/rack/internal/github.com/codegangsta/cli"
-	"github.com/rackspace/rack/internal/github.com/rackspace/gophercloud"
+	"github.com/rackspace/rack/internal/github.com/gophercloud/gophercloud"
 	"github.com/rackspace/rack/output"
 	"github.com/rackspace/rack/util"
 )

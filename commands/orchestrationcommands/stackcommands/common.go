@@ -4,8 +4,8 @@ import (
 	"fmt"
 
 	"github.com/rackspace/rack/internal/github.com/fatih/structs"
-	"github.com/rackspace/rack/internal/github.com/rackspace/gophercloud"
-	osStacks "github.com/rackspace/rack/internal/github.com/rackspace/gophercloud/openstack/orchestration/v1/stacks"
+	"github.com/rackspace/rack/internal/github.com/gophercloud/gophercloud"
+	osStacks "github.com/rackspace/rack/internal/github.com/gophercloud/gophercloud/openstack/orchestration/v1/stacks"
 )
 
 func stackList(client *gophercloud.ServiceClient) ([]map[string]interface{}, error) {

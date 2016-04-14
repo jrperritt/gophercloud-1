@@ -5,8 +5,8 @@ import (
 	"github.com/rackspace/rack/handler"
 	"github.com/rackspace/rack/internal/github.com/codegangsta/cli"
 	"github.com/rackspace/rack/internal/github.com/fatih/structs"
-	osFlavors "github.com/rackspace/rack/internal/github.com/rackspace/gophercloud/openstack/compute/v2/flavors"
-	"github.com/rackspace/rack/internal/github.com/rackspace/gophercloud/rackspace/compute/v2/flavors"
+	osFlavors "github.com/rackspace/rack/internal/github.com/gophercloud/gophercloud/openstack/compute/v2/flavors"
+	"github.com/rackspace/rack/internal/github.com/gophercloud/gophercloud/rackspace/compute/v2/flavors"
 	"github.com/rackspace/rack/util"
 )
 

@@ -5,9 +5,9 @@ import (
 	"github.com/rackspace/rack/handler"
 	"github.com/rackspace/rack/internal/github.com/codegangsta/cli"
 	"github.com/rackspace/rack/internal/github.com/fatih/structs"
-	osContainers "github.com/rackspace/rack/internal/github.com/rackspace/gophercloud/openstack/objectstorage/v1/containers"
-	"github.com/rackspace/rack/internal/github.com/rackspace/gophercloud/pagination"
-	"github.com/rackspace/rack/internal/github.com/rackspace/gophercloud/rackspace/objectstorage/v1/containers"
+	osContainers "github.com/rackspace/rack/internal/github.com/gophercloud/gophercloud/openstack/objectstorage/v1/containers"
+	"github.com/rackspace/rack/internal/github.com/gophercloud/gophercloud/pagination"
+	"github.com/rackspace/rack/internal/github.com/gophercloud/gophercloud/rackspace/objectstorage/v1/containers"
 	"github.com/rackspace/rack/util"
 )
 

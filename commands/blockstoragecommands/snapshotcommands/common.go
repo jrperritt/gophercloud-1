@@ -4,7 +4,7 @@ import (
 	"strings"
 
 	"github.com/rackspace/rack/internal/github.com/fatih/structs"
-	osSnapshots "github.com/rackspace/rack/internal/github.com/rackspace/gophercloud/openstack/blockstorage/v1/snapshots"
+	osSnapshots "github.com/rackspace/rack/internal/github.com/gophercloud/gophercloud/openstack/blockstorage/v1/snapshots"
 )
 
 func snapshotSingle(snapshot *osSnapshots.Snapshot) map[string]interface{} {

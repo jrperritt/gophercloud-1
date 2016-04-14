@@ -2,7 +2,7 @@ package stackeventcommands
 
 import (
 	"github.com/rackspace/rack/internal/github.com/fatih/structs"
-	osStackEvents "github.com/rackspace/rack/internal/github.com/rackspace/gophercloud/openstack/orchestration/v1/stackevents"
+	osStackEvents "github.com/rackspace/rack/internal/github.com/gophercloud/gophercloud/openstack/orchestration/v1/stackevents"
 )
 
 func eventSingle(rawEvent interface{}) map[string]interface{} {

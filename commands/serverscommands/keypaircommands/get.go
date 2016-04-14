@@ -5,7 +5,7 @@ import (
 	"github.com/rackspace/rack/handler"
 	"github.com/rackspace/rack/internal/github.com/codegangsta/cli"
 	"github.com/rackspace/rack/internal/github.com/fatih/structs"
-	"github.com/rackspace/rack/internal/github.com/rackspace/gophercloud/rackspace/compute/v2/keypairs"
+	"github.com/rackspace/rack/internal/github.com/gophercloud/gophercloud/rackspace/compute/v2/keypairs"
 	"github.com/rackspace/rack/util"
 )
 

@@ -8,10 +8,10 @@ import (
 
 	"github.com/rackspace/rack/handler"
 	"github.com/rackspace/rack/internal/github.com/codegangsta/cli"
-	osServers "github.com/rackspace/rack/internal/github.com/rackspace/gophercloud/openstack/compute/v2/servers"
-	"github.com/rackspace/rack/internal/github.com/rackspace/gophercloud/rackspace/compute/v2/servers"
-	th "github.com/rackspace/rack/internal/github.com/rackspace/gophercloud/testhelper"
-	"github.com/rackspace/rack/internal/github.com/rackspace/gophercloud/testhelper/client"
+	osServers "github.com/rackspace/rack/internal/github.com/gophercloud/gophercloud/openstack/compute/v2/servers"
+	"github.com/rackspace/rack/internal/github.com/gophercloud/gophercloud/rackspace/compute/v2/servers"
+	th "github.com/rackspace/rack/internal/github.com/gophercloud/gophercloud/testhelper"
+	"github.com/rackspace/rack/internal/github.com/gophercloud/gophercloud/testhelper/client"
 )
 
 func TestCreateContext(t *testing.T) {

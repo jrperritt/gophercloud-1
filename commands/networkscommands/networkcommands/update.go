@@ -7,8 +7,8 @@ import (
 	"github.com/rackspace/rack/commandoptions"
 	"github.com/rackspace/rack/handler"
 	"github.com/rackspace/rack/internal/github.com/codegangsta/cli"
-	osNetworks "github.com/rackspace/rack/internal/github.com/rackspace/gophercloud/openstack/networking/v2/networks"
-	"github.com/rackspace/rack/internal/github.com/rackspace/gophercloud/rackspace/networking/v2/networks"
+	osNetworks "github.com/rackspace/rack/internal/github.com/gophercloud/gophercloud/openstack/networking/v2/networks"
+	"github.com/rackspace/rack/internal/github.com/gophercloud/gophercloud/rackspace/networking/v2/networks"
 	"github.com/rackspace/rack/util"
 )
 

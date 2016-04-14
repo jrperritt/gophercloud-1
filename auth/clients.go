@@ -13,9 +13,9 @@ import (
 	"github.com/rackspace/rack/commandoptions"
 	"github.com/rackspace/rack/internal/github.com/Sirupsen/logrus"
 	"github.com/rackspace/rack/internal/github.com/codegangsta/cli"
-	"github.com/rackspace/rack/internal/github.com/rackspace/gophercloud"
-	tokens2 "github.com/rackspace/rack/internal/github.com/rackspace/gophercloud/openstack/identity/v2/tokens"
-	"github.com/rackspace/rack/internal/github.com/rackspace/gophercloud/rackspace"
+	"github.com/rackspace/rack/internal/github.com/gophercloud/gophercloud"
+	tokens2 "github.com/rackspace/rack/internal/github.com/gophercloud/gophercloud/openstack/identity/v2/tokens"
+	"github.com/rackspace/rack/internal/github.com/gophercloud/gophercloud/rackspace"
 	"github.com/rackspace/rack/util"
 )
 

@@ -8,9 +8,9 @@ import (
 
 	"github.com/rackspace/rack/handler"
 	"github.com/rackspace/rack/internal/github.com/codegangsta/cli"
-	"github.com/rackspace/rack/internal/github.com/rackspace/gophercloud/rackspace/blockstorage/v1/snapshots"
-	th "github.com/rackspace/rack/internal/github.com/rackspace/gophercloud/testhelper"
-	"github.com/rackspace/rack/internal/github.com/rackspace/gophercloud/testhelper/client"
+	"github.com/rackspace/rack/internal/github.com/gophercloud/gophercloud/rackspace/blockstorage/v1/snapshots"
+	th "github.com/rackspace/rack/internal/github.com/gophercloud/gophercloud/testhelper"
+	"github.com/rackspace/rack/internal/github.com/gophercloud/gophercloud/testhelper/client"
 )
 
 func newCreateApp(flags map[string]string) *cli.Context {

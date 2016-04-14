@@ -8,9 +8,9 @@ import (
 
 	"github.com/rackspace/rack/handler"
 	"github.com/rackspace/rack/internal/github.com/codegangsta/cli"
-	osStackResources "github.com/rackspace/rack/internal/github.com/rackspace/gophercloud/openstack/orchestration/v1/stackresources"
-	th "github.com/rackspace/rack/internal/github.com/rackspace/gophercloud/testhelper"
-	"github.com/rackspace/rack/internal/github.com/rackspace/gophercloud/testhelper/client"
+	osStackResources "github.com/rackspace/rack/internal/github.com/gophercloud/gophercloud/openstack/orchestration/v1/stackresources"
+	th "github.com/rackspace/rack/internal/github.com/gophercloud/gophercloud/testhelper"
+	"github.com/rackspace/rack/internal/github.com/gophercloud/gophercloud/testhelper/client"
 )
 
 func TestListContext(t *testing.T) {

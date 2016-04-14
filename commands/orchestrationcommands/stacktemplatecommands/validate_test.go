@@ -6,7 +6,7 @@ import (
 
 	"github.com/rackspace/rack/handler"
 	"github.com/rackspace/rack/internal/github.com/codegangsta/cli"
-	th "github.com/rackspace/rack/internal/github.com/rackspace/gophercloud/testhelper"
+	th "github.com/rackspace/rack/internal/github.com/gophercloud/gophercloud/testhelper"
 )
 
 func TestValidateContext(t *testing.T) {

@@ -4,8 +4,8 @@ import (
 	"github.com/rackspace/rack/commandoptions"
 	"github.com/rackspace/rack/handler"
 	"github.com/rackspace/rack/internal/github.com/codegangsta/cli"
-	osServers "github.com/rackspace/rack/internal/github.com/rackspace/gophercloud/openstack/compute/v2/servers"
-	"github.com/rackspace/rack/internal/github.com/rackspace/gophercloud/rackspace/compute/v2/servers"
+	osServers "github.com/rackspace/rack/internal/github.com/gophercloud/gophercloud/openstack/compute/v2/servers"
+	"github.com/rackspace/rack/internal/github.com/gophercloud/gophercloud/rackspace/compute/v2/servers"
 	"github.com/rackspace/rack/util"
 )
 

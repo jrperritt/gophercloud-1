@@ -7,8 +7,8 @@ import (
 	"github.com/rackspace/rack/commandoptions"
 	"github.com/rackspace/rack/handler"
 	"github.com/rackspace/rack/internal/github.com/codegangsta/cli"
-	osAccounts "github.com/rackspace/rack/internal/github.com/rackspace/gophercloud/openstack/objectstorage/v1/accounts"
-	"github.com/rackspace/rack/internal/github.com/rackspace/gophercloud/rackspace/objectstorage/v1/accounts"
+	osAccounts "github.com/rackspace/rack/internal/github.com/gophercloud/gophercloud/openstack/objectstorage/v1/accounts"
+	"github.com/rackspace/rack/internal/github.com/gophercloud/gophercloud/rackspace/objectstorage/v1/accounts"
 	"github.com/rackspace/rack/util"
 )
 

@@ -7,7 +7,7 @@ import (
 	"github.com/rackspace/rack/commands/filescommands/objectcommands"
 	"github.com/rackspace/rack/handler"
 	"github.com/rackspace/rack/internal/github.com/codegangsta/cli"
-	osObjects "github.com/rackspace/rack/internal/github.com/rackspace/gophercloud/openstack/objectstorage/v1/objects"
+	osObjects "github.com/rackspace/rack/internal/github.com/gophercloud/gophercloud/openstack/objectstorage/v1/objects"
 	"github.com/rackspace/rack/util"
 )
 
