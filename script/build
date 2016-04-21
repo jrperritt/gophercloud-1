@@ -15,13 +15,13 @@ build() {
 
     # Check the go version
     EQ=" "
-    go version | grep -q go1.5
+    go version | grep -q go1.6
     if [ $? == 0 ]; then
       EQ="="
     fi
 
-    LDFLAGS="-X github.com/rackspace/rack/util.Commit${EQ}${COMMIT} \
-             -X github.com/rackspace/rack/util.Version${EQ}${VERSION}"
+    LDFLAGS="-X github.com/gophercloud/cli/version.Commit${EQ}${COMMIT} \
+             -X github.com/gophercloud/cli/version.Version${EQ}${VERSION}"
     CGO_ENABLED=0 go build -a -installsuffix cgo -ldflags "${LDFLAGS}" -o "${RACKBUILD}"
     return $?
   else

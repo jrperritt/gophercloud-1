@@ -4,21 +4,21 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/rackspace/rack/commandoptions"
-	"github.com/rackspace/rack/handler"
-	"github.com/rackspace/rack/internal/github.com/codegangsta/cli"
-	osSnapshots "github.com/rackspace/rack/internal/github.com/gophercloud/gophercloud/openstack/blockstorage/v1/snapshots"
-	"github.com/rackspace/rack/util"
+	gophercloudCLI "github.com/gophercloud/cli"
+	gophercloudLib "github.com/gophercloud/cli/lib"
+	"github.com/gophercloud/cli/util"
+	"github.com/gophercloud/cli/vendor/github.com/codegangsta/cli"
+	"github.com/gophercloud/cli/vendor/github.com/gophercloud/gophercloud/openstack/blockstorage/v1/snapshots"
 )
 
 var remove = cli.Command{
 	Name:        "delete",
 	Usage:       util.Usage(commandPrefix, "delete", "[--id <snapshotID> | --name <snapshotName> | --stdin id]"),
 	Description: "Deletes a snapshot",
-	Action:      actionDelete,
-	Flags:       commandoptions.CommandFlags(flagsDelete, keysDelete),
+	Action:      ActionDelete,
+	Flags:       gophercloudCLI.CommandFlags(flagsDelete, keysDelete),
 	BashComplete: func(c *cli.Context) {
-		commandoptions.CompleteFlags(commandoptions.CommandFlags(flagsDelete, keysDelete))
+		gophercloudCLI.CompleteFlags(gophercloudCLI.CommandFlags(flagsDelete, keysDelete))
 	},
 }
 
@@ -45,84 +45,73 @@ func flagsDelete() []cli.Flag {
 
 var keysDelete = []string{}
 
-type paramsDelete struct {
+type commandDelete struct {
+	gophercloudCLI.Command
 	wait       bool
 	snapshotID string
+	stdinField string
 }
 
-type commandDelete handler.Command
-
-func actionDelete(c *cli.Context) {
-	command := &commandDelete{
-		Ctx: &handler.Context{
-			CLIContext: c,
-		},
-	}
-	handler.Handle(command)
+type ParamsDelete struct {
+	SnapshotID   string
+	SnapshotName string
 }
 
-func (command *commandDelete) Context() *handler.Context {
-	return command.Ctx
+func ActionDelete(cliContext *cli.Context) {
+	gophercloudLib.Run(cliContext, &commandDelete{})
 }
 
-func (command *commandDelete) Keys() []string {
+func (command commandDelete) Keys() []string {
 	return keysDelete
 }
 
-func (command *commandDelete) ServiceClientType() string {
+func (command commandDelete) ServiceClientType() string {
 	return serviceClientType
 }
 
-func (command *commandDelete) HandleFlags(resource *handler.Resource) error {
-	wait := false
-	if command.Ctx.CLIContext.IsSet("wait-for-completion") {
-		wait = true
-	}
-
-	resource.Params = &paramsDelete{
-		wait: wait,
+func (command *commandDelete) HandleFlags() error {
+	if command.CLIContext.IsSet("wait-for-completion") {
+		command.wait = true
 	}
 	return nil
 }
 
-func (command *commandDelete) HandlePipe(resource *handler.Resource, item string) error {
-	resource.Params.(*paramsDelete).snapshotID = item
-	return nil
+func (command commandDelete) HandlePipe(resource gophercloduLib.Resourcer, v interface{}) error {
+	var err error
+	switch command.stdinField {
+	case "id":
+		resource.StdIn.(ParamsDelete).SnapshotID = v.(string)
+	case "name":
+		resource.StdIn.(ParamsDelete).SnapshotID, err = snapshots.IDFromName(command.ServiceClient, v.(string))
+	}
+	return err
 }
 
-func (command *commandDelete) HandleSingle(resource *handler.Resource) error {
-	snapshotID, err := command.Ctx.IDOrName(osSnapshots.IDFromName)
+func (command commandDelete) Execute(resource lib.Resourcer) lib.Resulter {
+	result := resource.NewResult()
+	err := snapshots.Delete(command.ServiceClient, resource.GetStdInParams().(ParamsDelete).SnapshotID).ExtractErr()
 	if err != nil {
-		return err
-	}
-	resource.Params.(*paramsDelete).snapshotID = snapshotID
-	return nil
-}
-
-func (command *commandDelete) Execute(resource *handler.Resource) {
-	snapshotID := resource.Params.(*paramsDelete).snapshotID
-	err := osSnapshots.Delete(command.Ctx.ServiceClient, snapshotID).ExtractErr()
-	if err != nil {
-		resource.Err = err
-		return
+		result.SetError(err)
+		return result
 	}
 
-	if resource.Params.(*paramsDelete).wait {
+	if command.wait {
 		i := 0
 		for i < 120 {
-			_, err := osSnapshots.Get(command.Ctx.ServiceClient, snapshotID).Extract()
+			_, err := snapshots.Get(command.ServiceClient, snapshotID).Extract()
 			if err != nil {
 				break
 			}
 			time.Sleep(5 * time.Second)
 			i++
 		}
-		resource.Result = fmt.Sprintf("Deleted snapshot [%s]\n", snapshotID)
-	} else {
-		resource.Result = fmt.Sprintf("Deleting snapshot [%s]\n", snapshotID)
+		result.SetValue(fmt.Sprintf("Deleted snapshot [%s]\n", snapshotID))
+		return result
 	}
+	result.SetValue(fmt.Sprintf("Deleting snapshot [%s]\n", snapshotID))
+	return result
 }
 
-func (command *commandDelete) StdinField() string {
-	return "id"
+func (command commandDelete) StdinFields() []string {
+	return []string{"id", "name"}
 }
