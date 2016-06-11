@@ -6,16 +6,17 @@ import (
 	"strings"
 	"time"
 
+	"github.com/codegangsta/cli"
 	"github.com/gophercloud/cli/util"
-	"github.com/gophercloud/cli/vendor/github.com/codegangsta/cli"
+	"github.com/gophercloud/cli/version"
 )
 
 func man() {
 	content := fmt.Sprintln(`.\" Manpage for rack`)
 	content += fmt.Sprintln(`.\" Contact sdk-support@rackspace.com to correct errors or typos`)
-	content += fmt.Sprintf(`.TH man 1 "%s" "%s" "rack man page"`+"\n", time.Now().Format("06 May 2010"), util.Version)
+	content += fmt.Sprintf(`.TH man 1 "%s" "%s" "rack man page"`+"\n", time.Now().Format("06 May 2010"), version.Version)
 	content += fmt.Sprintln(`.SH NAME`)
-	content += fmt.Sprintf(`rack \- %s`+"\n", Usage())
+	content += fmt.Sprintf(`rack \- %s`+"\n", util.Usage())
 	content += fmt.Sprintln(`.SH DESCRIPTION`)
 	content += fmt.Sprintf("%s\n\n\n", Desc())
 	content += fmt.Sprintln(`.SH SYNOPSIS`)

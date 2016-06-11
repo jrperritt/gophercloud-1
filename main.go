@@ -3,25 +3,15 @@ package main
 import (
 	"fmt"
 	"os"
-	"strings"
 
-	"github.com/gophercloud/cli/commands/blockstoragecommands"
-	"github.com/gophercloud/cli/commands/filescommands"
-	"github.com/gophercloud/cli/commands/networkscommands"
-	"github.com/gophercloud/cli/commands/orchestrationcommands"
-	"github.com/gophercloud/cli/commands/serverscommands"
 	"github.com/gophercloud/cli/lib"
+	"github.com/gophercloud/cli/openstack/commands/blockstoragecommands"
 	"github.com/gophercloud/cli/setup"
+
 	"github.com/gophercloud/cli/version"
 
-	"github.com/gophercloud/cli/vendor/github.com/codegangsta/cli"
+	"github.com/codegangsta/cli"
 )
-
-func init() {
-	lib.Cloud = Context{
-		lib.Context{},
-	}
-}
 
 func main() {
 	cli.HelpPrinter = printHelp
@@ -29,7 +19,7 @@ func main() {
 	cli.CommandHelpTemplate = commandHelpTemplate
 	cli.SubcommandHelpTemplate = subcommandHelpTemplate
 	app := cli.NewApp()
-	app.Name = "stack"
+	app.Name = lib.Cloud.Name()
 	app.Version = fmt.Sprintf("%v version %v\n   commit: %v\n", app.Name, version.Version, version.Commit)
 	app.Usage = Usage()
 	app.HideVersion = true
@@ -41,16 +31,18 @@ func main() {
 
 // Usage returns, you guessed it, the usage information
 func Usage() string {
-	return "Command-line interface to manage resources"
+	return "Command-line interface to manage cloud resources"
 }
 
 // Desc returns, you guessed it, the description
 func Desc() string {
-	return `A CLI that manages authentication, configures a local setup, and provides workflows for operations on resources.`
+	return "A CLI that manages authentication, configures a local setup, and\n" +
+		"\tprovides workflows for operations on resources."
 }
 
 // Cmds returns a list of commands supported by the tool
 func Cmds() []cli.Command {
+
 	return []cli.Command{
 		{
 			Name:   "configure",
@@ -59,13 +51,13 @@ func Cmds() []cli.Command {
 		},
 		{
 			Name: "init",
-			Usage: strings.Join([]string{"Enable tab for command completion.",
-				"\tFor Linux and OS X, creates the `rack` man page and sets up",
-				"\tcommand completion for the Bash shell. Run `man ./rack.1` to",
-				"\tview the generated man page.",
-				"\tFor Windows, creates a `posh_autocomplete.ps1` file in the",
-				"\t`$HOME/.rack` directory. You must run the file to set up",
-				"\tcommand completion."}, "\n"),
+			Usage: "Enable tab for command completion." +
+				"\n\tFor Linux and OS X, creates the `rack` man page and sets up" +
+				"\n\tcommand completion for the Bash shell. Run `man ./rack.1` to" +
+				"\n\tview the generated man page." +
+				"\n\tFor Windows, creates a `posh_autocomplete.ps1` file in the" +
+				"\n\t`$HOME/.rack` directory. You must run the file to set up" +
+				"\n\tcommand completion.",
 			Action: func(c *cli.Context) {
 				setup.Init(c)
 				man()
@@ -79,30 +71,32 @@ func Cmds() []cli.Command {
 			},
 		},
 		{
-			Name:        "servers",
-			Usage:       "Operations on cloud servers, both virtual and bare metal.",
-			Subcommands: serverscommands.Get(),
-		},
-		{
-			Name:        "files",
-			Usage:       "Object storage for files and media.",
-			Subcommands: filescommands.Get(),
-		},
-		{
-			Name:        "networks",
-			Usage:       "Software-defined networking.",
-			Subcommands: networkscommands.Get(),
-		},
-		{
 			Name: "block-storage",
-			Usage: "Block-level storage, exposed as volumes to mount to host servers." +
-				"\n\tWork with volumes and their associated snapshots.",
+			Usage: "Block-level storage, exposed as volumes to mount to host servers.\n" +
+				"\tWork with volumes and their associated snapshots.",
 			Subcommands: blockstoragecommands.Get(),
 		},
-		{
-			Name:        "orchestration",
-			Usage:       "Use a template language to orchestrate cloud services.",
-			Subcommands: orchestrationcommands.Get(),
-		},
+		/*
+			{
+				Name:        "servers",
+				Usage:       "Operations on cloud servers, both virtual and bare metal.",
+				Subcommands: serverscommands.Get(),
+			},
+			{
+				Name:        "files",
+				Usage:       "Object storage for files and media.",
+				Subcommands: filescommands.Get(),
+			},
+			{
+				Name:        "networks",
+				Usage:       "Software-defined networking.",
+				Subcommands: networkscommands.Get(),
+			},
+			{
+				Name:        "orchestration",
+				Usage:       "Use a template language to orchestrate cloud services.",
+				Subcommands: orchestrationcommands.Get(),
+			},
+		*/
 	}
 }

@@ -1,16 +1,16 @@
 package lib
 
 type Outputter interface {
-	Options() []string
+	OutputResult(Resulter) error
+	GetFormatOptions() []string
+	LimitFields(Resulter)
 }
 
 type Tabler interface {
-	Outputter
 	ToTable()
 }
 
 type JSONer interface {
-	Outputter
 	ToJSON()
 }
 

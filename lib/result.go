@@ -5,12 +5,14 @@ type Resulter interface {
 	SetValue(interface{})
 	GetError() error
 	SetError(error)
-	Types() []ResultTyper
-	HandleEmpty() error
+	GetTypes() []ResultTyper
+	SetType()
+	GetType() ResultTyper
+	GetEmptyValue() interface{}
 	Print()
 }
 
 type ResultTyper interface {
-	HandleEmpty() (interface{}, error)
+	GetEmptyValue() interface{}
 	Print()
 }

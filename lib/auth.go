@@ -1,13 +1,18 @@
 package lib
 
-import "github.com/gophercloud/cli/vendor/github.com/gophercloud/gophercloud"
+import "github.com/gophercloud/gophercloud"
 
+// Authenticater is implemented by types that can authenticate a user
 type Authenticater interface {
+	Authenticate() (*gophercloud.ServiceClient, error)
 	AuthFromScratch() (*gophercloud.ServiceClient, error)
-	Credentials() error
+	SupportedServices() []string
 }
 
+// AuthFromCacher is implemented by types that can authenticate
+// a user from a cache
 type AuthFromCacher interface {
 	AuthFromCache() (*gophercloud.ServiceClient, error)
-	GetCache() Cacher
+	Cache() Cacher
+	NoCache() bool
 }

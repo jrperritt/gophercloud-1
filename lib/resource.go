@@ -1,6 +1,10 @@
 package lib
 
 type Resourcer interface {
-	GetStdInParams() interface{}
-	GetResult() Resulter
+	//Result() Resulter
+	//SetResult(Resulter)
+	StdinValue() interface{}
+	SetStdinValue(interface{})
+	StdinField() string
+	SetStdinField(string)
 }

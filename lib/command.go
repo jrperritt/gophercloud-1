@@ -1,22 +1,43 @@
 package lib
 
+import (
+	"reflect"
+
+	"github.com/codegangsta/cli"
+	"github.com/gophercloud/gophercloud"
+)
+
 // Commander is an interface that all commands implement.
 type Commander interface {
-	// Keys returns the keys available for the command output.
-	Keys() []string
+	Name() string
+	Usage() string
+	Description() string
+	Action(*cli.Context)
+	Flags() []cli.Flag
+	SetFlags([]cli.Flag)
+	BashComplete(*cli.Context)
+	// Fields returns the fields available for the command output.
+	Fields() []string
+	SetFields([]string)
+
+	ServiceClient() *gophercloud.ServiceClient
+	SetServiceClient(*gophercloud.ServiceClient)
 	// ServiceClientType returns the type of the service client to use.
 	ServiceClientType() string
+	SetServiceClientType(string)
 	// HandleFlags processes flags for the command that are relevant for both piped
 	// and non-piped commands.
 	HandleFlags() error
+	RunCommand(chan Resulter) error
 	// Execute executes the command's HTTP request.
 	Execute(Resourcer) Resulter
-	ResultsChan() chan Resulter
+
+	ReturnType() reflect.Type
 }
 
-// PipeHandler is an interface that commands implement if they can accept input
+// PipeCommander is an interface that commands implement if they can accept input
 // from STDIN.
-type PipeHandler interface {
+type PipeCommander interface {
 	// Commander is an interface that all commands will implement.
 	Commander
 	// HandleSingle contains logic for processing a single resource. This method
@@ -24,27 +45,25 @@ type PipeHandler interface {
 	// logic for handling flags that would be mandatory if otherwise not piped in.
 	HandleSingle(Resourcer) error
 	// HandlePipe is a method that commands implement for processing piped input.
-	HandlePipe(Resourcer, string) error
-	// StdinField is a slice of the fields that the command accepts on STDIN.
-	StdinFields() []string
+	//HandlePipe(string) error
+	// StdinFieldOptions is a slice of the fields that the command accepts on STDIN.
+	PipeFieldOptions() []string
+	PipeField() string
+	SetPipeField(string)
 }
 
-// StreamPipeHandler is an interface that commands implement if they can stream input
+// StreamPipeCommander is an interface that commands implement if they can stream input
 // from STDIN.
-type StreamPipeHandler interface {
+type StreamPipeCommander interface {
 	// PipeHandler is an interface that commands implement if they can accept input
 	// from STDIN.
-	PipeHandler
-	// StreamField is a slice of the fields that the command accepts for streaming input on STDIN.
-	StreamFields() []string
+	PipeCommander
 	// HandleStreamPipe is a method that commands implement for processing streaming, piped input.
-	HandleStreamPipe(Resourcer) error
+	//HandleStreamPipe() error
+	// StreamFieldOptions is a slice of the fields that the command accepts for streaming input on STDIN.
+	StreamFieldOptions() []string
 }
 
-type Command struct {
-	keys []string
-}
-
-func (c Command) Keys() []string {
-	return c.keys
+type CommandInfoer interface {
+	CommandInfo() string
 }

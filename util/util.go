@@ -7,6 +7,7 @@ import (
 	"path"
 	"reflect"
 	"runtime"
+	"time"
 
 	"github.com/gophercloud/cli/version"
 )
@@ -81,16 +82,48 @@ func Pluralize(noun string, count int64) string {
 	return noun
 }
 
-func BuildKeys(s interface{}) ([]string, error) {
-	t := reflect.TypeOf(s)
+// BuildFields takes a type and builds a slice of string from it. if the Kind
+// is a struct, the slice is comprised of the struct's fields. otherwise,
+// an empty slice is returned.
+func BuildFields(t reflect.Type) []string {
 	v := reflect.New(t)
 	if k := v.Kind(); k != reflect.Struct {
-		return nil, fmt.Errorf("Expected a struct type but got %v", k)
+		return []string{}
 	}
 	numFields := t.NumField()
-	keys := make([]string, numFields)
+	fields := make([]string, numFields)
 	for i := 0; i < numFields; i++ {
-		keys[i] = t.Field(i).Tag.Get("json")
+		fields[i] = t.Field(i).Tag.Get("json")
 	}
-	return keys, nil
+	return fields
+}
+
+func GetVersion(s string) string {
+	return ""
+}
+
+// WaitFor polls a predicate function, once per second, up to a timeout limit.
+// It usually does this to wait for a resource to transition to a certain state.
+// Resource packages will wrap this in a more convenient function that's
+// specific to a certain resource, but it can also be useful on its own.
+func WaitFor(timeout int, predicate func() (bool, error)) error {
+	start := time.Now().Second()
+	for {
+		// Force a 1s sleep
+		time.Sleep(1 * time.Second)
+
+		// If a timeout is set, and that's been exceeded, shut it down
+		if timeout >= 0 && time.Now().Second()-start >= timeout {
+			return errors.New("A timeout occurred")
+		}
+
+		// Execute the function
+		satisfied, err := predicate()
+		if err != nil {
+			return err
+		}
+		if satisfied {
+			return nil
+		}
+	}
 }

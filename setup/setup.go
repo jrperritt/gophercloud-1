@@ -9,7 +9,7 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/gophercloud/cli/vendor/github.com/codegangsta/cli"
+	"github.com/codegangsta/cli"
 	"github.com/gophercloud/cli/util"
 )
 
