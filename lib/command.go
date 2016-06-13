@@ -49,7 +49,7 @@ type PipeCommander interface {
 	// StdinFieldOptions is a slice of the fields that the command accepts on STDIN.
 	PipeFieldOptions() []string
 	PipeField() string
-	SetPipeField(string)
+	//SetPipeField(string)
 }
 
 // StreamPipeCommander is an interface that commands implement if they can stream input

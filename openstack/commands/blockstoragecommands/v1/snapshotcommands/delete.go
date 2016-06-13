@@ -12,6 +12,11 @@ import (
 	"github.com/gophercloud/gophercloud/openstack/blockstorage/v1/snapshots"
 )
 
+var (
+	cd *commandDelete
+	_  lib.PipeCommander = cd
+)
+
 type commandDelete struct {
 	openstack.PipeCommand
 	id   string
@@ -63,7 +68,7 @@ func (c *commandDelete) HandleFlags() (_ error) {
 	return
 }
 
-func (c commandDelete) HandlePipe(resource lib.Resourcer, v interface{}) (err error) {
+func (c commandDelete) HandlePipe(resource lib.Resourcer) (err error) {
 	switch c.stdinField {
 	case "id":
 		c.id = v.(string)
@@ -78,7 +83,7 @@ func (c commandDelete) HandleSingle(resource lib.Resourcer) (err error) {
 	return
 }
 
-func (c commandDelete) Execute(resource lib.Resourcer) lib.Resulter {
+func (c commandDelete) Execute(_ lib.Resourcer) lib.Resulter {
 	result := resource.NewResult()
 	err := snapshots.Delete(c.ServiceClient(), resource.StdInParams().(*stdinDelete).SnapshotID).ExtractErr()
 	if err != nil {
@@ -103,7 +108,11 @@ func (c commandDelete) Execute(resource lib.Resourcer) lib.Resulter {
 	return result
 }
 
-func (c commandDelete) StdinFields() []string {
+func (c commandDelete) PipeField() string {
+	return c.stdinField
+}
+
+func (c commandDelete) PipeFieldOptions() []string {
 	return []string{"id", "name"}
 }
 

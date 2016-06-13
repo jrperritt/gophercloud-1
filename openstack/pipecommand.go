@@ -12,7 +12,7 @@ import (
 
 type PipeCommand struct {
 	Command
-	//stdinField string
+	stdinField string
 }
 
 func (c *PipeCommand) RunCommand(resultsChannel chan lib.Resulter) error {
