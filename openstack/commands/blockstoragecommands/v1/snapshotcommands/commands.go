@@ -1,6 +1,9 @@
 package snapshotcommands
 
-import "github.com/codegangsta/cli"
+import (
+	"github.com/codegangsta/cli"
+	"github.com/gophercloud/cli/openstack"
+)
 
 var commandPrefix = "block-storage snapshots"
 var serviceClientType = "blockstorage"
@@ -9,8 +12,8 @@ var serviceClientType = "blockstorage"
 func Get() []cli.Command {
 	return []cli.Command{
 		//list(),
-		get(),
-		create(),
-		remove(),
+		openstack.NewCommand(new(commandGet), flagsGet, serviceClientType),
+		openstack.NewCommand(new(commandCreate), flagsCreate, serviceClientType),
+		openstack.NewCommand(new(commandDelete), flagsDelete, serviceClientType),
 	}
 }

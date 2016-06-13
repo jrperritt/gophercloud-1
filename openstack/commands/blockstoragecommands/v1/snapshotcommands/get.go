@@ -2,32 +2,31 @@ package snapshotcommands
 
 import (
 	"github.com/codegangsta/cli"
+	"github.com/gophercloud/cli/lib"
 	"github.com/gophercloud/cli/openstack"
 	"github.com/gophercloud/cli/util"
-	"github.com/jrperritt/gophercloud/openstack/blockstorage/v1/snapshots"
+	"github.com/gophercloud/gophercloud/openstack/blockstorage/v1/snapshots"
+)
+
+var (
+	cg *commandGet
+	_  lib.PipeCommander = cg
 )
 
 type commandGet struct {
-	openstack.Command
+	openstack.PipeCommand
 	id string
 }
 
-var get = func() cli.Command {
-	c := new(commandGet)
-	c.SetFlags(flagsGet)
-	c.SetDefaultFields()
-	return openstack.NewCommand(c)
-}
-
-func (c commandGet) Name() string {
+func (c *commandGet) Name() string {
 	return "get"
 }
 
-func (c commandGet) Usage() string {
+func (c *commandGet) Usage() string {
 	return util.Usage(commandPrefix, "get", "[--id <snapshotID> | --name <snapshotName> | --stdin id]")
 }
 
-func (c commandGet) Description() string {
+func (c *commandGet) Description() string {
 	return "Gets a snapshot"
 }
 
@@ -56,18 +55,17 @@ func (command *commandGet) HandlePipe(item string) error {
 	return nil
 }
 
-func (command *commandGet) HandleSingle() error {
-	snapshotID, err := command.Ctx.IDOrName(snapshots.IDFromName)
+func (c *commandGet) HandleSingle(r lib.Resourcer) error {
+	id, err := c.IDOrName(snapshots.IDFromName)
 	if err != nil {
 		return err
 	}
-	resource.Params.(*paramsGet).snapshotID = snapshotID
+	c.id = id
 	return nil
 }
 
-func (c *commandGet) Execute() {
-	snapshotID := resource.Params.(*paramsGet).snapshotID
-	snapshot, err := snapshots.Get(c.ServiceClient(), snapshotID).Extract()
+func (c *commandGet) Execute(r lib.Resourcer) (res lib.Resulter) {
+	snapshot, err := snapshots.Get(c.ServiceClient(), c.id).Extract()
 	if err != nil {
 		resource.Err = err
 		return
@@ -75,8 +73,16 @@ func (c *commandGet) Execute() {
 	resource.Result = snapshotSingle(snapshot)
 }
 
-func (c *commandGet) StdinField() string {
-	return "id"
+func (c *commandGet) PipeField() string {
+	return c.stdinField
+}
+
+func (c *commandGet) PipeFieldOptions() []string {
+	return []string{"id", "name"}
+}
+
+func (c *commandGet) SetPipeField(s string) {
+
 }
 
 /*

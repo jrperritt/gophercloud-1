@@ -97,25 +97,24 @@ func (c Command) BashComplete(cliContext *cli.Context) {
 	CompleteFlags(c.Flags())
 }
 
-func (c *Command) SetServiceClient(serviceClient *gophercloud.ServiceClient) {
-	c.serviceClient = serviceClient
-}
-
 func (c Command) ServiceClient() *gophercloud.ServiceClient {
 	return c.serviceClient
 }
 
-func (c *Command) SetServiceClientType(serviceClientType string) {
-	c.serviceClientType = serviceClientType
+func (c *Command) SetServiceClient(serviceClient *gophercloud.ServiceClient) {
+	c.serviceClient = serviceClient
 }
 
 func (c Command) ServiceClientType() string {
 	return c.serviceClientType
 }
 
+func (c *Command) SetServiceClientType(serviceClientType string) {
+	c.serviceClientType = serviceClientType
+}
+
 func (c Command) RunCommand(resultsChannel chan lib.Resulter) error {
-	result := c.Execute(new(Resource))
-	resultsChannel <- result
+	resultsChannel <- c.Execute(new(Resource))
 	close(resultsChannel)
 	return nil
 }

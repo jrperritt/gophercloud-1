@@ -7,8 +7,12 @@ import (
 	"github.com/gophercloud/cli/lib"
 	"github.com/gophercloud/cli/openstack"
 	"github.com/gophercloud/cli/util"
-	"github.com/gophercloud/gophercloud"
 	"github.com/gophercloud/gophercloud/openstack/blockstorage/v1/snapshots"
+)
+
+var (
+	cc *commandCreate
+	_  lib.Commander = cc
 )
 
 type commandCreate struct {
@@ -18,22 +22,15 @@ type commandCreate struct {
 	wait bool
 }
 
-var create = func() cli.Command {
-	c := new(commandCreate)
-	c.SetFlags(flagsCreate)
-	c.SetDefaultFields()
-	return src.NewCommand(c)
-}
-
-func (c commandCreate) Name() string {
+func (c *commandCreate) Name() string {
 	return "create"
 }
 
-func (c commandCreate) Usage() string {
+func (c *commandCreate) Usage() string {
 	return util.Usage(commandPrefix, "create", "--volume-id <volumeID>")
 }
 
-func (c commandCreate) Description() string {
+func (c *commandCreate) Description() string {
 	return "Creates a snapshot of a volume"
 }
 
@@ -75,33 +72,31 @@ func (c *commandCreate) HandleFlags() error {
 	return nil
 }
 
-func (c *commandCreate) Execute() {
-
+func (c *commandCreate) Execute(_ lib.Resourcer) (r lib.Resulter) {
 	var m map[string]interface{}
-	res := snapshots.Create(c.ServiceClient(), c.opts)
-
-	resExtract := res
-	snapshot, err := resExtract.Extract()
+	err := snapshots.Create(c.ServiceClient(), c.opts).ExtractInto(m)
 	if err != nil {
-		resource.SetError(err)
+		r.SetError(err)
 		return
 	}
 
 	if c.wait {
-		err = snapshots.WaitForStatus(c.ServiceClient, snapshot.ID, "available", 600)
+		err = snapshots.WaitForStatus(c.ServiceClient(), m["id"].(string), "available", 600)
 		if err != nil {
-			resource.Err = err
+			r.SetError(err)
 			return
 		}
 	}
 
-	resource.Result = res
+	r.SetValue(m)
+	return
 }
 
-func (c commandCreate) ResponseType() reflect.Type {
-	return reflect.TypeOf(*snapshots.Snapshot)
+func (c *commandCreate) ResponseType() reflect.Type {
+	return reflect.TypeOf(&snapshots.Snapshot{})
 }
 
+/*
 func (c *commandCreate) PreJSON(resource lib.Resourcer) error {
 	m := make(map[string]interface{})
 	err = resource.Result.(gophercloud.Result).ExtractInto(m)
@@ -115,7 +110,4 @@ func (c *commandCreate) PreJSON(resource lib.Resourcer) error {
 func (c *commandCreate) PreTable(resource lib.Resourcer) error {
 	resource.FlattenMap("Metadata")
 }
-
-func (c *commandCreate) StatusChannel() chan int {
-	return nil
-}
+*/
