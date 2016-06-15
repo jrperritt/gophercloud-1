@@ -1,16 +1,6 @@
 package main
 
-import (
-	"fmt"
-	"io/ioutil"
-	"strings"
-	"time"
-
-	"github.com/codegangsta/cli"
-	"github.com/gophercloud/cli/util"
-	"github.com/gophercloud/cli/version"
-)
-
+/*
 func man() {
 	content := fmt.Sprintln(`.\" Manpage for rack`)
 	content += fmt.Sprintln(`.\" Contact sdk-support@rackspace.com to correct errors or typos`)
@@ -90,3 +80,4 @@ func parseFlag(f cli.Flag) (string, string) {
 func flagUsage(f cli.Flag) string {
 	return ""
 }
+*/

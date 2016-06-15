@@ -10,6 +10,10 @@ import (
 	"github.com/gophercloud/gophercloud/openstack"
 )
 
+var (
+	_ lib.AuthFromCacher = auth{}
+)
+
 type auth struct {
 	logger        *logrus.Logger
 	noCache       bool
@@ -47,12 +51,23 @@ func (a auth) Authenticate() (*gophercloud.ServiceClient, error) {
 
 func (a auth) AuthFromScratch() (*gophercloud.ServiceClient, error) {
 	a.logger.Info("Authenticating from scratch.\n")
+	a.urlType = gophercloud.AvailabilityPublic
 
-	pc, err := openstack.AuthenticatedClient(*a.authOptions)
+	a.logger.Debugf("auth options: %+v\n", *a.authOptions)
+
+	pc, err := openstack.NewClient(a.authOptions.IdentityEndpoint)
 	if err != nil {
 		return nil, err
 	}
-	pc.HTTPClient = newHTTPClient()
+	pc.HTTPClient = newHTTPClient(a.logger)
+
+	err = openstack.Authenticate(pc, *a.authOptions)
+	if err != nil {
+		return nil, err
+	}
+
+	//a.logger.Debugf("provider client: %+v\n", pc)
+	//a.logger.Debugf("a: %+v\n", a)
 
 	var sc *gophercloud.ServiceClient
 	switch a.serviceType {
@@ -99,6 +114,7 @@ func (a auth) AuthFromScratch() (*gophercloud.ServiceClient, error) {
 	return sc, nil
 }
 
+/*
 func (a auth) SupportedServices() []string {
 	return []string{
 		"compute",
@@ -108,6 +124,7 @@ func (a auth) SupportedServices() []string {
 		//"orchestration",
 	}
 }
+*/
 
 func (a auth) AuthFromCache() (*gophercloud.ServiceClient, error) {
 	logMsg := "Using public endpoint"
@@ -135,7 +152,7 @@ func (a auth) AuthFromCache() (*gophercloud.ServiceClient, error) {
 				return openstack.AuthenticateV2(pc, *a.authOptions, gophercloud.EndpointOpts{Availability: urlType})
 			}
 			pc.UserAgent.Prepend(util.UserAgent)
-			pc.HTTPClient = newHTTPClient()
+			pc.HTTPClient = newHTTPClient(a.logger)
 			return &gophercloud.ServiceClient{
 				ProviderClient: pc,
 				Endpoint:       creds.ServiceEndpoint,

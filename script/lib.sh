@@ -44,22 +44,3 @@ update() {
   chmod 0644 "$TMP_FILE"
   mv -f "$TMP_FILE" "$3"
 }
-
-update_docs() {
-  NEW_VERSION=$1
-  DOCS_INDEX_FILE="docs/index.rst"
-  DOCS_CONFIGURATION_FILE="docs/configuration.rst"
-
-  #
-  # Update the docs index paths
-  #
-
-  update ./index.rst-tmpXXX "s#rackcdn\.com/[0-9a-zA-Z.-]*/#rackcdn\.com/$NEW_VERSION/#g" $DOCS_INDEX_FILE
-
-  #
-  # Update the docs configuration paths
-  #
-
-  update ./configuration.rst-tmpXXX "s#rackcdn\.com/[0-9a-zA-Z.-]*/#rackcdn\.com/$NEW_VERSION/#g" $DOCS_CONFIGURATION_FILE
-
-}

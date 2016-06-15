@@ -1,6 +1,10 @@
 package lib
 
-import "github.com/codegangsta/cli"
+import (
+	"fmt"
+
+	"github.com/codegangsta/cli"
+)
 
 // Provider should be implemented by one object per cloud provider
 type Provider interface {
@@ -18,49 +22,61 @@ type Provider interface {
 	ErrExit1(error)
 }
 
-// Cloud is a global variable representing the CLI's global context. It should
+// Context is a global variable representing the CLI's global context. It should
 // be set (read: overridden) by each cloud provider
-var Cloud Provider
+var Context Provider
 
 // Run executes all the methods of a Provider for each command
 func Run(cliContext *cli.Context, commander Commander) {
 
-	if Cloud == nil {
+	debugChannel := make(chan string)
+	commander.SetDebugChannel(debugChannel)
+	go func() {
+		for msg := range debugChannel {
+			fmt.Printf("[DEBUGCHANNEL] %s\n", msg)
+		}
+	}()
+
+	if Context == nil {
 		panic("You must set the Cloud variable")
 	}
 
-	globalOptions := Cloud.NewGlobalOptionser(cliContext)
+	globalOptions := Context.NewGlobalOptionser(cliContext)
 	err := globalOptions.ParseGlobalOptions()
 	if err != nil {
-		Cloud.ErrExit1(err)
+		Context.ErrExit1(err)
 	}
 
-	authenticater := Cloud.NewAuthenticater(globalOptions, commander.ServiceClientType())
+	authenticater := Context.NewAuthenticater(globalOptions, commander.ServiceClientType())
 	serviceClient, err := authenticater.Authenticate()
 	if err != nil {
-		Cloud.ErrExit1(err)
+		Context.ErrExit1(err)
 	}
 
 	commander.SetServiceClient(serviceClient)
 
 	err = commander.HandleFlags()
 	if err != nil {
-		Cloud.ErrExit1(err)
+		Context.ErrExit1(err)
 	}
 
-	resultsChannel := Cloud.ResultsChannel()
+	resultsChannel := Context.ResultsChannel()
 
+	fmt.Println("running command...")
 	err = commander.RunCommand(resultsChannel)
 	if err != nil {
-		Cloud.ErrExit1(err)
+		Context.ErrExit1(err)
 	}
 
-	outputter := Cloud.NewResultOutputter(globalOptions)
+	fmt.Println("creating result outputter...")
+	outputter := Context.NewResultOutputter(globalOptions)
 
+	fmt.Println("fetching results...")
 	for result := range resultsChannel {
+		fmt.Println("outputting a result: ", result)
 		err = outputter.OutputResult(result)
 		if err != nil {
-			Cloud.ErrExit1(err)
+			Context.ErrExit1(err)
 		}
 	}
 }

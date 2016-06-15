@@ -1,7 +1,10 @@
 package volumecommands
 
 import (
+	"fmt"
+
 	"github.com/codegangsta/cli"
+	"github.com/gophercloud/cli/lib"
 	"github.com/gophercloud/cli/openstack"
 	"github.com/gophercloud/cli/util"
 	"github.com/gophercloud/gophercloud/openstack/blockstorage/v1/volumes"
@@ -11,13 +14,6 @@ import (
 type commandList struct {
 	openstack.Command
 	opts volumes.ListOptsBuilder
-}
-
-var list = func() cli.Command {
-	c := new(commandList)
-	c.SetFlags(flagsList)
-	c.SetDefaultFields()
-	return openstack.NewCommand(c)
 }
 
 func (c commandList) Name() string {
@@ -43,46 +39,43 @@ var flagsList = []cli.Flag{
 	},
 }
 
-//var keysList = []string{"ID", "Name", "Bootable", "Size", "Status", "VolumeType", "SnapshotID"}
-
-func (command *commandList) HandleFlags() error {
-	c := command.Ctx.CLIContext
-
-	opts := &osVolumes.ListOpts{
+func (c *commandList) HandleFlags() error {
+	c.opts = &volumes.ListOpts{
 		Name:   c.String("name"),
 		Status: c.String("status"),
 	}
-
-	resource.Params = &paramsList{
-		opts: opts,
-	}
-
 	return nil
 }
 
-func (command *commandList) Execute() {
-	opts := resource.Params.(*paramsList).opts
-	pager := osVolumes.List(command.Ctx.ServiceClient, opts)
-	var volumes []map[string]interface{}
+func (c *commandList) Execute(_ lib.Resourcer) lib.Resulter {
+	r := new(openstack.Result)
+	pager := volumes.List(c.ServiceClient(), c.opts)
+	m := make([]map[string]interface{}, 0)
+	//allPages, err := pager.AllPages()
+	//if err != nil {
+	//	r.SetError(err)
+	//	return r
+	//}
+	fmt.Printf("pager :%+v\n", pager)
 	err := pager.EachPage(func(page pagination.Page) (bool, error) {
-		info, err := osVolumes.ExtractVolumes(page)
+		var tmp []map[string]interface{}
+		//info, err := volumes.ExtractVolumes(page)
+		err := (page.(volumes.VolumePage)).ExtractInto(&tmp)
 		if err != nil {
 			return false, err
 		}
-		result := make([]map[string]interface{}, len(info))
-		for j, volume := range info {
-			result[j] = volumeSingle(&volume)
-		}
-		volumes = append(volumes, result...)
+		fmt.Sprintf("tmp: %+v", tmp)
+		//result := make([]volumes.Volume, len(info))
+		//for j, volume := range info {
+		//	result[j] = volume
+		//}
+		m = append(m, tmp...)
 		return true, nil
 	})
 	if err != nil {
-		resource.Err = err
-		return
+		r.SetError(err)
+		return r
 	}
-	if len(volumes) == 0 {
-		resource.Result = nil
-	} else {
-		resource.Result = volumes
-	}
+	r.SetValue(m)
+	return r
 }

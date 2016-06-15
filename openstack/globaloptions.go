@@ -35,8 +35,10 @@ func (p GlobalOption) From() string {
 
 type GlobalOptions struct {
 	username     string
+	userID       string
 	password     string
 	authTenantID string
+	//projectID    string
 	authToken    string
 	authURL      string
 	region       string
@@ -53,6 +55,9 @@ type GlobalOptions struct {
 
 // ParseGlobalOptions satisfies the Provider.ParseGlobalOptions method
 func (o *GlobalOptions) ParseGlobalOptions() error {
+
+	o.Init()
+
 	// we may get multiple errors while trying to handle the global options
 	// so we'll try to return all of them at once, instead of returning just one,
 	// only return a different one after that one's been rectified.
@@ -92,6 +97,7 @@ func (o *GlobalOptions) ParseGlobalOptions() error {
 func (o *GlobalOptions) Init() error {
 	o.want = []GlobalOption{
 		{name: "username"},
+		{name: "user-id"},
 		{name: "password"},
 		{name: "auth-tenant-id"},
 		{name: "auth-token"},
@@ -100,14 +106,18 @@ func (o *GlobalOptions) Init() error {
 		{name: "profile"},
 	}
 
+	o.have = make(map[string]GlobalOption, 0)
+
 	for _, d := range o.Defaults() {
-		o.want = append(o.want, d.(GlobalOption))
+		g := d.(GlobalOption)
+		o.want = append(o.want, g)
+		o.have[g.name] = g
 	}
 
 	return nil
 }
 
-func (o GlobalOptions) Sources() []string {
+func (o *GlobalOptions) Sources() []string {
 	return []string{
 		"commandline",
 		"configfile",
@@ -115,7 +125,7 @@ func (o GlobalOptions) Sources() []string {
 	}
 }
 
-func (o GlobalOptions) Defaults() []lib.GlobalOptioner {
+func (o *GlobalOptions) Defaults() []lib.GlobalOptioner {
 	return []lib.GlobalOptioner{
 		GlobalOption{"output", "table", "default", o.ValidateOutputInputParam},
 		GlobalOption{"no-cache", false, "default", nil},
@@ -124,7 +134,7 @@ func (o GlobalOptions) Defaults() []lib.GlobalOptioner {
 	}
 }
 
-func (o GlobalOptions) MethodsMap() map[string]func() error {
+func (o *GlobalOptions) MethodsMap() map[string]func() error {
 	return map[string]func() error{
 		"commandline": o.ParseCommandLineOptions,
 		"configfile":  o.ParseConfigFileOptions,
@@ -132,7 +142,7 @@ func (o GlobalOptions) MethodsMap() map[string]func() error {
 	}
 }
 
-func (o GlobalOptions) Validate() error {
+func (o *GlobalOptions) Validate() error {
 	errs := make(lib.MultiError, 0)
 	ds := o.Defaults()
 	for _, d := range ds {
@@ -153,7 +163,36 @@ func (o GlobalOptions) Validate() error {
 	return nil
 }
 
-func (o GlobalOptions) Set() error {
+func (o *GlobalOptions) Set() error {
+	for name, opt := range o.have {
+		switch name {
+		case "username":
+			o.username = opt.value.(string)
+		case "user-id":
+			o.userID = opt.value.(string)
+		case "password":
+			o.password = opt.value.(string)
+		case "auth-tenant-id":
+			o.authTenantID = opt.value.(string)
+		case "auth-token":
+			o.authToken = opt.value.(string)
+		case "auth-url":
+			o.authURL = opt.value.(string)
+		case "region":
+			o.region = opt.value.(string)
+		case "profile":
+			o.profile = opt.value.(string)
+		case "output":
+			o.outputFormat = opt.value.(string)
+		case "no-cache":
+			o.noCache = opt.value.(bool)
+		case "no-header":
+			o.noHeader = opt.value.(bool)
+		case "log":
+			o.logLevel = opt.value.(string)
+		}
+	}
+
 	var level logrus.Level
 	switch strings.ToLower(o.logLevel) {
 	case "debug":
@@ -180,17 +219,20 @@ func (o GlobalOptions) Set() error {
 	return nil
 }
 
-func (o GlobalOptions) ParseCommandLineOptions() error {
-	for i, opt := range o.want {
+func (o *GlobalOptions) ParseCommandLineOptions() error {
+	tmp := make([]GlobalOption, 0)
+	for _, opt := range o.want {
 		if o.cliContext.IsSet(opt.name) {
 			o.have[opt.name] = GlobalOption{value: o.cliContext.String(opt.name), from: "commandline"}
-			o.want = append(o.want[:i], o.want[i+1:]...)
+			continue
 		}
+		tmp = append(tmp, opt)
 	}
+	o.want = tmp
 	return nil
 }
 
-func (o GlobalOptions) ParseConfigFileOptions() error {
+func (o *GlobalOptions) ParseConfigFileOptions() error {
 	profile := o.cliContext.String("profile")
 	section, err := ProfileSection(profile)
 	if err != nil {
@@ -211,12 +253,14 @@ func (o GlobalOptions) ParseConfigFileOptions() error {
 	return nil
 }
 
-func (o GlobalOptions) ParseEnvVarOptions() error {
+func (o *GlobalOptions) ParseEnvVarOptions() error {
 	vars := map[string]string{
-		"username": "OS_USERNAME",
-		"password": "OS_PASSWORD",
-		"auth-url": "OS_AUTH_URL",
-		"region":   "OS_REGION_NAME",
+		"username":       "OS_USERNAME",
+		"user-id":        "OS_USERID",
+		"auth-tenant-id": "OS_TENANTID",
+		"password":       "OS_PASSWORD",
+		"auth-url":       "OS_AUTH_URL",
+		"region":         "OS_REGION_NAME",
 	}
 	for i, opt := range o.want {
 		if v := os.Getenv(strings.ToUpper(vars[opt.name])); v != "" {
@@ -227,7 +271,7 @@ func (o GlobalOptions) ParseEnvVarOptions() error {
 	return nil
 }
 
-func (o GlobalOptions) ValidateOutputInputParam() error {
+func (o *GlobalOptions) ValidateOutputInputParam() error {
 	switch o.have["output"].value {
 	case "json", "table", "":
 		return nil
@@ -236,7 +280,7 @@ func (o GlobalOptions) ValidateOutputInputParam() error {
 	}
 }
 
-func (o GlobalOptions) ValidateLogInputParam() error {
+func (o *GlobalOptions) ValidateLogInputParam() error {
 	switch o.have["log"].value {
 	case "debug", "info", "":
 		return nil

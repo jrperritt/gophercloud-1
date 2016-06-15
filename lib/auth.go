@@ -6,13 +6,13 @@ import "github.com/gophercloud/gophercloud"
 type Authenticater interface {
 	Authenticate() (*gophercloud.ServiceClient, error)
 	AuthFromScratch() (*gophercloud.ServiceClient, error)
-	SupportedServices() []string
+	//SupportedServices() []string
 }
 
 // AuthFromCacher is implemented by types that can authenticate
 // a user from a cache
 type AuthFromCacher interface {
 	AuthFromCache() (*gophercloud.ServiceClient, error)
-	Cache() Cacher
+	GetCache() Cacher
 	NoCache() bool
 }

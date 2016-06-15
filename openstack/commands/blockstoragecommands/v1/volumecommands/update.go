@@ -2,6 +2,7 @@ package volumecommands
 
 import (
 	"github.com/codegangsta/cli"
+	"github.com/gophercloud/cli/lib"
 	"github.com/gophercloud/cli/openstack"
 	"github.com/gophercloud/cli/util"
 	"github.com/gophercloud/gophercloud/openstack/blockstorage/v1/volumes"
@@ -11,13 +12,6 @@ type commandUpdate struct {
 	openstack.Command
 	id   string
 	opts volumes.UpdateOptsBuilder
-}
-
-var update = func() cli.Command {
-	c := new(commandUpdate)
-	c.SetFlags(flagsUpdate)
-	c.SetDefaultFields()
-	return openstack.NewCommand(c)
 }
 
 func (c commandUpdate) Name() string {
@@ -51,43 +45,33 @@ var flagsUpdate = []cli.Flag{
 	},
 }
 
-func (command *commandUpdate) HandleFlags() error {
-	volumeID, err := command.Ctx.IDOrName(osVolumes.IDFromName)
-	if err != nil {
-		return err
-	}
-
-	c := command.Ctx.CLIContext
-
-	opts := &osVolumes.UpdateOpts{
+func (c *commandUpdate) HandleFlags() (err error) {
+	c.opts = &volumes.UpdateOpts{
 		Name:        c.String("rename"),
 		Description: c.String("description"),
 	}
-
-	resource.Params = &paramsUpdate{
-		volumeID: volumeID,
-		opts:     opts,
-	}
-
-	return nil
+	c.id, err = c.IDOrName(volumes.IDFromName)
+	return
 }
 
-func (command *commandUpdate) Execute() {
-	opts := resource.Params.(*paramsUpdate).opts
-	volumeID := resource.Params.(*paramsUpdate).volumeID
-	volume, err := osVolumes.Update(command.Ctx.ServiceClient, volumeID, opts).Extract()
+func (c *commandUpdate) Execute(_ lib.Resourcer) (r lib.Resulter) {
+	var m map[string]interface{}
+	err := volumes.Update(c.ServiceClient(), c.id, c.opts).ExtractInto(&m)
 	if err != nil {
-		resource.Err = err
+		r.SetError(err)
 		return
 	}
-	resource.Result = volumeSingle(volume)
+	r.SetValue(m)
+	return
 }
 
-func (command *commandUpdate) PreCSV() error {
+/*
+func (c *commandUpdate) PreCSV() error {
 	resource.FlattenMap("Attachments")
 	return nil
 }
 
-func (command *commandUpdate) PreTable() error {
+func (c *commandUpdate) PreTable() error {
 	return command.PreCSV(resource)
 }
+*/

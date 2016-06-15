@@ -22,10 +22,11 @@ type LogRoundTripper struct {
 
 // newHTTPClient return a custom HTTP client that allows for logging relevant
 // information before and after the HTTP request.
-func newHTTPClient() http.Client {
+func newHTTPClient(l *logrus.Logger) http.Client {
 	return http.Client{
 		Transport: &LogRoundTripper{
-			rt: http.DefaultTransport,
+			Logger: l,
+			rt:     http.DefaultTransport,
 		},
 	}
 }
@@ -41,7 +42,7 @@ func (lrt *LogRoundTripper) RoundTrip(request *http.Request) (*http.Response, er
 	var err error
 
 	if lrt.Logger.Level == logrus.DebugLevel && request.Body != nil {
-		fmt.Println("Logging request body...")
+		lrt.Logger.Debugln("Logging request body...")
 		request.Body, err = lrt.logRequestBody(request.Body, request.Header)
 		if err != nil {
 			return nil, err

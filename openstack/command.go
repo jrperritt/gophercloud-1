@@ -2,7 +2,6 @@ package openstack
 
 import (
 	"fmt"
-	"reflect"
 	"strings"
 
 	"github.com/Sirupsen/logrus"
@@ -10,6 +9,10 @@ import (
 	"github.com/gophercloud/cli/lib"
 	"github.com/gophercloud/cli/util"
 	"github.com/gophercloud/gophercloud"
+)
+
+var (
+//_ lib.Commander = new(Command)
 )
 
 // Command is the type that commands have.
@@ -31,7 +34,8 @@ type Command struct {
 	// flag.
 	fields []string
 	// logger is used to log information acquired while processing the command.
-	logger *logrus.Logger
+	logger       *logrus.Logger
+	debugChannel chan string
 }
 
 func NewCommand(c lib.Commander, flags []cli.Flag, serviceClientType string) cli.Command {
@@ -48,36 +52,14 @@ func NewCommand(c lib.Commander, flags []cli.Flag, serviceClientType string) cli
 	}
 }
 
-func (c *Command) Name() string {
-	return ""
-}
-
-func (c *Command) Usage() string {
-	return ""
-}
-
-func (c *Command) Description() string {
-	return ""
-}
-
-func (c *Command) ReturnType() reflect.Type {
-	return reflect.TypeOf("")
-}
-
-func (c *Command) HandleFlags() error {
-	return nil
-}
-
-func (c *Command) Execute(_ lib.Resourcer) lib.Resulter {
-	return nil
-}
-
+/*
 func (c *Command) Action(cliContext *cli.Context) {
 	c.Context = cliContext
 	lib.Run(cliContext, c)
 }
+*/
 
-func (c Command) Fields() []string {
+func (c *Command) Fields() []string {
 	return c.fields
 }
 
@@ -85,7 +67,7 @@ func (c *Command) SetFields(fields []string) {
 	c.fields = fields
 }
 
-func (c Command) Flags() []cli.Flag {
+func (c *Command) Flags() []cli.Flag {
 	return CommandFlags(c.flags, c.Fields())
 }
 
@@ -93,11 +75,11 @@ func (c *Command) SetFlags(flags []cli.Flag) {
 	c.flags = flags
 }
 
-func (c Command) BashComplete(cliContext *cli.Context) {
+func (c *Command) BashComplete(cliContext *cli.Context) {
 	CompleteFlags(c.Flags())
 }
 
-func (c Command) ServiceClient() *gophercloud.ServiceClient {
+func (c *Command) ServiceClient() *gophercloud.ServiceClient {
 	return c.serviceClient
 }
 
@@ -105,7 +87,7 @@ func (c *Command) SetServiceClient(serviceClient *gophercloud.ServiceClient) {
 	c.serviceClient = serviceClient
 }
 
-func (c Command) ServiceClientType() string {
+func (c *Command) ServiceClientType() string {
 	return c.serviceClientType
 }
 
@@ -113,15 +95,27 @@ func (c *Command) SetServiceClientType(serviceClientType string) {
 	c.serviceClientType = serviceClientType
 }
 
-func (c Command) RunCommand(resultsChannel chan lib.Resulter) error {
-	resultsChannel <- c.Execute(new(Resource))
-	close(resultsChannel)
+func (c *Command) RunCommand(resultsChannel chan lib.Resulter) error {
+	r := c.Execute(new(Resource))
+	fmt.Printf("r: %+v\n", r)
+	go func() {
+		resultsChannel <- r
+		close(resultsChannel)
+	}()
 	return nil
+}
+
+func (c *Command) SetDebugChannel(ch chan string) {
+	c.debugChannel = ch
+}
+
+func (c *Command) Log(s string) {
+	c.debugChannel <- s
 }
 
 // IDOrName is a function for retrieving a resource's unique identifier based on
 // whether an `id` or a `name` flag was provided
-func (c Command) IDOrName(idFromNameFunc func(*gophercloud.ServiceClient, string) (string, error)) (string, error) {
+func (c *Command) IDOrName(idFromNameFunc func(*gophercloud.ServiceClient, string) (string, error)) (string, error) {
 	if c.IsSet("id") {
 		if c.IsSet("name") {
 			return "", fmt.Errorf("Only one of either --id or --name may be provided.")
@@ -140,7 +134,7 @@ func (c Command) IDOrName(idFromNameFunc func(*gophercloud.ServiceClient, string
 }
 
 // CheckFlagsSet checks that the given flag names are set for the command.
-func (c Command) CheckFlagsSet(flagNames []string) error {
+func (c *Command) CheckFlagsSet(flagNames []string) error {
 	for _, flagName := range flagNames {
 		if !c.IsSet(flagName) {
 			return lib.ErrMissingFlag{Msg: fmt.Sprintf("--%s is required.", flagName)}
@@ -150,7 +144,7 @@ func (c Command) CheckFlagsSet(flagNames []string) error {
 }
 
 // CheckKVFlag is a function used for verifying the format of a key-value flag.
-func (c Command) ValidateKVFlag(flagName string) (map[string]string, error) {
+func (c *Command) ValidateKVFlag(flagName string) (map[string]string, error) {
 	kv := make(map[string]string)
 	kvStrings := strings.Split(c.String(flagName), ",")
 	for _, kvString := range kvStrings {
@@ -164,7 +158,7 @@ func (c Command) ValidateKVFlag(flagName string) (map[string]string, error) {
 }
 
 // CheckStructFlag is a function used for verifying the format of a struct flag.
-func (c Command) ValidateStructFlag(flagValues []string) ([]map[string]interface{}, error) {
+func (c *Command) ValidateStructFlag(flagValues []string) ([]map[string]interface{}, error) {
 	valSliceMap := make([]map[string]interface{}, len(flagValues))
 	for i, flagValue := range flagValues {
 		kvStrings := strings.Split(flagValue, ",")

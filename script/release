@@ -6,7 +6,7 @@ source "${SCRIPT_DIR}/lib.sh"
 
 NEW_VERSION=${1:-}
 REMOTE="release"
-REMOTE_URL="git@github.com:rackspace/rack.git"
+REMOTE_URL="git@github.com:gophercloud/cli.git"
 
 
 # BRANCH

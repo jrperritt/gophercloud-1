@@ -6,22 +6,15 @@ source "${SCRIPT_DIR}/lib.sh"
 
 build() {
   if [ -n "$GOPATH" ]; then
-    echo "Building rack!"
+    echo "Building stack!"
 
-    RACKBUILD=${1:-${GOPATH}/bin/rack}
+    RACKBUILD=${1:-${GOPATH}/bin/stack}
 
     get_commit
     get_version
 
-    # Check the go version
-    EQ=" "
-    go version | grep -q go1.6
-    if [ $? == 0 ]; then
-      EQ="="
-    fi
-
-    LDFLAGS="-X github.com/gophercloud/cli/version.Commit${EQ}${COMMIT} \
-             -X github.com/gophercloud/cli/version.Version${EQ}${VERSION}"
+    LDFLAGS="-X github.com/gophercloud/cli/version.Commit=${COMMIT} \
+             -X github.com/gophercloud/cli/version.Version=${VERSION}"
     CGO_ENABLED=0 go build -a -installsuffix cgo -ldflags "${LDFLAGS}" -o "${RACKBUILD}"
     return $?
   else

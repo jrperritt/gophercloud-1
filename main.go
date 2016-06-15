@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/gophercloud/cli/lib"
+	"github.com/gophercloud/cli/openstack"
 	"github.com/gophercloud/cli/openstack/commands/blockstoragecommands"
 	"github.com/gophercloud/cli/setup"
 
@@ -13,19 +14,23 @@ import (
 	"github.com/codegangsta/cli"
 )
 
+func init() {
+	lib.Context = new(openstack.Context)
+}
+
 func main() {
 	cli.HelpPrinter = printHelp
 	cli.AppHelpTemplate = appHelpTemplate
 	cli.CommandHelpTemplate = commandHelpTemplate
 	cli.SubcommandHelpTemplate = subcommandHelpTemplate
 	app := cli.NewApp()
-	app.Name = lib.Cloud.Name()
+	app.Name = lib.Context.Name()
 	app.Version = fmt.Sprintf("%v version %v\n   commit: %v\n", app.Name, version.Version, version.Commit)
 	app.Usage = Usage()
 	app.HideVersion = true
 	app.EnableBashCompletion = true
 	app.Commands = Cmds()
-	app.CommandNotFound = commandNotFound
+	//app.CommandNotFound = commandNotFound
 	app.Run(os.Args)
 }
 
@@ -44,11 +49,12 @@ func Desc() string {
 func Cmds() []cli.Command {
 
 	return []cli.Command{
-		{
-			Name:   "configure",
-			Usage:  "Interactively create a config file for authentication.",
-			Action: configure,
-		},
+		/*
+			{
+				Name:   "configure",
+				Usage:  "Interactively create a config file for authentication.",
+				Action: configure,
+			},*/
 		{
 			Name: "init",
 			Usage: "Enable tab for command completion." +
@@ -60,7 +66,7 @@ func Cmds() []cli.Command {
 				"\n\tcommand completion.",
 			Action: func(c *cli.Context) {
 				setup.Init(c)
-				man()
+				//man()
 			},
 		},
 		{

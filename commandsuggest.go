@@ -1,4 +1,4 @@
-package openstack
+package main
 
 import (
 	"fmt"

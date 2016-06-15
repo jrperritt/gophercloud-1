@@ -14,13 +14,6 @@ type commandCreate struct {
 	wait bool
 }
 
-var create = func() cli.Command {
-	c := new(commandCreate)
-	c.SetFlags(flagsCreate)
-	c.SetDefaultFields()
-	return openstack.NewCommand(c)
-}
-
 func (c commandCreate) Name() string {
 	return "create"
 }
@@ -62,9 +55,8 @@ func (c *commandCreate) HandleFlags() error {
 		return err
 	}
 
-	wait := false
 	if c.IsSet("wait-for-completion") {
-		wait = true
+		c.wait = true
 	}
 
 	c.opts = volumes.CreateOptsBuilder(
@@ -99,7 +91,7 @@ func (c *commandCreate) Execute(r lib.Resourcer) (res lib.Resulter) {
 		}
 	}
 
-	res.SetValue(volumeSingle(volume))
+	res.SetValue(volume)
 	return
 }
 

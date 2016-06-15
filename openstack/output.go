@@ -33,7 +33,7 @@ func (o output) GetFormatOptions() []string {
 
 func (o output) OutputResult(resulter lib.Resulter) error {
 
-	_ = resulter.(*Result)
+	//_ = resulter.(*Result)
 
 	switch resulter.(type) {
 

@@ -2,8 +2,10 @@ package volumecommands
 
 import (
 	"github.com/codegangsta/cli"
+	"github.com/gophercloud/cli/lib"
 	"github.com/gophercloud/cli/openstack"
 	"github.com/gophercloud/cli/util"
+	"github.com/gophercloud/gophercloud/openstack/blockstorage/v1/volumes"
 )
 
 type commandGet struct {
@@ -11,22 +13,15 @@ type commandGet struct {
 	id string
 }
 
-var get = func() cli.Command {
-	c := new(commandGet)
-	c.SetFlags(flagsGet)
-	c.SetDefaultFields()
-	return openstack.NewCommand(c)
-}
-
-func (c commandGet) Name() string {
+func (c *commandGet) Name() string {
 	return "get"
 }
 
-func (c commandGet) Usage() string {
+func (c *commandGet) Usage() string {
 	return util.Usage(commandPrefix, "get", "[--id <volumeID> | --name <volumeName> | --stdin id]")
 }
 
-func (c commandGet) Description() string {
+func (c *commandGet) Description() string {
 	return "Gets a volume"
 }
 
@@ -45,45 +40,47 @@ var flagsGet = []cli.Flag{
 	},
 }
 
-func (command *commandGet) HandleFlags() error {
-	resource.Params = &paramsGet{}
+func (c *commandGet) HandleFlags() error {
 	return nil
 }
 
-func (command *commandGet) HandlePipe(item string) error {
-	resource.Params.(*paramsGet).volumeID = item
+func (c *commandGet) HandlePipe(item string) error {
+	c.id = item
 	return nil
 }
 
-func (command *commandGet) HandleSingle() error {
-	volumeID, err := command.Ctx.IDOrName(osVolumes.IDFromName)
+func (c *commandGet) HandleSingle() error {
+	id, err := c.IDOrName(volumes.IDFromName)
 	if err != nil {
 		return err
 	}
-	resource.Params.(*paramsGet).volumeID = volumeID
+	c.id = id
 	return nil
 }
 
-func (command *commandGet) Execute() {
-	volumeID := resource.Params.(*paramsGet).volumeID
-	volume, err := osVolumes.Get(command.Ctx.ServiceClient, volumeID).Extract()
+func (c *commandGet) Execute(_ lib.Resourcer) (r lib.Resulter) {
+	var m map[string]interface{}
+	err := volumes.Get(c.ServiceClient(), c.id).ExtractInto(m)
 	if err != nil {
-		resource.Err = err
+		r.SetError(err)
 		return
 	}
-	resource.Result = volumeSingle(volume)
+	r.SetValue(m)
+	return
 }
 
-func (command *commandGet) StdinField() string {
+func (c *commandGet) StdinField() string {
 	return "id"
 }
 
-func (command *commandGet) PreCSV() error {
+/*
+func (c *commandGet) PreCSV() error {
 	resource.FlattenMap("Metadata")
 	resource.FlattenMap("Attachments")
 	return nil
 }
 
-func (command *commandGet) PreTable() error {
+func (c *commandGet) PreTable() error {
 	return command.PreCSV(resource)
 }
+*/

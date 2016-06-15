@@ -22,11 +22,11 @@ _cli_bash_autocomplete() {
   cur="${COMP_WORDS[COMP_CWORD]}"
   prev="${COMP_WORDS[COMP_CWORD-1]}"
 
-  # The first 5 words should always be completed by rack
+  # The first 5 words should always be completed by stack
   if [[ ${#COMP_WORDS[@]} -lt 5 ]]; then
     opts=$( ${COMP_WORDS[@]:0:$COMP_CWORD} --generate-bash-completion )
     COMPREPLY=( $(compgen -W "${opts}" -- ${cur}) )
-  # All flags should be completed by rack
+  # All flags should be completed by stack
   elif [[ ${cur} == -* ]]; then
     opts=$( ${COMP_WORDS[@]:0:$COMP_CWORD} --generate-bash-completion )
     COMPREPLY=( $(compgen -W "${opts}" -- ${cur}) )
@@ -38,7 +38,7 @@ _cli_bash_autocomplete() {
   return 0
 }
 
-complete -o default -F _cli_bash_autocomplete rack
+complete -o default -F _cli_bash_autocomplete stack
 `
 
 // Init runs logic for setting up amenities such as command completion.
@@ -54,12 +54,12 @@ func Init(c *cli.Context) {
 		rackCompletionPath := path.Join(rackDir, "bash_autocomplete")
 		rackCompletionFile, err := os.Create(rackCompletionPath)
 		if err != nil {
-			fmt.Fprintf(w, "Error creating `rack` bash completion file: %s\n", err)
+			fmt.Fprintf(w, "Error creating `stack` bash completion file: %s\n", err)
 			return
 		}
 		_, err = rackCompletionFile.WriteString(rackBashAutocomplete)
 		if err != nil {
-			fmt.Fprintf(w, "Error writing to `rack` bash completion file: %s\n", err)
+			fmt.Fprintf(w, "Error writing to `stack` bash completion file: %s\n", err)
 			return
 		}
 		rackCompletionFile.Close()
@@ -176,7 +176,7 @@ function global:TabExpansion2 {
         $ast = [System.Management.Automation.Language.Parser]::ParseInput($inputScript, [ref]$tokens, [ref]$null)
       }
       $text = $ast.Extent.Text
-    	if($text -match '^*rack.exe*') {
+    	if($text -match '^*stack.exe*') {
         $cmd1 = $text -split '\s+'
         $end = $cmd1.count - 2
         $cmd2 = $cmd1[0..$end]

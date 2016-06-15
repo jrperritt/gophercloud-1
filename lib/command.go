@@ -33,6 +33,7 @@ type Commander interface {
 	Execute(Resourcer) Resulter
 
 	ReturnType() reflect.Type
+	SetDebugChannel(chan string)
 }
 
 // PipeCommander is an interface that commands implement if they can accept input

@@ -51,7 +51,7 @@ func RackDir() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	dirpath := path.Join(homeDir, ".rack")
+	dirpath := path.Join(homeDir, ".openstack")
 	err = os.MkdirAll(dirpath, 0744)
 	return dirpath, err
 }
@@ -99,7 +99,7 @@ func BuildFields(t reflect.Type) []string {
 }
 
 func GetVersion(s string) string {
-	return ""
+	return "1"
 }
 
 // WaitFor polls a predicate function, once per second, up to a timeout limit.

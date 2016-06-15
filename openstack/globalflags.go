@@ -11,6 +11,10 @@ func GlobalFlags() []cli.Flag {
 			Usage: "The username with which to authenticate.",
 		},
 		cli.StringFlag{
+			Name:  "user-id",
+			Usage: "The user ID with which to authenticate.",
+		},
+		cli.StringFlag{
 			Name:  "password",
 			Usage: "The password with which to authenticate.",
 		},

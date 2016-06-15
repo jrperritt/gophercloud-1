@@ -15,7 +15,7 @@ import (
 // Cache represents a place to store user authentication credentials.
 type Cache struct {
 	items map[string]CacheItem
-	*sync.RWMutex
+	sync.RWMutex
 	usernameOrTenantID string
 	identityEndpoint   string
 	region             string

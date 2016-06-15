@@ -17,13 +17,6 @@ type commandDelete struct {
 	wait bool
 }
 
-var remove = func() cli.Command {
-	c := new(commandDelete)
-	c.SetFlags(flagsDelete)
-	c.SetDefaultFields()
-	return openstack.NewCommand(c)
-}
-
 func (c commandDelete) Name() string {
 	return "delete"
 }
@@ -56,9 +49,8 @@ var flagsDelete = []cli.Flag{
 }
 
 func (c *commandDelete) HandleFlags() error {
-	wait := false
 	if c.IsSet("wait-for-completion") {
-		wait = true
+		c.wait = true
 	}
 
 	return nil
@@ -73,7 +65,7 @@ func (c *commandDelete) HandleSingle() error {
 	return nil
 }
 
-func (c *commandDelete) Execute(r lib.Resourcer) (res lib.Resulter) {
+func (c *commandDelete) Execute(_ lib.Resourcer) (res lib.Resulter) {
 	err := volumes.Delete(c.ServiceClient(), c.id).ExtractErr()
 	if err != nil {
 		res.SetError(err)
@@ -90,9 +82,9 @@ func (c *commandDelete) Execute(r lib.Resourcer) (res lib.Resulter) {
 			time.Sleep(5 * time.Second)
 			i++
 		}
-		res.SetValue(fmt.Sprintf("Deleted volume [%s]\n", volumeID))
+		res.SetValue(fmt.Sprintf("Deleted volume [%s]\n", c.id))
 	} else {
-		res.SetValue(fmt.Sprintf("Deleting volume [%s]\n", volumeID))
+		res.SetValue(fmt.Sprintf("Deleting volume [%s]\n", c.id))
 	}
 
 	return

@@ -1,4 +1,4 @@
-package openstack
+package main
 
 import (
 	"fmt"
@@ -9,6 +9,7 @@ import (
 
 	"github.com/codegangsta/cli"
 	"github.com/gophercloud/cli/lib"
+	"github.com/gophercloud/cli/openstack"
 )
 
 var appHelpTemplate = `NAME:
@@ -69,7 +70,7 @@ func printHelp(out io.Writer, templ string, data interface{}) {
 }
 
 func isGlobalFlag(cliflag cli.Flag) bool {
-	globalFlags := GlobalFlags()
+	globalFlags := openstack.GlobalFlags()
 	for _, globalFlag := range globalFlags {
 		if globalFlag == cliflag {
 			return true
@@ -79,7 +80,7 @@ func isGlobalFlag(cliflag cli.Flag) bool {
 }
 
 func isNotGlobalFlag(cliflag cli.Flag) bool {
-	globalFlags := GlobalFlags()
+	globalFlags := openstack.GlobalFlags()
 	for _, globalFlag := range globalFlags {
 		if globalFlag == cliflag {
 			return false
