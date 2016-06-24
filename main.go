@@ -15,7 +15,7 @@ import (
 )
 
 func init() {
-	lib.Context = new(openstack.Context)
+	lib.Provider = new(openstack.Context)
 }
 
 func main() {
@@ -24,13 +24,13 @@ func main() {
 	cli.CommandHelpTemplate = commandHelpTemplate
 	cli.SubcommandHelpTemplate = subcommandHelpTemplate
 	app := cli.NewApp()
-	app.Name = lib.Context.Name()
+	app.Name = lib.Provider.Name()
 	app.Version = fmt.Sprintf("%v version %v\n   commit: %v\n", app.Name, version.Version, version.Commit)
 	app.Usage = Usage()
 	app.HideVersion = true
 	app.EnableBashCompletion = true
 	app.Commands = Cmds()
-	//app.CommandNotFound = commandNotFound
+	app.CommandNotFound = commandNotFound
 	app.Run(os.Args)
 }
 

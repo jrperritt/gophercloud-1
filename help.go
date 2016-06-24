@@ -29,9 +29,9 @@ var commandHelpTemplate = `NAME: {{.Name}} - {{.Usage}}{{if .Description}}
 
 DESCRIPTION: {{.Description}}{{end}}{{if .Flags}}
 
-COMMAND FLAGS:{{if neq commandInfo ""}}
+COMMAND FLAGS:{{with $info := commandInfo .}}{{if ne $info ""}}
 
-{{commandInfo .}}{{end}}
+{{commandInfo .}}{{end}}{{end}}
 
 {{range .Flags}}{{if isNotGlobalFlag .}}{{flag .}}
 {{end}}{{end}}

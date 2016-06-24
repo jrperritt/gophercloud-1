@@ -9,21 +9,25 @@ import (
 )
 
 type commandUpdate struct {
-	openstack.Command
+	openstack.CommandUtil
+	VolumeV1Command
 	id   string
 	opts volumes.UpdateOptsBuilder
 }
 
-func (c commandUpdate) Name() string {
-	return "delete"
+var update = cli.Command{
+	Name:         "update",
+	Usage:        util.Usage(commandPrefix, "update", "[--id <volumeID> | --name <volumeName>]"),
+	Description:  "Updates a volume",
+	Action:       actionUpdate,
+	Flags:        flagsUpdate,
+	BashComplete: func(_ *cli.Context) { openstack.BashComplete(flagsUpdate) },
 }
 
-func (c commandUpdate) Usage() string {
-	return util.Usage(commandPrefix, "update", "[--id <volumeID> | --name <volumeName>]")
-}
-
-func (c commandUpdate) Description() string {
-	return "Updates a volume"
+func actionUpdate(ctx *cli.Context) {
+	c := new(commandUpdate)
+	c.Context = ctx
+	lib.Run(ctx, c)
 }
 
 var flagsUpdate = []cli.Flag{
@@ -47,22 +51,22 @@ var flagsUpdate = []cli.Flag{
 
 func (c *commandUpdate) HandleFlags() (err error) {
 	c.opts = &volumes.UpdateOpts{
-		Name:        c.String("rename"),
-		Description: c.String("description"),
+		Name:        c.Context.String("rename"),
+		Description: c.Context.String("description"),
 	}
 	c.id, err = c.IDOrName(volumes.IDFromName)
 	return
 }
 
-func (c *commandUpdate) Execute(_ lib.Resourcer) (r lib.Resulter) {
+func (c *commandUpdate) Execute(_ interface{}, out chan interface{}) {
 	var m map[string]interface{}
-	err := volumes.Update(c.ServiceClient(), c.id, c.opts).ExtractInto(&m)
-	if err != nil {
-		r.SetError(err)
-		return
+	err := volumes.Update(c.ServiceClient, c.id, c.opts).ExtractInto(&m)
+	switch {
+	case err == nil:
+		out <- m
+	default:
+		out <- err
 	}
-	r.SetValue(m)
-	return
 }
 
 /*

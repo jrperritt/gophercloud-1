@@ -1,8 +1,6 @@
 package volumecommands
 
 import (
-	"fmt"
-
 	"github.com/codegangsta/cli"
 	"github.com/gophercloud/cli/lib"
 	"github.com/gophercloud/cli/openstack"
@@ -12,20 +10,24 @@ import (
 )
 
 type commandList struct {
-	openstack.Command
+	openstack.CommandUtil
+	VolumeV1Command
 	opts volumes.ListOptsBuilder
 }
 
-func (c commandList) Name() string {
-	return "list"
+var list = cli.Command{
+	Name:         "list",
+	Usage:        util.Usage(commandPrefix, "list", ""),
+	Description:  "Lists existing volumes",
+	Action:       actionList,
+	Flags:        openstack.CommandFlags(flagsList, []string{}),
+	BashComplete: func(_ *cli.Context) { openstack.BashComplete(flagsList) },
 }
 
-func (c commandList) Usage() string {
-	return util.Usage(commandPrefix, "list", "")
-}
-
-func (c commandList) Description() string {
-	return "Lists existing volumes"
+func actionList(ctx *cli.Context) {
+	c := new(commandList)
+	c.Context = ctx
+	lib.Run(ctx, c)
 }
 
 var flagsList = []cli.Flag{
@@ -41,41 +43,25 @@ var flagsList = []cli.Flag{
 
 func (c *commandList) HandleFlags() error {
 	c.opts = &volumes.ListOpts{
-		Name:   c.String("name"),
-		Status: c.String("status"),
+		Name:   c.Context.String("name"),
+		Status: c.Context.String("status"),
 	}
 	return nil
 }
 
-func (c *commandList) Execute(_ lib.Resourcer) lib.Resulter {
-	r := new(openstack.Result)
-	pager := volumes.List(c.ServiceClient(), c.opts)
-	m := make([]map[string]interface{}, 0)
-	//allPages, err := pager.AllPages()
-	//if err != nil {
-	//	r.SetError(err)
-	//	return r
-	//}
-	fmt.Printf("pager :%+v\n", pager)
+func (c *commandList) Execute(_ interface{}, out chan interface{}) {
+	pager := volumes.List(c.ServiceClient, c.opts)
 	err := pager.EachPage(func(page pagination.Page) (bool, error) {
 		var tmp []map[string]interface{}
-		//info, err := volumes.ExtractVolumes(page)
 		err := (page.(volumes.VolumePage)).ExtractInto(&tmp)
 		if err != nil {
 			return false, err
 		}
-		fmt.Sprintf("tmp: %+v", tmp)
-		//result := make([]volumes.Volume, len(info))
-		//for j, volume := range info {
-		//	result[j] = volume
-		//}
-		m = append(m, tmp...)
+		out <- tmp
 		return true, nil
 	})
 	if err != nil {
-		r.SetError(err)
-		return r
+		out <- err
 	}
-	r.SetValue(m)
-	return r
+	close(out)
 }

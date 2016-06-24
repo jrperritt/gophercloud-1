@@ -12,9 +12,25 @@ import (
 )
 
 type commandDelete struct {
-	openstack.Command
+	openstack.CommandUtil
+	VolumeV1Command
 	id   string
 	wait bool
+}
+
+var remove = cli.Command{
+	Name:         "delete",
+	Usage:        util.Usage(commandPrefix, "delete", "[--id <volumeID> | --name <volumeName> | --stdin id]"),
+	Description:  "Deletes a volume",
+	Action:       actionDelete,
+	Flags:        flagsDelete,
+	BashComplete: func(_ *cli.Context) { openstack.BashComplete(flagsDelete) },
+}
+
+func actionDelete(ctx *cli.Context) {
+	c := new(commandDelete)
+	c.Context = ctx
+	lib.Run(ctx, c)
 }
 
 func (c commandDelete) Name() string {
@@ -49,7 +65,7 @@ var flagsDelete = []cli.Flag{
 }
 
 func (c *commandDelete) HandleFlags() error {
-	if c.IsSet("wait-for-completion") {
+	if c.Context.IsSet("wait-for-completion") {
 		c.wait = true
 	}
 
@@ -65,31 +81,31 @@ func (c *commandDelete) HandleSingle() error {
 	return nil
 }
 
-func (c *commandDelete) Execute(_ lib.Resourcer) (res lib.Resulter) {
-	err := volumes.Delete(c.ServiceClient(), c.id).ExtractErr()
+func (c *commandDelete) Execute(item interface{}, out chan interface{}) {
+	id := item.(string)
+	err := volumes.Delete(c.ServiceClient, id).ExtractErr()
 	if err != nil {
-		res.SetError(err)
+		out <- err
 		return
 	}
 
-	if c.wait {
+	switch c.wait {
+	case true:
 		i := 0
 		for i < 120 {
-			_, err := volumes.Get(c.ServiceClient(), c.id).Extract()
+			_, err := volumes.Get(c.ServiceClient, id).Extract()
 			if err != nil {
 				break
 			}
 			time.Sleep(5 * time.Second)
 			i++
 		}
-		res.SetValue(fmt.Sprintf("Deleted volume [%s]\n", c.id))
-	} else {
-		res.SetValue(fmt.Sprintf("Deleting volume [%s]\n", c.id))
+		out <- fmt.Sprintf("Deleted volume [%s]\n", id)
+	default:
+		out <- fmt.Sprintf("Deleting volume [%s]\n", id)
 	}
-
-	return
 }
 
 func (c *commandDelete) PipeFieldOptions() []string {
-	return []string{"id", "name"}
+	return []string{"id"}
 }

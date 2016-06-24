@@ -1,9 +1,9 @@
 package lib
 
 type Outputter interface {
-	OutputResult(Resulter) error
+	OutputResult(interface{}) error
 	GetFormatOptions() []string
-	LimitFields(Resulter)
+	LimitFields(interface{})
 }
 
 type Tabler interface {
@@ -16,10 +16,10 @@ type JSONer interface {
 
 // PreJSONer is an interface that commands will satisfy if they have a `PreJSON` method.
 type PreJSONer interface {
-	PreJSON(Resulter) error
+	PreJSON(interface{}) error
 }
 
 // PreTabler is an interface that commands will satisfy if they have a `PreTable` method.
 type PreTabler interface {
-	PreTable(Resulter) error
+	PreTable(interface{}) error
 }

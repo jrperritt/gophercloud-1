@@ -6,9 +6,9 @@ source "${SCRIPT_DIR}/lib.sh"
 
 build() {
   if [ -n "$GOPATH" ]; then
-    echo "Building stack!"
+    echo "Building openstack!"
 
-    RACKBUILD=${1:-${GOPATH}/bin/stack}
+    RACKBUILD=${1:-${GOPATH}/bin/openstack}
 
     get_commit
     get_version

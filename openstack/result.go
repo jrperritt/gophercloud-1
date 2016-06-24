@@ -1,31 +1,20 @@
 package openstack
 
-import (
-	"fmt"
-	"io"
-	"reflect"
+import "github.com/gophercloud/cli/lib"
 
-	"github.com/gophercloud/cli/lib"
-)
+type DebugMsg string
 
 // Result satisfies the Resulter interface
 type Result struct {
-	// err will store any error encountered while processing the command.
-	err   error
 	value interface{}
 	rt    lib.ResultTyper
 }
 
-// GetValue satisfies the Resulter.GetValue method
-func (r *Result) GetValue() interface{} {
-	return r.value
+func NewResult() *Result {
+	return new(Result)
 }
 
-// SetValue satisfies the Resulter.SetValue method
-func (r *Result) SetValue(v interface{}) {
-	r.value = v
-}
-
+/*
 // GetTypes satisfies the Resulter.GetTypes method
 func (r *Result) GetTypes() []lib.ResultTyper {
 	return []lib.ResultTyper{
@@ -36,12 +25,9 @@ func (r *Result) GetTypes() []lib.ResultTyper {
 	}
 }
 
+
 // SetType satisfies the Resulter.SetType method
 func (r *Result) SetType() {
-	if err := r.GetError(); err != nil {
-		r.SetValue(err)
-	}
-
 	for _, t := range r.GetTypes() {
 		if reflect.TypeOf(r.GetValue()).AssignableTo(reflect.TypeOf(t)) {
 			r.rt = t
@@ -52,16 +38,6 @@ func (r *Result) SetType() {
 // GetType satisfies the Resulter.GetType method
 func (r *Result) GetType() lib.ResultTyper {
 	return r.rt
-}
-
-// SetError satisfies the Resulter.SetError method
-func (r *Result) SetError(err error) {
-	r.err = err
-}
-
-// GetError satisfies the Resulter.GetError method
-func (r *Result) GetError() error {
-	return r.err
 }
 
 // GetEmptyValue satisfies the Resulter.GetEmptyValue method
@@ -128,3 +104,4 @@ func (rt IOReader) GetEmptyValue() interface{} {
 func (rt IOReader) Print() {
 
 }
+*/

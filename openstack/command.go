@@ -4,139 +4,71 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/Sirupsen/logrus"
 	"github.com/codegangsta/cli"
 	"github.com/gophercloud/cli/lib"
-	"github.com/gophercloud/cli/util"
 	"github.com/gophercloud/gophercloud"
 )
 
-var (
-//_ lib.Commander = new(Command)
-)
-
 // Command is the type that commands have.
-type Command struct {
+type CommandUtil struct {
 	// cli.Context is the context that the `cli` library uses. Used to
 	// access flags.
-	*cli.Context
+	Context *cli.Context
 	// ServiceClient is the service client used to authenticate the user
 	// and carry out the requests while processing the command.
-	serviceClient *gophercloud.ServiceClient
+	ServiceClient *gophercloud.ServiceClient
 	// ServiceClientType is the type of service client used (e.g. compute).
-	serviceClientType string
+	//ServiceClientType string
 	// results is a channel into which commands send results. It allows for streaming
 	// output.
 	//results chan *gophercloudCLILib.Resulter
 	// flags are the command-specific flags
-	flags []cli.Flag
+	//Flags []cli.Flag
 	// fields are the fields available to output. These may be limited by the `fields`
 	// flag.
-	fields []string
+	//Fields []string
 	// logger is used to log information acquired while processing the command.
-	logger       *logrus.Logger
-	debugChannel chan string
+	//Logger *logrus.Logger
 }
 
-func NewCommand(c lib.Commander, flags []cli.Flag, serviceClientType string) cli.Command {
-	c.SetFlags(flags)
-	c.SetServiceClientType(serviceClientType)
-	c.SetFields(util.BuildFields(c.ReturnType()))
-	return cli.Command{
-		Name:         c.Name(),
-		Usage:        c.Usage(),
-		Description:  c.Description(),
-		Action:       c.Action,
-		Flags:        c.Flags(),
-		BashComplete: c.BashComplete,
-	}
+func BashComplete(flags []cli.Flag) {
+	CompleteFlags(flags)
 }
 
-/*
-func (c *Command) Action(cliContext *cli.Context) {
-	c.Context = cliContext
-	lib.Run(cliContext, c)
-}
-*/
-
-func (c *Command) Fields() []string {
-	return c.fields
+func (c *CommandUtil) SetServiceClient(sc *gophercloud.ServiceClient) {
+	c.ServiceClient = sc
 }
 
-func (c *Command) SetFields(fields []string) {
-	c.fields = fields
-}
-
-func (c *Command) Flags() []cli.Flag {
-	return CommandFlags(c.flags, c.Fields())
-}
-
-func (c *Command) SetFlags(flags []cli.Flag) {
-	c.flags = flags
-}
-
-func (c *Command) BashComplete(cliContext *cli.Context) {
-	CompleteFlags(c.Flags())
-}
-
-func (c *Command) ServiceClient() *gophercloud.ServiceClient {
-	return c.serviceClient
-}
-
-func (c *Command) SetServiceClient(serviceClient *gophercloud.ServiceClient) {
-	c.serviceClient = serviceClient
-}
-
-func (c *Command) ServiceClientType() string {
-	return c.serviceClientType
-}
-
-func (c *Command) SetServiceClientType(serviceClientType string) {
-	c.serviceClientType = serviceClientType
-}
-
-func (c *Command) RunCommand(resultsChannel chan lib.Resulter) error {
-	r := c.Execute(new(Resource))
-	fmt.Printf("r: %+v\n", r)
-	go func() {
-		resultsChannel <- r
-		close(resultsChannel)
-	}()
-	return nil
-}
-
-func (c *Command) SetDebugChannel(ch chan string) {
-	c.debugChannel = ch
-}
-
-func (c *Command) Log(s string) {
-	c.debugChannel <- s
+func (c *CommandUtil) Ctx() *cli.Context {
+	return c.Context
 }
 
 // IDOrName is a function for retrieving a resource's unique identifier based on
 // whether an `id` or a `name` flag was provided
-func (c *Command) IDOrName(idFromNameFunc func(*gophercloud.ServiceClient, string) (string, error)) (string, error) {
-	if c.IsSet("id") {
-		if c.IsSet("name") {
+func (c *CommandUtil) IDOrName(idFromNameFunc func(*gophercloud.ServiceClient, string) (string, error)) (string, error) {
+	switch c.Context.IsSet("id") {
+	case true:
+		switch c.Context.IsSet("name") {
+		case true:
 			return "", fmt.Errorf("Only one of either --id or --name may be provided.")
+		case false:
+			return c.Context.String("id"), nil
 		}
-		return c.String("id"), nil
-	} else if c.IsSet("name") {
-		name := c.String("name")
-		id, err := idFromNameFunc(c.serviceClient, name)
-		if err != nil {
-			return "", fmt.Errorf("Error converting name [%s] to ID: %s", name, err)
+	case false:
+		switch c.Context.IsSet("name") {
+		case true:
+			name := c.Context.String("name")
+			id, err := idFromNameFunc(c.ServiceClient, name)
+			return id, err
 		}
-		return id, nil
-	} else {
-		return "", lib.ErrMissingFlag{Msg: "One of either --id or --name must be provided."}
 	}
+	return "", lib.ErrMissingFlag{Msg: "One of either --id or --name must be provided."}
 }
 
 // CheckFlagsSet checks that the given flag names are set for the command.
-func (c *Command) CheckFlagsSet(flagNames []string) error {
+func (c *CommandUtil) CheckFlagsSet(flagNames []string) error {
 	for _, flagName := range flagNames {
-		if !c.IsSet(flagName) {
+		if !c.Context.IsSet(flagName) {
 			return lib.ErrMissingFlag{Msg: fmt.Sprintf("--%s is required.", flagName)}
 		}
 	}
@@ -144,9 +76,9 @@ func (c *Command) CheckFlagsSet(flagNames []string) error {
 }
 
 // CheckKVFlag is a function used for verifying the format of a key-value flag.
-func (c *Command) ValidateKVFlag(flagName string) (map[string]string, error) {
+func (c *CommandUtil) ValidateKVFlag(flagName string) (map[string]string, error) {
 	kv := make(map[string]string)
-	kvStrings := strings.Split(c.String(flagName), ",")
+	kvStrings := strings.Split(c.Context.String(flagName), ",")
 	for _, kvString := range kvStrings {
 		temp := strings.Split(kvString, "=")
 		if len(temp) != 2 {
@@ -158,7 +90,7 @@ func (c *Command) ValidateKVFlag(flagName string) (map[string]string, error) {
 }
 
 // CheckStructFlag is a function used for verifying the format of a struct flag.
-func (c *Command) ValidateStructFlag(flagValues []string) ([]map[string]interface{}, error) {
+func (c *CommandUtil) ValidateStructFlag(flagValues []string) ([]map[string]interface{}, error) {
 	valSliceMap := make([]map[string]interface{}, len(flagValues))
 	for i, flagValue := range flagValues {
 		kvStrings := strings.Split(flagValue, ",")

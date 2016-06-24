@@ -1,82 +1,86 @@
 package lib
 
-import (
-	"fmt"
+import "fmt"
 
-	"github.com/codegangsta/cli"
-)
+type Context interface {
+	FlagNames() []string
+	NumFlags() int
+}
 
 // Provider should be implemented by one object per cloud provider
-type Provider interface {
+type CloudProvider interface {
 	// the name of the cli tool
 	Name() string
 
-	NewGlobalOptionser(*cli.Context) GlobalOptionser
+	NewGlobalOptionser(Context) GlobalOptionser
 
 	NewAuthenticater(GlobalOptionser, string) Authenticater
 
-	ResultsChannel() chan Resulter
+	InputChannel() chan interface{}
+
+	FillInputChannel(Commander, chan interface{})
+
+	ResultsChannel() chan interface{}
 
 	NewResultOutputter(GlobalOptionser) Outputter
 
 	ErrExit1(error)
 }
 
-// Context is a global variable representing the CLI's global context. It should
+// Provider is a global variable representing the CLI's global context. It should
 // be set (read: overridden) by each cloud provider
-var Context Provider
+var Provider CloudProvider
 
 // Run executes all the methods of a Provider for each command
-func Run(cliContext *cli.Context, commander Commander) {
+func Run(context Context, commander Commander) {
 
-	debugChannel := make(chan string)
-	commander.SetDebugChannel(debugChannel)
-	go func() {
-		for msg := range debugChannel {
-			fmt.Printf("[DEBUGCHANNEL] %s\n", msg)
-		}
-	}()
-
-	if Context == nil {
+	if Provider == nil {
 		panic("You must set the Cloud variable")
 	}
 
-	globalOptions := Context.NewGlobalOptionser(cliContext)
+	globalOptions := Provider.NewGlobalOptionser(context)
 	err := globalOptions.ParseGlobalOptions()
 	if err != nil {
-		Context.ErrExit1(err)
+		Provider.ErrExit1(err)
 	}
 
-	authenticater := Context.NewAuthenticater(globalOptions, commander.ServiceClientType())
+	authenticater := Provider.NewAuthenticater(globalOptions, commander.ServiceClientType())
 	serviceClient, err := authenticater.Authenticate()
 	if err != nil {
-		Context.ErrExit1(err)
+		Provider.ErrExit1(err)
 	}
 
 	commander.SetServiceClient(serviceClient)
 
 	err = commander.HandleFlags()
 	if err != nil {
-		Context.ErrExit1(err)
+		Provider.ErrExit1(err)
 	}
 
-	resultsChannel := Context.ResultsChannel()
+	fmt.Println("setting input channel")
+	inChannel := Provider.InputChannel()
 
-	fmt.Println("running command...")
-	err = commander.RunCommand(resultsChannel)
-	if err != nil {
-		Context.ErrExit1(err)
+	fmt.Println("filling input channel")
+	go Provider.FillInputChannel(commander, inChannel)
+
+	fmt.Println("setting output channel")
+	outChannel := Provider.ResultsChannel()
+
+	fmt.Println("ranging over input channel")
+	for item := range inChannel {
+		fmt.Println("received input")
+		go commander.Execute(item, outChannel)
 	}
 
-	fmt.Println("creating result outputter...")
-	outputter := Context.NewResultOutputter(globalOptions)
+	fmt.Println("setting outputter")
+	outputter := Provider.NewResultOutputter(globalOptions)
 
-	fmt.Println("fetching results...")
-	for result := range resultsChannel {
-		fmt.Println("outputting a result: ", result)
+	fmt.Println("ranging over output channel")
+	for result := range outChannel {
+		fmt.Println("received result:", result)
 		err = outputter.OutputResult(result)
 		if err != nil {
-			Context.ErrExit1(err)
+			Provider.ErrExit1(err)
 		}
 	}
 }

@@ -31,15 +31,15 @@ func CommandFlags(flags []cli.Flag, keys []string) []cli.Flag {
 func CompleteFlags(flags []cli.Flag) {
 	for _, flag := range flags {
 		flagName := ""
-		switch flag.(type) {
+		switch f := flag.(type) {
 		case cli.StringFlag:
-			flagName = flag.(cli.StringFlag).Name
+			flagName = f.Name
 		case cli.IntFlag:
-			flagName = flag.(cli.IntFlag).Name
+			flagName = f.Name
 		case cli.BoolFlag:
-			flagName = flag.(cli.BoolFlag).Name
+			flagName = f.Name
 		case cli.StringSliceFlag:
-			flagName = flag.(cli.StringSliceFlag).Name
+			flagName = f.Name
 		default:
 			continue
 		}

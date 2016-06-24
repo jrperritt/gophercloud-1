@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"strings"
 	"unicode/utf8"
 
 	"github.com/codegangsta/cli"
@@ -26,20 +25,16 @@ func commandNotFound(c *cli.Context, command string) {
 		}
 	}
 
-	suggestion := []string{fmt.Sprintf("Unrecognized command: %s", command),
-		"",
-		"Did you mean this?",
-		fmt.Sprintf("\t%s\n", bestSuggestion),
-		"",
-		"You can use the --h or --help flag to see a list of options for any command.",
-		"Examples:",
-		"\track --h",
-		"\track servers --h",
-		"\track block-storage volumes --help",
-		"",
-	}
+	suggestion := fmt.Sprintf("Unrecognized command: %s\n", command) +
+		"Did you mean this?\n" +
+		fmt.Sprintf("\t%s\n", bestSuggestion) +
+		"You can use the --h or --help flag to see a list of options for any command." +
+		"Examples:\n" +
+		fmt.Sprintf("\t%s --h\n", c.App.Name) +
+		fmt.Sprintf("\t%s servers --h\n", c.App.Name) +
+		fmt.Sprintf("\t%s block-storage volumes --help\n\n", c.App.Name)
 
-	fmt.Fprintf(c.App.Writer, strings.Join(suggestion, "\n"))
+	fmt.Fprintf(c.App.Writer, suggestion)
 }
 
 func levenshtein(a, b string) int {

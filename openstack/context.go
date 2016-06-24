@@ -1,27 +1,30 @@
 package openstack
 
 import (
+	"bufio"
 	"fmt"
+	"os"
 
 	"github.com/codegangsta/cli"
 	"github.com/gophercloud/cli/lib"
 	"github.com/gophercloud/gophercloud"
+	"github.com/jrperritt/rack/util"
 )
 
 // Context satisfies the Provider interface
 type Context struct {
-	//logger *logrus.Logger
+	outChannel chan interface{}
 }
 
 // Name satisfies the Provider.Name method
 func (c *Context) Name() string {
-	return "stack"
+	return "openstack"
 }
 
 // NewGlobalOptionser satisfies the Provider.NewGlobalOptionser method
-func (c *Context) NewGlobalOptionser(ctx *cli.Context) lib.GlobalOptionser {
+func (c *Context) NewGlobalOptionser(context lib.Context) lib.GlobalOptionser {
 	g := new(GlobalOptions)
-	g.cliContext = ctx
+	g.cliContext = context.(*cli.Context)
 	return g
 }
 
@@ -29,14 +32,11 @@ func (c *Context) NewGlobalOptionser(ctx *cli.Context) lib.GlobalOptionser {
 func (c *Context) NewAuthenticater(globalOptionser lib.GlobalOptionser, serviceType string) lib.Authenticater {
 	globalOptions := globalOptionser.(*GlobalOptions)
 
-	fmt.Printf("auth-tenant-id: %s\n", globalOptions.authTenantID)
-
 	return auth{
 		authOptions: &gophercloud.AuthOptions{
-			Username: globalOptions.username,
-			UserID:   globalOptions.userID,
-			Password: globalOptions.password,
-			//ProjectID:        globalOptions.projectID,
+			Username:         globalOptions.username,
+			UserID:           globalOptions.userID,
+			Password:         globalOptions.password,
 			TenantID:         globalOptions.authTenantID,
 			TokenID:          globalOptions.authToken,
 			IdentityEndpoint: globalOptions.authURL,
@@ -49,8 +49,54 @@ func (c *Context) NewAuthenticater(globalOptionser lib.GlobalOptionser, serviceT
 	}
 }
 
-func (c *Context) ResultsChannel() chan lib.Resulter {
-	ch := make(chan lib.Resulter)
+func (c *Context) InputChannel() chan interface{} {
+	return make(chan interface{})
+}
+
+func (c *Context) FillInputChannel(commander lib.Commander, in chan interface{}) {
+	ctx := commander.Ctx()
+	switch t := commander.(type) {
+	case lib.PipeCommander:
+		switch ctx.IsSet("stdin") {
+		case true:
+			stdin := ctx.String("stdin")
+			switch util.Contains(t.PipeFieldOptions(), stdin) {
+			case true:
+				scanner := bufio.NewScanner(os.Stdin)
+				for scanner.Scan() {
+					in <- t.HandlePipe(scanner.Text())
+				}
+				if scanner.Err() != nil {
+					c.outChannel <- scanner.Err()
+				}
+			default:
+				c.outChannel <- fmt.Errorf("Unknown STDIN field: %s\n", stdin)
+			}
+		default:
+			in <- t.HandleSingle()
+		}
+	case lib.StreamPipeCommander:
+		switch ctx.IsSet("stdin") {
+		case true:
+			stdin := ctx.String("stdin")
+			switch util.Contains(t.StreamFieldOptions(), stdin) {
+			case true:
+				in <- t.HandleStreamPipe(stdin)
+			default:
+				c.outChannel <- fmt.Errorf("Unknown STDIN field: %s\n", stdin)
+			}
+		default:
+			in <- t.HandleSingle()
+		}
+	default:
+		in <- 0
+	}
+	close(in)
+}
+
+func (c *Context) ResultsChannel() chan interface{} {
+	ch := make(chan interface{})
+	c.outChannel = ch
 	return ch
 }
 

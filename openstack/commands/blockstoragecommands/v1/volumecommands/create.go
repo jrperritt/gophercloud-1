@@ -9,21 +9,25 @@ import (
 )
 
 type commandCreate struct {
-	openstack.Command
+	openstack.CommandUtil
+	VolumeV1Command
 	opts volumes.CreateOptsBuilder
 	wait bool
 }
 
-func (c commandCreate) Name() string {
-	return "create"
+var create = cli.Command{
+	Name:         "create",
+	Usage:        util.Usage(commandPrefix, "create", "--size <size>"),
+	Description:  "Creates a volume",
+	Action:       actionCreate,
+	Flags:        openstack.CommandFlags(flagsCreate, []string{}),
+	BashComplete: func(_ *cli.Context) { openstack.BashComplete(flagsCreate) },
 }
 
-func (c commandCreate) Usage() string {
-	return util.Usage(commandPrefix, "create", "--size <size>")
-}
-
-func (c commandCreate) Description() string {
-	return "Creates a volume"
+func actionCreate(ctx *cli.Context) {
+	c := new(commandCreate)
+	c.Context = ctx
+	lib.Run(ctx, c)
 }
 
 var flagsCreate = []cli.Flag{
@@ -55,44 +59,43 @@ func (c *commandCreate) HandleFlags() error {
 		return err
 	}
 
-	if c.IsSet("wait-for-completion") {
+	if c.Context.IsSet("wait-for-completion") {
 		c.wait = true
 	}
 
 	c.opts = volumes.CreateOptsBuilder(
 		&volumes.CreateOpts{
-			Size:        c.Int("size"),
-			Name:        c.String("name"),
-			Description: c.String("description"),
-			VolumeType:  c.String("volume-type"),
+			Size:        c.Context.Int("size"),
+			Name:        c.Context.String("name"),
+			Description: c.Context.String("description"),
+			VolumeType:  c.Context.String("volume-type"),
 		})
 
 	return nil
 }
 
-func (c *commandCreate) Execute(r lib.Resourcer) (res lib.Resulter) {
-	volume, err := volumes.Create(c.ServiceClient(), c.opts).Extract()
+func (c *commandCreate) Execute(_ interface{}, out chan interface{}) {
+	volume, err := volumes.Create(c.ServiceClient, c.opts).Extract()
 	if err != nil {
-		res.SetError(err)
+		out <- err
 		return
 	}
 
 	if c.wait {
-		err = volumes.WaitForStatus(c.ServiceClient(), volume.ID, "available", 600)
+		err = volumes.WaitForStatus(c.ServiceClient, volume.ID, "available", 600)
 		if err != nil {
-			res.SetError(err)
+			out <- err
 			return
 		}
 
-		volume, err = volumes.Get(c.ServiceClient(), volume.ID).Extract()
+		volume, err = volumes.Get(c.ServiceClient, volume.ID).Extract()
 		if err != nil {
-			res.SetError(err)
+			out <- err
 			return
 		}
 	}
 
-	res.SetValue(volume)
-	return
+	out <- volume
 }
 
 /*

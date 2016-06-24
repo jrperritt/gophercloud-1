@@ -9,7 +9,7 @@ import (
 	"text/tabwriter"
 
 	"github.com/Sirupsen/logrus"
-	"github.com/gophercloud/cli/lib"
+	"github.com/jrperritt/rack/util"
 )
 
 // INDENT is the indentation passed to json.MarshalIndent
@@ -31,26 +31,56 @@ func (o output) GetFormatOptions() []string {
 	}
 }
 
-func (o output) OutputResult(resulter lib.Resulter) error {
+func (o output) OutputResult(result interface{}) error {
+
+	switch r := result.(type) {
+	case error:
+		o.writer = os.Stderr
+		switch o.format {
+		case "json":
+			o.jsonOut(map[string]interface{}{"error": r.Error()})
+		default:
+			fmt.Fprintf(o.writer, "%v\n", r)
+		}
+		return nil
+	case DebugMsg:
+		o.logger.Debug(r)
+	case ProgressStatus:
+		o.logger.Info(r)
+	case map[string]interface{}:
+		o.LimitFields(r)
+		switch o.format {
+		case "json":
+			o.jsonOut(r)
+		default:
+			o.singleTable(r)
+		}
+	case []map[string]interface{}:
+		o.LimitFields(r)
+		switch o.format {
+		case "json":
+			o.jsonOut(r)
+		default:
+			o.listTable(r)
+		}
+	case io.Reader:
+		if rc, ok := r.(io.ReadCloser); ok {
+			defer rc.Close()
+		}
+		_, err := io.Copy(o.writer, r)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error copying (io.Reader) result: %s\n", err)
+		}
+	default:
+		switch o.format {
+		case "json":
+			o.defaultJSON(r)
+		default:
+			fmt.Fprintf(o.writer, "%v\n", r)
+		}
+	}
 
 	//_ = resulter.(*Result)
-
-	switch resulter.(type) {
-
-	}
-
-	resulter.SetType()
-
-	if resulter.GetError() != nil {
-		o.writer = os.Stderr
-		return nil
-	}
-
-	if resulter.GetValue() == nil {
-		resulter.SetValue(resulter.GetEmptyValue())
-	}
-
-	o.LimitFields(resulter)
 
 	/*
 		switch o.format {
@@ -69,41 +99,6 @@ func (o output) OutputResult(resulter lib.Resulter) error {
 		}
 	*/
 
-	switch r := resulter.GetValue().(type) {
-	case map[string]interface{}:
-		//m = onlyNonNil(r)
-		switch o.format {
-		case "json":
-			MetadataJSON(o.writer, r, o.fields)
-		default:
-			MetadataTable(o.writer, r, o.fields)
-		}
-	case []map[string]interface{}:
-		for i, m := range r {
-			r[i] = onlyNonNil(m)
-		}
-		switch o.format {
-		case "json":
-			ListJSON(o.writer, r, o.fields)
-		default:
-			ListTable(o.writer, r, o.fields, o.noHeader)
-		}
-	case io.Reader:
-		if rc, ok := resulter.GetValue().(io.ReadCloser); ok {
-			defer rc.Close()
-		}
-		_, err := io.Copy(o.writer, r)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error copying (io.Reader) result: %s\n", err)
-		}
-	default:
-		switch o.format {
-		case "json":
-			DefaultJSON(o.writer, resulter.GetValue())
-		default:
-			fmt.Fprintf(o.writer, "%v\n", resulter.GetValue())
-		}
-	}
 	return nil
 }
 
@@ -115,53 +110,48 @@ func (o output) ToJSON() {
 
 }
 
-func (o output) LimitFields(r lib.Resulter) {
-
-}
-
-func limitJSONFields(m map[string]interface{}, keys []string) map[string]interface{} {
-	mLimited := make(map[string]interface{})
-	for _, key := range keys {
-		if v, ok := m[key]; ok {
-			mLimited[key] = v
+func (o output) LimitFields(r interface{}) {
+	switch len(o.fields) {
+	case 0:
+		return
+	}
+	switch t := r.(type) {
+	case map[string]interface{}:
+		for k, _ := range t {
+			if !util.Contains(o.fields, k) {
+				delete(t, k)
+			}
+		}
+	case []map[string]interface{}:
+		for _, i := range t {
+			for k, _ := range i {
+				if !util.Contains(o.fields, k) {
+					delete(i, k)
+				}
+			}
 		}
 	}
-	return mLimited
 }
 
-func jsonOut(w io.Writer, i interface{}) {
+func (o output) jsonOut(i interface{}) {
 	j, _ := json.MarshalIndent(i, "", INDENT)
-	fmt.Fprintln(w, string(j))
+	fmt.Fprintln(o.writer, string(j))
 }
 
-func DefaultJSON(w io.Writer, i interface{}) {
+func (o output) defaultJSON(i interface{}) {
 	m := map[string]interface{}{"result": i}
-	jsonOut(w, m)
+	o.jsonOut(m)
 }
 
-func MetadataJSON(w io.Writer, m map[string]interface{}, keys []string) {
-	mLimited := limitJSONFields(m, keys)
-	jsonOut(w, mLimited)
-}
-
-func ListJSON(w io.Writer, maps []map[string]interface{}, keys []string) {
-	mLimited := make([]map[string]interface{}, len(maps))
-	for i, m := range maps {
-		mLimited[i] = limitJSONFields(m, keys)
-	}
-	jsonOut(w, mLimited)
-}
-
-// ListTable writes a table composed of keys as the header with values from many
-func ListTable(writer io.Writer, many []map[string]interface{}, keys []string, noHeader bool) {
-	w := tabwriter.NewWriter(writer, 0, 8, 1, '\t', 0)
-	if !noHeader {
+func (o output) listTable(many []map[string]interface{}) {
+	w := tabwriter.NewWriter(o.writer, 0, 8, 1, '\t', 0)
+	if !o.noHeader {
 		// Write the header
-		fmt.Fprintln(w, strings.Join(keys, "\t"))
+		fmt.Fprintln(w, strings.Join(o.fields, "\t"))
 	}
 	for _, m := range many {
 		f := []string{}
-		for _, key := range keys {
+		for _, key := range o.fields {
 			f = append(f, fmt.Sprint(m[key]))
 		}
 		fmt.Fprintln(w, strings.Join(f, "\t"))
@@ -169,11 +159,9 @@ func ListTable(writer io.Writer, many []map[string]interface{}, keys []string, n
 	w.Flush()
 }
 
-// MetadataTable writes a table to the writer composed of keys on the left and
-// the associated metadata on the right column from m
-func MetadataTable(writer io.Writer, m map[string]interface{}, keys []string) {
-	w := tabwriter.NewWriter(writer, 0, 8, 0, '\t', 0)
-	for _, key := range keys {
+func (o output) singleTable(m map[string]interface{}) {
+	w := tabwriter.NewWriter(o.writer, 0, 8, 0, '\t', 0)
+	for _, key := range o.fields {
 		val := fmt.Sprint(m[key])
 		fmt.Fprintf(w, "%s\t%s\n", key, strings.Replace(val, "\n", "\n\t", -1))
 	}

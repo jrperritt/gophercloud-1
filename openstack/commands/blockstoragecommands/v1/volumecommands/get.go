@@ -9,20 +9,24 @@ import (
 )
 
 type commandGet struct {
-	openstack.Command
+	openstack.CommandUtil
+	VolumeV1Command
 	id string
 }
 
-func (c *commandGet) Name() string {
-	return "get"
+var get = cli.Command{
+	Name:         "get",
+	Usage:        util.Usage(commandPrefix, "get", "[--id <volumeID> | --name <volumeName> | --stdin id]"),
+	Description:  "Gets a volume",
+	Action:       actionGet,
+	Flags:        flagsGet,
+	BashComplete: func(_ *cli.Context) { openstack.BashComplete(flagsGet) },
 }
 
-func (c *commandGet) Usage() string {
-	return util.Usage(commandPrefix, "get", "[--id <volumeID> | --name <volumeName> | --stdin id]")
-}
-
-func (c *commandGet) Description() string {
-	return "Gets a volume"
+func actionGet(ctx *cli.Context) {
+	c := new(commandGet)
+	c.Context = ctx
+	lib.Run(ctx, c)
 }
 
 var flagsGet = []cli.Flag{
@@ -58,19 +62,19 @@ func (c *commandGet) HandleSingle() error {
 	return nil
 }
 
-func (c *commandGet) Execute(_ lib.Resourcer) (r lib.Resulter) {
+func (c *commandGet) Execute(item interface{}, out chan interface{}) {
 	var m map[string]interface{}
-	err := volumes.Get(c.ServiceClient(), c.id).ExtractInto(m)
-	if err != nil {
-		r.SetError(err)
-		return
+	err := volumes.Get(c.ServiceClient, item.(string)).ExtractInto(m)
+	switch err {
+	case nil:
+		out <- m
+	default:
+		out <- err
 	}
-	r.SetValue(m)
-	return
 }
 
-func (c *commandGet) StdinField() string {
-	return "id"
+func (c *commandGet) PipeFieldOptions() []string {
+	return []string{"id"}
 }
 
 /*

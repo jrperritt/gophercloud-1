@@ -14,6 +14,6 @@ func Get() []cli.Command {
 	case "2":
 		return nil
 	default:
-		return nil
+		return v1.Get()
 	}
 }
