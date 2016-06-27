@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path"
+	"strconv"
 	"strings"
 
 	"github.com/Sirupsen/logrus"
@@ -38,7 +39,6 @@ type GlobalOptions struct {
 	userID       string
 	password     string
 	authTenantID string
-	//projectID    string
 	authToken    string
 	authURL      string
 	region       string
@@ -51,6 +51,7 @@ type GlobalOptions struct {
 	cliContext   *cli.Context
 	have         map[string]GlobalOption
 	want         []GlobalOption
+	fields       []string
 }
 
 // ParseGlobalOptions satisfies the Provider.ParseGlobalOptions method
@@ -164,6 +165,7 @@ func (o *GlobalOptions) Validate() error {
 }
 
 func (o *GlobalOptions) Set() error {
+	var err error
 	for name, opt := range o.have {
 		switch name {
 		case "username":
@@ -185,12 +187,26 @@ func (o *GlobalOptions) Set() error {
 		case "output":
 			o.outputFormat = opt.value.(string)
 		case "no-cache":
-			o.noCache = opt.value.(bool)
+			switch t := opt.value.(type) {
+			case string:
+				o.noCache, err = strconv.ParseBool(t)
+			case bool:
+				o.noCache = t
+			}
 		case "no-header":
-			o.noHeader = opt.value.(bool)
+			switch t := opt.value.(type) {
+			case string:
+				o.noHeader, err = strconv.ParseBool(t)
+			case bool:
+				o.noHeader = t
+			}
 		case "log":
 			o.logLevel = opt.value.(string)
 		}
+	}
+
+	if err != nil {
+		return err
 	}
 
 	var level logrus.Level
@@ -208,13 +224,10 @@ func (o *GlobalOptions) Set() error {
 		Level:     level,
 	}
 
-	/*
-		haveString := ""
-		for k, v := range have {
-			haveString += fmt.Sprintf("%s: %s (from %s)\n", k, v.Value, v.From)
-		}
-		ctx.logger.Infof("Global Options:\n%s\n", haveString)
-	*/
+	switch o.cliContext.IsSet("fields") {
+	case true:
+		o.fields = strings.Split(o.cliContext.String("fields"), ",")
+	}
 
 	return nil
 }

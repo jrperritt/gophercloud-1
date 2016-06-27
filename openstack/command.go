@@ -17,18 +17,6 @@ type CommandUtil struct {
 	// ServiceClient is the service client used to authenticate the user
 	// and carry out the requests while processing the command.
 	ServiceClient *gophercloud.ServiceClient
-	// ServiceClientType is the type of service client used (e.g. compute).
-	//ServiceClientType string
-	// results is a channel into which commands send results. It allows for streaming
-	// output.
-	//results chan *gophercloudCLILib.Resulter
-	// flags are the command-specific flags
-	//Flags []cli.Flag
-	// fields are the fields available to output. These may be limited by the `fields`
-	// flag.
-	//Fields []string
-	// logger is used to log information acquired while processing the command.
-	//Logger *logrus.Logger
 }
 
 func BashComplete(flags []cli.Flag) {

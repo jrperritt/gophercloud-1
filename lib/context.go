@@ -22,7 +22,7 @@ type CloudProvider interface {
 
 	ResultsChannel() chan interface{}
 
-	NewResultOutputter(GlobalOptionser) Outputter
+	NewResultOutputter(GlobalOptionser, Commander) Outputter
 
 	ErrExit1(error)
 }
@@ -57,27 +57,20 @@ func Run(context Context, commander Commander) {
 		Provider.ErrExit1(err)
 	}
 
-	fmt.Println("setting input channel")
 	inChannel := Provider.InputChannel()
 
-	fmt.Println("filling input channel")
 	go Provider.FillInputChannel(commander, inChannel)
 
-	fmt.Println("setting output channel")
 	outChannel := Provider.ResultsChannel()
 
-	fmt.Println("ranging over input channel")
 	for item := range inChannel {
 		fmt.Println("received input")
 		go commander.Execute(item, outChannel)
 	}
 
-	fmt.Println("setting outputter")
-	outputter := Provider.NewResultOutputter(globalOptions)
+	outputter := Provider.NewResultOutputter(globalOptions, commander)
 
-	fmt.Println("ranging over output channel")
 	for result := range outChannel {
-		fmt.Println("received result:", result)
 		err = outputter.OutputResult(result)
 		if err != nil {
 			Provider.ErrExit1(err)

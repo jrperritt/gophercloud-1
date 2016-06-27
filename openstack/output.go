@@ -9,30 +9,32 @@ import (
 	"text/tabwriter"
 
 	"github.com/Sirupsen/logrus"
-	"github.com/jrperritt/rack/util"
+	"github.com/gophercloud/cli/lib"
+	"github.com/gophercloud/cli/util"
 )
 
 // INDENT is the indentation passed to json.MarshalIndent
 const INDENT string = "  "
 
 type output struct {
-	writer   io.Writer
-	fields   []string
-	noHeader bool
-	format   string
-	logger   *logrus.Logger
+	writer    io.Writer
+	fields    []string
+	noHeader  bool
+	format    string
+	logger    *logrus.Logger
+	commander lib.Commander
 }
 
 // FormatOptions satisfies the Outputter.FormatOptions method
-func (o output) GetFormatOptions() []string {
+func (o *output) GetFormatOptions() []string {
 	return []string{
 		"json",
 		"table",
 	}
 }
 
-func (o output) OutputResult(result interface{}) error {
-
+func (o *output) OutputResult(result interface{}) error {
+	o.writer = os.Stdout
 	switch r := result.(type) {
 	case error:
 		o.writer = os.Stderr
@@ -110,10 +112,22 @@ func (o output) ToJSON() {
 
 }
 
-func (o output) LimitFields(r interface{}) {
+func (o *output) LimitFields(r interface{}) {
 	switch len(o.fields) {
 	case 0:
-		return
+		switch r.(type) {
+		case []map[string]interface{}:
+			fieldser, ok := o.commander.(lib.Fieldser)
+			switch ok {
+			case false:
+				o.logger.Infof("List command has no default fields")
+				return
+			default:
+				o.fields = fieldser.Fields()
+			}
+		default:
+			return
+		}
 	}
 	switch t := r.(type) {
 	case map[string]interface{}:
@@ -146,13 +160,12 @@ func (o output) defaultJSON(i interface{}) {
 func (o output) listTable(many []map[string]interface{}) {
 	w := tabwriter.NewWriter(o.writer, 0, 8, 1, '\t', 0)
 	if !o.noHeader {
-		// Write the header
 		fmt.Fprintln(w, strings.Join(o.fields, "\t"))
 	}
 	for _, m := range many {
 		f := []string{}
-		for _, key := range o.fields {
-			f = append(f, fmt.Sprint(m[key]))
+		for _, k := range o.fields {
+			f = append(f, fmt.Sprint(m[k]))
 		}
 		fmt.Fprintln(w, strings.Join(f, "\t"))
 	}
@@ -161,9 +174,8 @@ func (o output) listTable(many []map[string]interface{}) {
 
 func (o output) singleTable(m map[string]interface{}) {
 	w := tabwriter.NewWriter(o.writer, 0, 8, 0, '\t', 0)
-	for _, key := range o.fields {
-		val := fmt.Sprint(m[key])
-		fmt.Fprintf(w, "%s\t%s\n", key, strings.Replace(val, "\n", "\n\t", -1))
+	for k, v := range m {
+		fmt.Fprintf(w, "%s\t%s\n", k, strings.Replace(fmt.Sprint(v), "\n", "\n\t", -1))
 	}
 	w.Flush()
 }

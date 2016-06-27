@@ -61,6 +61,10 @@ func (lrt *LogRoundTripper) RoundTrip(request *http.Request) (*http.Response, er
 	if response == nil {
 		return nil, err
 	}
+	response.Body, err = lrt.logResponseBody(response.Body, response.Header)
+	if err != nil {
+		lrt.Logger.Debugf("Unable to log response body: %s", err)
+	}
 
 	if response.StatusCode == http.StatusUnauthorized {
 		if lrt.numReauthAttempts == 3 {
@@ -78,6 +82,24 @@ func (lrt *LogRoundTripper) RoundTrip(request *http.Request) (*http.Response, er
 	lrt.Logger.Debugf("Response Headers: %+v\n", string(info))
 
 	return response, err
+}
+
+func (lrt *LogRoundTripper) logResponseBody(original io.ReadCloser, headers http.Header) (io.ReadCloser, error) {
+	contentType := headers.Get("Content-Type")
+	if strings.HasPrefix(contentType, "application/json") {
+		defer original.Close()
+
+		var bs bytes.Buffer
+		_, err := io.Copy(&bs, original)
+		if err != nil {
+			return nil, err
+		}
+
+		debugInfo := lrt.formatJSON(bs.Bytes())
+		lrt.Logger.Debugf("Response: %s\n", debugInfo)
+		return ioutil.NopCloser(strings.NewReader(bs.String())), nil
+	}
+	return original, nil
 }
 
 func (lrt *LogRoundTripper) logRequestBody(original io.ReadCloser, headers http.Header) (io.ReadCloser, error) {

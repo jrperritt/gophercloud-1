@@ -74,7 +74,7 @@ type ListOpts struct {
 	// List only volumes that contain Metadata.
 	Metadata map[string]string `q:"metadata"`
 	// List only volumes that have Name as the display name.
-	Name string `q:"name"`
+	Name string `q:"display_name"`
 	// List only volumes that have a status of Status.
 	Status string `q:"status"`
 }

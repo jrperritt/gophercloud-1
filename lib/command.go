@@ -49,3 +49,7 @@ type StreamPipeCommander interface {
 type CommandInfoer interface {
 	CommandInfo() string
 }
+
+type Fieldser interface {
+	Fields() []string
+}

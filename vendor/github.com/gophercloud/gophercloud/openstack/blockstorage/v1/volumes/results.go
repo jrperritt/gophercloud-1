@@ -23,7 +23,7 @@ type Volume struct {
 	Bootable string `json:"bootable"`
 
 	// The date when this volume was created.
-	CreatedAt gophercloud.JSONRFC3339Milli `json:"created_at"`
+	CreatedAt gophercloud.JSONRFC3339MilliNoZ `json:"created_at"`
 
 	// Human-readable description for the volume.
 	Description string `json:"display_description"`

@@ -7,13 +7,14 @@ import (
 
 	"github.com/codegangsta/cli"
 	"github.com/gophercloud/cli/lib"
+	"github.com/gophercloud/cli/util"
 	"github.com/gophercloud/gophercloud"
-	"github.com/jrperritt/rack/util"
 )
 
 // Context satisfies the Provider interface
 type Context struct {
 	outChannel chan interface{}
+	commander  lib.Commander
 }
 
 // Name satisfies the Provider.Name method
@@ -101,14 +102,15 @@ func (c *Context) ResultsChannel() chan interface{} {
 }
 
 // NewResultOutputter satisfies the Provider.NewResultOutputter method
-func (c *Context) NewResultOutputter(globalOptionser lib.GlobalOptionser) lib.Outputter {
+func (c *Context) NewResultOutputter(globalOptionser lib.GlobalOptionser, commander lib.Commander) lib.Outputter {
 	globalOptions := globalOptionser.(*GlobalOptions)
 
-	return output{
-		//fields:   globalOptions.fields,
-		noHeader: globalOptions.noHeader,
-		format:   globalOptions.outputFormat,
-		logger:   globalOptions.logger,
+	return &output{
+		fields:    globalOptions.fields,
+		noHeader:  globalOptions.noHeader,
+		format:    globalOptions.outputFormat,
+		logger:    globalOptions.logger,
+		commander: commander,
 	}
 }
 
