@@ -14,7 +14,6 @@ import (
 type commandDelete struct {
 	openstack.CommandUtil
 	VolumeV1Command
-	id   string
 	wait bool
 }
 
@@ -23,7 +22,7 @@ var remove = cli.Command{
 	Usage:        util.Usage(commandPrefix, "delete", "[--id <volumeID> | --name <volumeName> | --stdin id]"),
 	Description:  "Deletes a volume",
 	Action:       actionDelete,
-	Flags:        flagsDelete,
+	Flags:        openstack.CommandFlags(flagsDelete, []string{}),
 	BashComplete: func(_ *cli.Context) { openstack.BashComplete(flagsDelete) },
 }
 
@@ -31,18 +30,6 @@ func actionDelete(ctx *cli.Context) {
 	c := new(commandDelete)
 	c.Context = ctx
 	lib.Run(ctx, c)
-}
-
-func (c commandDelete) Name() string {
-	return "delete"
-}
-
-func (c commandDelete) Usage() string {
-	return util.Usage(commandPrefix, "delete", "[--id <volumeID> | --name <volumeName> | --stdin id]")
-}
-
-func (c commandDelete) Description() string {
-	return "Deletes a volume"
 }
 
 var flagsDelete = []cli.Flag{
@@ -59,29 +46,28 @@ var flagsDelete = []cli.Flag{
 		Usage: "[optional; required if `id` or `name` isn't provided] The field being piped into STDIN. Valid values are: id",
 	},
 	cli.BoolFlag{
-		Name:  "wait-for-completion",
+		Name:  "wait",
 		Usage: "[optional] If provided, the command will wait to return until the volume has been deleted.",
 	},
 }
 
 func (c *commandDelete) HandleFlags() error {
-	if c.Context.IsSet("wait-for-completion") {
-		c.wait = true
-	}
-
+	c.wait = c.Context.IsSet("wait")
 	return nil
 }
 
-func (c *commandDelete) HandleSingle() error {
+func (c *commandDelete) HandleSingle() (interface{}, error) {
 	id, err := c.IDOrName(volumes.IDFromName)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	c.id = id
-	return nil
+	return id, nil
 }
 
 func (c *commandDelete) Execute(item interface{}, out chan interface{}) {
+	defer func() {
+		close(out)
+	}()
 	id := item.(string)
 	err := volumes.Delete(c.ServiceClient, id).ExtractErr()
 	if err != nil {

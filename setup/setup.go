@@ -38,7 +38,7 @@ _cli_bash_autocomplete() {
   return 0
 }
 
-complete -o default -F _cli_bash_autocomplete stack
+complete -o default -F _cli_bash_autocomplete cli
 `
 
 // Init runs logic for setting up amenities such as command completion.

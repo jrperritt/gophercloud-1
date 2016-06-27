@@ -8,10 +8,11 @@ import (
 	"github.com/gophercloud/gophercloud/openstack/blockstorage/v1/volumes"
 )
 
+var _ lib.PipeCommander = new(commandGet)
+
 type commandGet struct {
 	openstack.CommandUtil
 	VolumeV1Command
-	id string
 }
 
 var get = cli.Command{
@@ -19,7 +20,7 @@ var get = cli.Command{
 	Usage:        util.Usage(commandPrefix, "get", "[--id <volumeID> | --name <volumeName> | --stdin id]"),
 	Description:  "Gets a volume",
 	Action:       actionGet,
-	Flags:        flagsGet,
+	Flags:        openstack.CommandFlags(flagsGet, []string{}),
 	BashComplete: func(_ *cli.Context) { openstack.BashComplete(flagsGet) },
 }
 
@@ -48,26 +49,27 @@ func (c *commandGet) HandleFlags() error {
 	return nil
 }
 
-func (c *commandGet) HandlePipe(item string) error {
-	c.id = item
-	return nil
+func (c *commandGet) HandlePipe(item string) (interface{}, error) {
+	return item, nil
 }
 
-func (c *commandGet) HandleSingle() error {
+func (c *commandGet) HandleSingle() (interface{}, error) {
 	id, err := c.IDOrName(volumes.IDFromName)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	c.id = id
-	return nil
+	return id, nil
 }
 
 func (c *commandGet) Execute(item interface{}, out chan interface{}) {
-	var m map[string]interface{}
-	err := volumes.Get(c.ServiceClient, item.(string)).ExtractInto(m)
+	defer func() {
+		close(out)
+	}()
+	var m map[string]map[string]interface{}
+	err := volumes.Get(c.ServiceClient, item.(string)).ExtractInto(&m)
 	switch err {
 	case nil:
-		out <- m
+		out <- m["volume"]
 	default:
 		out <- err
 	}

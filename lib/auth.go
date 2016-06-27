@@ -14,5 +14,6 @@ type Authenticater interface {
 type AuthFromCacher interface {
 	AuthFromCache() (*gophercloud.ServiceClient, error)
 	GetCache() Cacher
-	NoCache() bool
+	GetCacheKey() string
+	StoreCredentials() error
 }

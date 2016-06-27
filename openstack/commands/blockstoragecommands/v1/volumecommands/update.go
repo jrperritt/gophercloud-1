@@ -20,7 +20,7 @@ var update = cli.Command{
 	Usage:        util.Usage(commandPrefix, "update", "[--id <volumeID> | --name <volumeName>]"),
 	Description:  "Updates a volume",
 	Action:       actionUpdate,
-	Flags:        flagsUpdate,
+	Flags:        openstack.CommandFlags(flagsUpdate, []string{}),
 	BashComplete: func(_ *cli.Context) { openstack.BashComplete(flagsUpdate) },
 }
 
@@ -33,19 +33,19 @@ func actionUpdate(ctx *cli.Context) {
 var flagsUpdate = []cli.Flag{
 	cli.StringFlag{
 		Name:  "id",
-		Usage: "[optional; required if `name` isn't provided] The ID of the volume.",
+		Usage: "[optional; required if `name` isn't provided] The ID of the volume to update",
 	},
 	cli.StringFlag{
 		Name:  "name",
-		Usage: "[optional; required if `id` isn't provided] The name of the volume.",
+		Usage: "[optional; required if `id` isn't provided] The name of the volume to update",
 	},
 	cli.StringFlag{
 		Name:  "rename",
-		Usage: "[optional] A new name for this volume.",
+		Usage: "[optional] A new name for this volume",
 	},
 	cli.StringFlag{
 		Name:  "description",
-		Usage: "[optional] A new description for this volume.",
+		Usage: "[optional] A new description for this volume",
 	},
 }
 
@@ -59,11 +59,14 @@ func (c *commandUpdate) HandleFlags() (err error) {
 }
 
 func (c *commandUpdate) Execute(_ interface{}, out chan interface{}) {
+	defer func() {
+		close(out)
+	}()
 	var m map[string]interface{}
 	err := volumes.Update(c.ServiceClient, c.id, c.opts).ExtractInto(&m)
-	switch {
-	case err == nil:
-		out <- m
+	switch err {
+	case nil:
+		out <- m["volume"]
 	default:
 		out <- err
 	}

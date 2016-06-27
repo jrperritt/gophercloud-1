@@ -48,7 +48,7 @@ var flagsCreate = []cli.Flag{
 		Usage: "[optional] The volume type of this volume.",
 	},
 	cli.BoolFlag{
-		Name:  "wait-for-completion",
+		Name:  "wait",
 		Usage: "[optional] If provided, the command will wait to return until the volume is available.",
 	},
 }
@@ -59,43 +59,46 @@ func (c *commandCreate) HandleFlags() error {
 		return err
 	}
 
-	if c.Context.IsSet("wait-for-completion") {
-		c.wait = true
-	}
+	c.wait = c.Context.IsSet("wait")
 
-	c.opts = volumes.CreateOptsBuilder(
-		&volumes.CreateOpts{
-			Size:        c.Context.Int("size"),
-			Name:        c.Context.String("name"),
-			Description: c.Context.String("description"),
-			VolumeType:  c.Context.String("volume-type"),
-		})
+	c.opts = &volumes.CreateOpts{
+		Size:        c.Context.Int("size"),
+		Name:        c.Context.String("name"),
+		Description: c.Context.String("description"),
+		VolumeType:  c.Context.String("volume-type"),
+	}
 
 	return nil
 }
 
 func (c *commandCreate) Execute(_ interface{}, out chan interface{}) {
-	volume, err := volumes.Create(c.ServiceClient, c.opts).Extract()
+	defer func() {
+		close(out)
+	}()
+	var m map[string]map[string]interface{}
+	err := volumes.Create(c.ServiceClient, c.opts).ExtractInto(&m)
 	if err != nil {
 		out <- err
 		return
 	}
 
+	id := m["volume"]["id"].(string)
+
 	if c.wait {
-		err = volumes.WaitForStatus(c.ServiceClient, volume.ID, "available", 600)
+		err = volumes.WaitForStatus(c.ServiceClient, id, "available", 600)
 		if err != nil {
 			out <- err
 			return
 		}
 
-		volume, err = volumes.Get(c.ServiceClient, volume.ID).Extract()
+		_, err = volumes.Get(c.ServiceClient, id).Extract()
 		if err != nil {
 			out <- err
 			return
 		}
 	}
 
-	out <- volume
+	out <- m["volume"]
 }
 
 /*

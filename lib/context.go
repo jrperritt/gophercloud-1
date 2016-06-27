@@ -50,6 +50,12 @@ func Run(context Context, commander Commander) {
 
 	commander.SetServiceClient(serviceClient)
 
+	defer func() {
+		if authFromCacher, ok := authenticater.(AuthFromCacher); ok {
+			authFromCacher.StoreCredentials()
+		}
+	}()
+
 	err = commander.HandleFlags()
 	if err != nil {
 		Provider.ErrExit1(err)

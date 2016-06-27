@@ -27,9 +27,9 @@ type PipeCommander interface {
 	// HandleSingle contains logic for processing a single resource. This method
 	// will be used if input isn't sent to STDIN, so it will contain, for example,
 	// logic for handling flags that would be mandatory if otherwise not piped in.
-	HandleSingle() error
+	HandleSingle() (interface{}, error)
 	// HandlePipe is a method that commands implement for processing piped input.
-	HandlePipe(string) error
+	HandlePipe(string) (interface{}, error)
 	// StdinFieldOptions is a slice of the fields that the command accepts on STDIN.
 	PipeFieldOptions() []string
 }
@@ -41,7 +41,7 @@ type StreamPipeCommander interface {
 	// from STDIN.
 	PipeCommander
 	// HandleStreamPipe is a method that commands implement for processing streaming, piped input.
-	HandleStreamPipe(string) error
+	HandleStreamPipe(string) (interface{}, error)
 	// StreamFieldOptions is a slice of the fields that the command accepts for streaming input on STDIN.
 	StreamFieldOptions() []string
 }

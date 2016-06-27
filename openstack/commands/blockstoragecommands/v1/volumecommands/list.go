@@ -20,7 +20,7 @@ var list = cli.Command{
 	Usage:        util.Usage(commandPrefix, "list", ""),
 	Description:  "Lists existing volumes",
 	Action:       actionList,
-	Flags:        openstack.CommandFlags(flagsList, []string{""}),
+	Flags:        openstack.CommandFlags(flagsList, new(commandList).Fields()),
 	BashComplete: func(_ *cli.Context) { openstack.BashComplete(flagsList) },
 }
 
@@ -50,6 +50,9 @@ func (c *commandList) HandleFlags() error {
 }
 
 func (c *commandList) Execute(_ interface{}, out chan interface{}) {
+	defer func() {
+		close(out)
+	}()
 	pager := volumes.List(c.ServiceClient, c.opts)
 	err := pager.EachPage(func(page pagination.Page) (bool, error) {
 		var tmp map[string][]map[string]interface{}
@@ -63,7 +66,6 @@ func (c *commandList) Execute(_ interface{}, out chan interface{}) {
 	if err != nil {
 		out <- err
 	}
-	close(out)
 }
 
 func (c *commandList) Fields() []string {

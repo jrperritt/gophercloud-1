@@ -11,7 +11,7 @@ import (
 )
 
 var (
-	_ lib.AuthFromCacher = auth{}
+	_ lib.AuthFromCacher = new(auth)
 )
 
 type auth struct {
@@ -26,7 +26,7 @@ type auth struct {
 }
 
 // Authenticate satisfies the Provider.Authenticate method
-func (a auth) Authenticate() (*gophercloud.ServiceClient, error) {
+func (a *auth) Authenticate() (*gophercloud.ServiceClient, error) {
 	var client *gophercloud.ServiceClient
 	var err error
 
@@ -49,7 +49,7 @@ func (a auth) Authenticate() (*gophercloud.ServiceClient, error) {
 	return client, nil
 }
 
-func (a auth) AuthFromScratch() (*gophercloud.ServiceClient, error) {
+func (a *auth) AuthFromScratch() (*gophercloud.ServiceClient, error) {
 	a.logger.Info("Authenticating from scratch.\n")
 	a.urlType = gophercloud.AvailabilityPublic
 
@@ -126,30 +126,34 @@ func (a auth) SupportedServices() []string {
 }
 */
 
-func (a auth) AuthFromCache() (*gophercloud.ServiceClient, error) {
-	logMsg := "Using public endpoint"
-	urlType := gophercloud.AvailabilityPublic
-	a.logger.Info(logMsg)
+func (a *auth) AuthFromCache() (*gophercloud.ServiceClient, error) {
+	a.logger.Info("Authenticating from cache.\n")
 
-	if a.NoCache() {
+	switch a.urlType {
+	case "":
+		a.logger.Info("Using public endpoint")
+		a.urlType = gophercloud.AvailabilityPublic
+	}
+
+	if a.noCache {
 		return a.AuthFromScratch()
 	}
 
 	cache := a.GetCache()
-	cacheKey := cache.GetCacheKey()
+	cacheKey := a.GetCacheKey()
 	a.logger.Infof("Looking in the cache for cache key: %s\n", cacheKey)
 	// get the value from the cache
 	credser, err := cache.GetCacheValue(cacheKey)
 
-	if err != nil && credser != nil {
-		creds := credser.(CacheItem)
+	if err == nil && credser != nil {
+		creds := credser.(*CacheItem)
 		// we successfully retrieved a value from the cache
 		a.logger.Infof("Using token from cache: %s\n", creds.TokenID)
 		pc, err := openstack.NewClient(a.authOptions.IdentityEndpoint)
 		if err == nil {
 			pc.TokenID = creds.GetToken()
 			pc.ReauthFunc = func() error {
-				return openstack.AuthenticateV2(pc, *a.authOptions, gophercloud.EndpointOpts{Availability: urlType})
+				return openstack.AuthenticateV2(pc, *a.authOptions, gophercloud.EndpointOpts{Availability: a.urlType})
 			}
 			pc.UserAgent.Prepend(util.UserAgent)
 			pc.HTTPClient = newHTTPClient(a.logger)
@@ -164,8 +168,44 @@ func (a auth) AuthFromCache() (*gophercloud.ServiceClient, error) {
 	return a.AuthFromScratch()
 }
 
-func (a auth) GetCache() lib.Cacher {
-	return &Cache{}
+func (a *auth) GetCache() lib.Cacher {
+	return &Cache{items: map[string]CacheItem{}}
+}
+
+// CacheKey returns the cache key formed from the user's authentication credentials.
+func (a *auth) GetCacheKey() string {
+	var usernameOrTenantID string
+	switch {
+	case a.authOptions.Username != "":
+		usernameOrTenantID = a.authOptions.Username
+	case a.authOptions.TenantID != "":
+		usernameOrTenantID = a.authOptions.TenantID
+	default:
+		return ""
+	}
+	return fmt.Sprintf("%s,%s,%s,%s,%s", usernameOrTenantID, a.authOptions.IdentityEndpoint, a.region, a.serviceType, a.urlType)
+}
+
+// StoreCredentials caches the users auth credentials if available and the `no-cache`
+// flag was not provided.
+func (a *auth) StoreCredentials() error {
+	// if serviceClient is nil, the HTTP request for the command didn't get sent.
+	// don't set cache if the `no-cache` flag is provided
+	if a.noCache {
+		return nil
+	}
+
+	newCacheValue := &CacheItem{
+		TokenID:         a.serviceClient.TokenID,
+		ServiceEndpoint: a.serviceClient.Endpoint,
+	}
+	// get the cache key
+	cacheKey := a.GetCacheKey()
+
+	a.logger.Debugf("Setting cache key [%s] to: %s", cacheKey, newCacheValue)
+
+	// set the cache value to the current values
+	return a.GetCache().SetCacheValue(cacheKey, newCacheValue)
 }
 
 var usernameAuthErrSlice = []string{"There are some required credentials that we couldn't find.",
@@ -189,10 +229,6 @@ var tenantIDAuthErrSlice = []string{"There are some required credentials that we
 	"",
 	"You can set the missing credentials with command-line flags (--auth-token, --auth-tenant-id)",
 	"",
-}
-
-func (a auth) NoCache() bool {
-	return a.noCache
 }
 
 /*

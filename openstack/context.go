@@ -33,7 +33,7 @@ func (c *Context) NewGlobalOptionser(context lib.Context) lib.GlobalOptionser {
 func (c *Context) NewAuthenticater(globalOptionser lib.GlobalOptionser, serviceType string) lib.Authenticater {
 	globalOptions := globalOptionser.(*GlobalOptions)
 
-	return auth{
+	return &auth{
 		authOptions: &gophercloud.AuthOptions{
 			Username:         globalOptions.username,
 			UserID:           globalOptions.userID,
@@ -65,7 +65,13 @@ func (c *Context) FillInputChannel(commander lib.Commander, in chan interface{})
 			case true:
 				scanner := bufio.NewScanner(os.Stdin)
 				for scanner.Scan() {
-					in <- t.HandlePipe(scanner.Text())
+					item, err := t.HandlePipe(scanner.Text())
+					switch err {
+					case nil:
+						in <- item
+					default:
+						c.outChannel <- err
+					}
 				}
 				if scanner.Err() != nil {
 					c.outChannel <- scanner.Err()
@@ -74,7 +80,13 @@ func (c *Context) FillInputChannel(commander lib.Commander, in chan interface{})
 				c.outChannel <- fmt.Errorf("Unknown STDIN field: %s\n", stdin)
 			}
 		default:
-			in <- t.HandleSingle()
+			item, err := t.HandleSingle()
+			switch err {
+			case nil:
+				in <- item
+			default:
+				c.outChannel <- err
+			}
 		}
 	case lib.StreamPipeCommander:
 		switch ctx.IsSet("stdin") {
@@ -82,12 +94,24 @@ func (c *Context) FillInputChannel(commander lib.Commander, in chan interface{})
 			stdin := ctx.String("stdin")
 			switch util.Contains(t.StreamFieldOptions(), stdin) {
 			case true:
-				in <- t.HandleStreamPipe(stdin)
+				item, err := t.HandleStreamPipe(stdin)
+				switch err {
+				case nil:
+					in <- item
+				default:
+					c.outChannel <- err
+				}
 			default:
 				c.outChannel <- fmt.Errorf("Unknown STDIN field: %s\n", stdin)
 			}
 		default:
-			in <- t.HandleSingle()
+			item, err := t.HandleSingle()
+			switch err {
+			case nil:
+				in <- item
+			default:
+				c.outChannel <- err
+			}
 		}
 	default:
 		in <- 0

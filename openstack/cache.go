@@ -34,12 +34,7 @@ func (ci CacheItem) GetToken() string {
 }
 
 func InitCache() (lib.Cacher, error) {
-	return nil, nil
-}
-
-// CacheKey returns the cache key formed from the user's authentication credentials.
-func (c Cache) GetCacheKey() string {
-	return fmt.Sprintf("%s,%s,%s,%s,%s", c.usernameOrTenantID, c.identityEndpoint, c.region, c.serviceClientType, c.urlType)
+	return &Cache{items: map[string]CacheItem{}}, nil
 }
 
 func cacheFile() (string, error) {
@@ -66,11 +61,16 @@ func (cache Cache) all() error {
 	}
 	cache.RLock()
 	defer cache.RUnlock()
-	data, _ := ioutil.ReadFile(filename)
+	data, err := ioutil.ReadFile(filename)
+	if err != nil {
+		return err
+	}
+
 	if len(data) == 0 {
-		cache.items = make(map[string]CacheItem)
+		cache.items = make(map[string]CacheItem, 0)
 		return nil
 	}
+
 	err = json.Unmarshal(data, &cache.items)
 	if err != nil {
 		return err
@@ -80,16 +80,18 @@ func (cache Cache) all() error {
 }
 
 // Value returns the cached value for the given key if it exists.
-func (cache Cache) GetCacheValue(cacheKey string) (lib.CacheItemer, error) {
+func (cache *Cache) GetCacheValue(cacheKey string) (lib.CacheItemer, error) {
 	err := cache.all()
 	if err != nil {
 		return nil, fmt.Errorf("Error getting cache value: %s", err)
 	}
 	creds := cache.items[cacheKey]
-	if creds.TokenID == "" {
+	switch creds.TokenID {
+	case "":
 		return nil, nil
+	default:
+		return &creds, nil
 	}
-	return &creds, nil
 }
 
 // SetValue writes the user's current provider client to the cache.
@@ -103,7 +105,7 @@ func (cache *Cache) SetCacheValue(cacheKey string, cacheItemer lib.CacheItemer) 
 		delete(cache.items, cacheKey)
 	} else {
 		// set cache value for cacheKey
-		cache.items[cacheKey] = cacheItemer.(CacheItem)
+		cache.items[cacheKey] = *cacheItemer.(*CacheItem)
 	}
 	filename, err := cacheFile()
 	if err != nil {
@@ -118,24 +120,4 @@ func (cache *Cache) SetCacheValue(cacheKey string, cacheItemer lib.CacheItemer) 
 		return fmt.Errorf("Error setting cache value: %s", err)
 	}
 	return nil
-}
-
-// StoreCredentials caches the users auth credentials if available and the `no-cache`
-// flag was not provided.
-func (cache *Cache) StoreCredentials(auther lib.Authenticater) error {
-	a := auther.(auth)
-	// if serviceClient is nil, the HTTP request for the command didn't get sent.
-	// don't set cache if the `no-cache` flag is provided
-	if a.noCache {
-		return nil
-	}
-
-	newCacheValue := &CacheItem{
-		TokenID:         a.serviceClient.TokenID,
-		ServiceEndpoint: a.serviceClient.Endpoint,
-	}
-	// get the cache key
-	cacheKey := cache.GetCacheKey()
-	// set the cache value to the current values
-	return cache.SetCacheValue(cacheKey, newCacheValue)
 }
