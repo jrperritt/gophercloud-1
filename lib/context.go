@@ -1,7 +1,5 @@
 package lib
 
-import "fmt"
-
 type Context interface {
 	FlagNames() []string
 	NumFlags() int
@@ -64,7 +62,6 @@ func Run(context Context, commander Commander) {
 	outChannel := Provider.ResultsChannel()
 
 	for item := range inChannel {
-		fmt.Println("received input")
 		go commander.Execute(item, outChannel)
 	}
 

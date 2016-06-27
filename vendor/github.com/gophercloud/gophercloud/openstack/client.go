@@ -151,8 +151,6 @@ func v3auth(client *gophercloud.ProviderClient, endpoint string, options gopherc
 		v3Client.Endpoint = endpoint
 	}
 
-	fmt.Printf("options: %+v\n", options)
-
 	// copy the auth options to a local variable that we can change. `options`
 	// needs to stay as-is for reauth purposes
 	v3Options := options
@@ -188,9 +186,6 @@ func v3auth(client *gophercloud.ProviderClient, endpoint string, options gopherc
 		TokenID:          v3Options.TokenID,
 	}
 
-	fmt.Printf("v3Opts: %+v\n", v3Opts)
-	fmt.Printf("scope: %+v\n", scope)
-
 	result := tokens3.Create(v3Client, v3Opts, scope)
 
 	token, err := result.ExtractToken()
@@ -202,8 +197,6 @@ func v3auth(client *gophercloud.ProviderClient, endpoint string, options gopherc
 	if err != nil {
 		return err
 	}
-
-	fmt.Printf("catalog: %+v\n", catalog)
 
 	client.TokenID = token.ID
 
