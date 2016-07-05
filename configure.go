@@ -4,8 +4,10 @@ import (
 	"bufio"
 	"fmt"
 	"os"
-	"path"
 	"strings"
+	"syscall"
+
+	"golang.org/x/crypto/ssh/terminal"
 
 	"github.com/codegangsta/cli"
 	"github.com/gophercloud/cli/util"
@@ -13,25 +15,29 @@ import (
 )
 
 func configure(c *cli.Context) {
-	intro := []string{"\nThis interactive session will walk you through creating",
-		"a profile in your configuration file. You may fill in all or none of the",
-		"values.\n"}
-	fmt.Println(strings.Join(intro, "\n"))
+	fmt.Println("\nThis interactive session will walk you through creating\n" +
+		"a profile in your configuration file. You may fill in all or none of the\n" +
+		"values.\n")
 	reader := bufio.NewReader(os.Stdin)
 	m := map[string]string{
 		"username": "",
-		"api-key":  "",
+		"password": "",
 		"region":   "",
 	}
-	fmt.Print("Rackspace Username: ")
+
+	fmt.Print("Username: ")
 	username, _ := reader.ReadString('\n')
 	m["username"] = strings.TrimSpace(username)
 
-	fmt.Print("Rackspace API key: ")
-	apiKey, _ := reader.ReadString('\n')
-	m["api-key"] = strings.TrimSpace(apiKey)
+	fmt.Print("Password: ")
+	pwd, err := terminal.ReadPassword(syscall.Stdin)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	m["password"] = string(pwd)
 
-	fmt.Print("Rackspace Region: ")
+	fmt.Print("Region: ")
 	region, _ := reader.ReadString('\n')
 	m["region"] = strings.ToUpper(strings.TrimSpace(region))
 
@@ -39,7 +45,7 @@ func configure(c *cli.Context) {
 	profile, _ := reader.ReadString('\n')
 	profile = strings.TrimSpace(profile)
 
-	configFile, err := configFile()
+	configFile, err := util.ConfigFile()
 	if err != nil {
 		return
 	}
@@ -99,19 +105,4 @@ func configure(c *cli.Context) {
 		fmt.Printf("\nCreated profile %s with username %s", profile, username)
 	}
 
-}
-
-func configFile() (string, error) {
-	dir, err := util.RackDir()
-	if err != nil {
-		return "", fmt.Errorf("Error reading from cache: %s", err)
-	}
-	filepath := path.Join(dir, "config")
-	// check if the cache file exists
-	if _, err = os.Stat(filepath); err == nil {
-		return filepath, nil
-	}
-	// create the cache file if it doesn't already exist
-	_, err = os.Create(filepath)
-	return filepath, err
 }

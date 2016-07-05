@@ -98,7 +98,22 @@ func BuildFields(t reflect.Type) []string {
 	return fields
 }
 
-func GetVersion(s string) string {
+func ConfigFile() (string, error) {
+	dir, err := RackDir()
+	if err != nil {
+		return "", fmt.Errorf("Error reading from cache: %s", err)
+	}
+	filepath := path.Join(dir, "config")
+	// check if the cache file exists
+	if _, err = os.Stat(filepath); err == nil {
+		return filepath, nil
+	}
+	// create the cache file if it doesn't already exist
+	_, err = os.Create(filepath)
+	return filepath, err
+}
+
+func GetVersion(service string) string {
 	return "1"
 }
 

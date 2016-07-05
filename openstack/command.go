@@ -20,7 +20,7 @@ type CommandUtil struct {
 }
 
 func BashComplete(flags []cli.Flag) {
-	CompleteFlags(flags)
+	CompleteFlags(append(flags, GlobalFlags()...))
 }
 
 func (c *CommandUtil) SetServiceClient(sc *gophercloud.ServiceClient) {

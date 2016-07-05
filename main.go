@@ -42,19 +42,18 @@ func Usage() string {
 // Desc returns, you guessed it, the description
 func Desc() string {
 	return "A CLI that manages authentication, configures a local setup, and\n" +
-		"\tprovides workflows for operations on resources."
+		"\tprovides workflows for operations on OpenStack resources."
 }
 
 // Cmds returns a list of commands supported by the tool
 func Cmds() []cli.Command {
 
 	return []cli.Command{
-		/*
-			{
-				Name:   "configure",
-				Usage:  "Interactively create a config file for authentication.",
-				Action: configure,
-			},*/
+		{
+			Name:   "configure",
+			Usage:  "Interactively create a config file for authentication.",
+			Action: configure,
+		},
 		{
 			Name: "init",
 			Usage: "Enable tab for command completion." +

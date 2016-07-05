@@ -229,6 +229,8 @@ func (o *GlobalOptions) Set() error {
 		o.fields = strings.Split(o.cliContext.String("fields"), ",")
 	}
 
+	//o.logger.Debugf("global options: %+v\n", o)
+
 	return nil
 }
 
@@ -256,13 +258,15 @@ func (o *GlobalOptions) ParseConfigFileOptions() error {
 		return nil
 	}
 
-	for i, opt := range o.want {
+	tmp := make([]GlobalOption, 0)
+	for _, opt := range o.want {
 		if v := section.Key(opt.name).String(); v != "" {
 			o.have[opt.name] = GlobalOption{value: v, from: fmt.Sprintf("config file (profile: %s)", section.Name())}
-			o.want = append(o.want[:i], o.want[i+1:]...)
+			continue
 		}
+		tmp = append(tmp, opt)
 	}
-
+	o.want = tmp
 	return nil
 }
 
@@ -275,12 +279,16 @@ func (o *GlobalOptions) ParseEnvVarOptions() error {
 		"auth-url":       "OS_AUTH_URL",
 		"region":         "OS_REGION_NAME",
 	}
-	for i, opt := range o.want {
+
+	tmp := make([]GlobalOption, 0)
+	for _, opt := range o.want {
 		if v := os.Getenv(strings.ToUpper(vars[opt.name])); v != "" {
 			o.have[opt.name] = GlobalOption{value: v, from: "envvar"}
-			o.want = append(o.want[:i], o.want[i+1:]...)
+			continue
 		}
+		tmp = append(tmp, opt)
 	}
+	o.want = tmp
 	return nil
 }
 
@@ -301,12 +309,6 @@ func (o *GlobalOptions) ValidateLogInputParam() error {
 		return fmt.Errorf("Invalid value for `log` flag: %s. Valid options are: debug, info", o.logLevel)
 	}
 }
-
-/*
-func (o Logger) Set() error {
-
-}
-*/
 
 func ProfileSection(profile string) (*ini.Section, error) {
 	dir, err := util.RackDir()
