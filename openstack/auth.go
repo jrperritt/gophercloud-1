@@ -116,18 +116,6 @@ func (a *auth) AuthFromScratch() (*gophercloud.ServiceClient, error) {
 	return sc, nil
 }
 
-/*
-func (a auth) SupportedServices() []string {
-	return []string{
-		"compute",
-		//"object-storage",
-		//"block-storage",
-		//"networking",
-		//"orchestration",
-	}
-}
-*/
-
 func (a *auth) AuthFromCache() (*gophercloud.ServiceClient, error) {
 	a.logger.Info("Authenticating from cache")
 
@@ -209,47 +197,3 @@ func (a *auth) StoreCredentials() error {
 	// set the cache value to the current values
 	return a.GetCache().SetCacheValue(cacheKey, newCacheValue)
 }
-
-var usernameAuthErrSlice = []string{"There are some required credentials that we couldn't find.",
-	"Here's what we have:",
-	"%s",
-	"and here's what we're missing:",
-	"%s",
-	"",
-	"You can set any of these credentials in the following ways:",
-	"- Run `rack configure` to interactively create a configuration file,",
-	"- Specify it in the command as a flag (--username, --api-key), or",
-	"- Export it as an environment variable (RS_USERNAME, RS_API_KEY).",
-	"",
-}
-
-var tenantIDAuthErrSlice = []string{"There are some required credentials that we couldn't find.",
-	"Here's what we have:",
-	"%s",
-	"and here's what we're missing:",
-	"%s",
-	"",
-	"You can set the missing credentials with command-line flags (--auth-token, --auth-tenant-id)",
-	"",
-}
-
-/*
-// Err returns the custom error to print when authentication fails.
-func Err(have map[string]Cred, want map[string]string, errMsg []string) error {
-	haveString := ""
-	for k, v := range have {
-		haveString += fmt.Sprintf("%s: %s (from %s)\n", k, v.Value, v.From)
-	}
-
-	if len(want) > 0 {
-		wantString := ""
-		for k := range want {
-			wantString += fmt.Sprintf("%s\n", k)
-		}
-
-		return fmt.Errorf(fmt.Sprintf(strings.Join(errMsg, "\n"), haveString, wantString))
-	}
-
-	return nil
-}
-*/
