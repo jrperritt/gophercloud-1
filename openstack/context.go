@@ -23,7 +23,7 @@ func (c *Context) Name() string {
 }
 
 // NewGlobalOptionser satisfies the Provider.NewGlobalOptionser method
-func (c *Context) NewGlobalOptionser(context lib.Context) lib.GlobalOptionser {
+func (c *Context) NewGlobalOptionser(context lib.Contexter) lib.GlobalOptionser {
 	g := new(GlobalOptions)
 	g.cliContext = context.(*cli.Context)
 	return g
@@ -55,6 +55,7 @@ func (c *Context) InputChannel() chan interface{} {
 }
 
 func (c *Context) FillInputChannel(commander lib.Commander, in chan interface{}) {
+	defer close(in)
 	ctx := commander.Ctx()
 	switch t := commander.(type) {
 	case lib.PipeCommander:
@@ -116,7 +117,6 @@ func (c *Context) FillInputChannel(commander lib.Commander, in chan interface{})
 	default:
 		in <- 0
 	}
-	close(in)
 }
 
 func (c *Context) ResultsChannel() chan interface{} {

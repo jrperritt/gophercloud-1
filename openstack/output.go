@@ -5,7 +5,9 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"sort"
 	"strings"
+	"sync"
 	"text/tabwriter"
 
 	"github.com/Sirupsen/logrus"
@@ -21,17 +23,12 @@ type output struct {
 	fields    []string
 	noHeader  bool
 	format    string
+	quiet     bool
 	logger    *logrus.Logger
 	commander lib.Commander
 }
 
-// FormatOptions satisfies the Outputter.FormatOptions method
-func (o *output) GetFormatOptions() []string {
-	return []string{
-		"json",
-		"table",
-	}
-}
+var once sync.Once
 
 func (o *output) OutputResult(result interface{}) error {
 	o.writer = os.Stdout
@@ -45,25 +42,42 @@ func (o *output) OutputResult(result interface{}) error {
 			fmt.Fprintf(o.writer, "%v\n", r)
 		}
 		return nil
+		//panic(r)
 	case DebugMsg:
 		o.logger.Debug(r)
-	case ProgressStatus:
-		o.logger.Info(r)
-	case map[string]interface{}:
-		o.LimitFields(r)
-		switch o.format {
-		case "json":
-			o.jsonOut(r)
-		default:
-			o.singleTable(r)
+	case *ProgressStatus:
+		switch o.quiet {
+		case false:
+			progresser, ok := o.commander.(lib.Progresser)
+			if !ok {
+				return fmt.Errorf("Command does not allow status updates")
+			}
+			once.Do(progresser.InitProgress)
+			switch r.MsgType {
+			case StatusStarted:
+				progresser.Started(r)
+			case StatusUpdated:
+				progresser.Updated(r)
+			case StatusCompleted:
+				progresser.Completed(r)
+				o.OutputResult(r.Result)
+			case StatusErrored:
+				progresser.Errored(r)
+			}
+			// o.logger.Info(r)
 		}
-	case []map[string]interface{}:
+	case map[string]interface{}, []map[string]interface{}:
 		o.LimitFields(r)
 		switch o.format {
 		case "json":
 			o.jsonOut(r)
 		default:
-			o.listTable(r)
+			switch s := r.(type) {
+			case map[string]interface{}:
+				o.singleTable(s)
+			case []map[string]interface{}:
+				o.listTable(s)
+			}
 		}
 	case io.Reader:
 		if rc, ok := r.(io.ReadCloser); ok {
@@ -82,34 +96,7 @@ func (o *output) OutputResult(result interface{}) error {
 		}
 	}
 
-	//_ = resulter.(*Result)
-
-	/*
-		switch o.format {
-		case "json":
-			if jsoner, ok := command.(PreJSONer); ok {
-				err = jsoner.PreJSON(resource)
-			}
-		default:
-			if tabler, ok := command.(PreTabler); ok {
-				err = tabler.PreTable(resource)
-			}
-		}
-		if err != nil {
-			resource.Keys = []string{"error"}
-			resource.Result = map[string]interface{}{"error": err.Error()}
-		}
-	*/
-
 	return nil
-}
-
-func (o output) ToTable() {
-
-}
-
-func (o output) ToJSON() {
-
 }
 
 func (o *output) LimitFields(r interface{}) {
@@ -159,6 +146,13 @@ func (o output) defaultJSON(i interface{}) {
 
 func (o output) listTable(many []map[string]interface{}) {
 	w := tabwriter.NewWriter(o.writer, 0, 8, 1, '\t', 0)
+	if preTabler, ok := o.commander.(lib.PreTabler); ok {
+		err := preTabler.PreTable(many)
+		if err != nil {
+			fmt.Fprintln(w, fmt.Sprintf("Error formatting table: %s", err))
+			return
+		}
+	}
 	if !o.noHeader {
 		fmt.Fprintln(w, strings.Join(o.fields, "\t"))
 	}
@@ -174,8 +168,24 @@ func (o output) listTable(many []map[string]interface{}) {
 
 func (o output) singleTable(m map[string]interface{}) {
 	w := tabwriter.NewWriter(o.writer, 0, 8, 0, '\t', 0)
-	for k, v := range m {
-		fmt.Fprintf(w, "%s\t%s\n", k, strings.Replace(fmt.Sprint(v), "\n", "\n\t", -1))
+	if preTabler, ok := o.commander.(lib.PreTabler); ok {
+		err := preTabler.PreTable(m)
+		if err != nil {
+			fmt.Fprintln(w, fmt.Sprintf("Error formatting table: %s", err))
+			return
+		}
+	}
+
+	keys := make([]string, len(m))
+	i := 0
+	for k := range m {
+		keys[i] = k
+		i++
+	}
+	sort.Strings(keys)
+
+	for _, k := range keys {
+		fmt.Fprintf(w, "%s\t%s\n", k, strings.Replace(fmt.Sprint(m[k]), "\n", "\n\t", -1))
 	}
 	w.Flush()
 }

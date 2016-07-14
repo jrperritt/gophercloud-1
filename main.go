@@ -6,7 +6,8 @@ import (
 
 	"github.com/gophercloud/cli/lib"
 	"github.com/gophercloud/cli/openstack"
-	"github.com/gophercloud/cli/openstack/commands/blockstoragecommands"
+	"github.com/gophercloud/cli/openstack/commands/blockstorage"
+	"github.com/gophercloud/cli/openstack/commands/compute"
 	"github.com/gophercloud/cli/setup"
 
 	"github.com/gophercloud/cli/version"
@@ -79,14 +80,14 @@ func Cmds() []cli.Command {
 			Name: "block-storage",
 			Usage: "Block-level storage, exposed as volumes to mount to host servers.\n" +
 				"\tWork with volumes and their associated snapshots.",
-			Subcommands: blockstoragecommands.Get(),
+			Subcommands: blockstorage.Get(),
+		},
+		{
+			Name:        "servers",
+			Usage:       "Operations on cloud servers, both virtual and bare metal.",
+			Subcommands: compute.Get(),
 		},
 		/*
-			{
-				Name:        "servers",
-				Usage:       "Operations on cloud servers, both virtual and bare metal.",
-				Subcommands: serverscommands.Get(),
-			},
 			{
 				Name:        "files",
 				Usage:       "Object storage for files and media.",

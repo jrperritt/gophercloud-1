@@ -9,7 +9,7 @@ import (
 	"github.com/gophercloud/gophercloud"
 )
 
-// Command is the type that commands have.
+// CommandUtil is the type that commands have.
 type CommandUtil struct {
 	// cli.Context is the context that the `cli` library uses. Used to
 	// access flags.

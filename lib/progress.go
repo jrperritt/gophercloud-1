@@ -22,7 +22,9 @@ type ProgressStatuser interface {
 
 type Progresser interface {
 	Commander
-	StatusChannel() (chan ProgressStatuser, error)
-	UpdateSummary()
-	UpdateProgress()
+	InitProgress()
+	Started(interface{})
+	Updated(interface{})
+	Completed(interface{})
+	Errored(interface{})
 }

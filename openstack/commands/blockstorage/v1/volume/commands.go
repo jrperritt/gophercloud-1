@@ -1,10 +1,8 @@
-package volumecommands
+package volume
 
 import "github.com/codegangsta/cli"
 
 var commandPrefix = "block-storage volume"
-
-//var serviceClientType = "block-storage"
 
 type VolumeV1Command struct{}
 

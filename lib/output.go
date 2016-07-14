@@ -2,7 +2,6 @@ package lib
 
 type Outputter interface {
 	OutputResult(interface{}) error
-	GetFormatOptions() []string
 	LimitFields(interface{})
 }
 

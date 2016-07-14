@@ -101,9 +101,10 @@ func (cache *Cache) SetCacheValue(cacheKey string, cacheItemer lib.CacheItemer) 
 	if err != nil {
 		return err
 	}
-	if cacheItemer == nil {
+	switch cacheItemer {
+	case nil:
 		delete(cache.items, cacheKey)
-	} else {
+	default:
 		// set cache value for cacheKey
 		cache.items[cacheKey] = *cacheItemer.(*CacheItem)
 	}

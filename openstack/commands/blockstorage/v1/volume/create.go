@@ -1,4 +1,4 @@
-package volumecommands
+package volume
 
 import (
 	"github.com/codegangsta/cli"

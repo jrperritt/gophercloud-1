@@ -1,6 +1,6 @@
 package lib
 
-type Context interface {
+type Contexter interface {
 	FlagNames() []string
 	NumFlags() int
 }
@@ -10,7 +10,7 @@ type CloudProvider interface {
 	// the name of the cli tool
 	Name() string
 
-	NewGlobalOptionser(Context) GlobalOptionser
+	NewGlobalOptionser(Contexter) GlobalOptionser
 
 	NewAuthenticater(GlobalOptionser, string) Authenticater
 
@@ -30,7 +30,7 @@ type CloudProvider interface {
 var Provider CloudProvider
 
 // Run executes all the methods of a Provider for each command
-func Run(context Context, commander Commander) {
+func Run(context Contexter, commander Commander) {
 
 	if Provider == nil {
 		panic("You must set the Cloud variable")

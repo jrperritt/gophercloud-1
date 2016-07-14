@@ -1,26 +1,26 @@
-package volumecommands
+package instance
 
 import (
 	"github.com/codegangsta/cli"
 	"github.com/gophercloud/cli/lib"
 	"github.com/gophercloud/cli/openstack"
 	"github.com/gophercloud/cli/util"
-	"github.com/gophercloud/gophercloud/openstack/blockstorage/v1/volumes"
+	"github.com/gophercloud/gophercloud/openstack/compute/v2/servers"
 )
 
 var _ lib.PipeCommander = new(commandGet)
 
 type commandGet struct {
 	openstack.CommandUtil
-	VolumeV1Command
+	InstanceV2Command
 }
 
 var get = cli.Command{
 	Name:         "get",
-	Usage:        util.Usage(commandPrefix, "get", "[--id <volumeID> | --name <volumeName> | --stdin id]"),
-	Description:  "Gets a volume",
+	Usage:        util.Usage(commandPrefix, "get", "[--id <serverID> | --name <serverName> | --stdin id]"),
+	Description:  "Gets a server",
 	Action:       actionGet,
-	Flags:        openstack.CommandFlags(flagsGet, []string{}),
+	Flags:        openstack.CommandFlags(flagsGet, []string{""}),
 	BashComplete: func(_ *cli.Context) { openstack.BashComplete(flagsGet) },
 }
 
@@ -33,11 +33,11 @@ func actionGet(ctx *cli.Context) {
 var flagsGet = []cli.Flag{
 	cli.StringFlag{
 		Name:  "id",
-		Usage: "[optional; required if `stdin` or `name` isn't provided] The ID of the volume.",
+		Usage: "[optional; required if `stdin` or `name` isn't provided] The ID of the server.",
 	},
 	cli.StringFlag{
 		Name:  "name",
-		Usage: "[optional; required if `stdin` or `id` isn't provided] The name of the volume.",
+		Usage: "[optional; required if `stdin` or `id` isn't provided] The name of the server.",
 	},
 	cli.StringFlag{
 		Name:  "stdin",
@@ -54,22 +54,16 @@ func (c *commandGet) HandlePipe(item string) (interface{}, error) {
 }
 
 func (c *commandGet) HandleSingle() (interface{}, error) {
-	id, err := c.IDOrName(volumes.IDFromName)
-	if err != nil {
-		return nil, err
-	}
-	return id, nil
+	return c.IDOrName(servers.IDFromName)
 }
 
 func (c *commandGet) Execute(item interface{}, out chan interface{}) {
-	defer func() {
-		close(out)
-	}()
+	defer close(out)
 	var m map[string]map[string]interface{}
-	err := volumes.Get(c.ServiceClient, item.(string)).ExtractInto(&m)
+	err := servers.Get(c.ServiceClient, item.(string)).ExtractInto(&m)
 	switch err {
 	case nil:
-		out <- m["volume"]
+		out <- m["server"]
 	default:
 		out <- err
 	}
@@ -78,15 +72,3 @@ func (c *commandGet) Execute(item interface{}, out chan interface{}) {
 func (c *commandGet) PipeFieldOptions() []string {
 	return []string{"id"}
 }
-
-/*
-func (c *commandGet) PreCSV() error {
-	resource.FlattenMap("Metadata")
-	resource.FlattenMap("Attachments")
-	return nil
-}
-
-func (c *commandGet) PreTable() error {
-	return command.PreCSV(resource)
-}
-*/

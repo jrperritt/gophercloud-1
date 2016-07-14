@@ -48,6 +48,7 @@ func (a *auth) Authenticate() (*gophercloud.ServiceClient, error) {
 
 	client.HTTPClient.Transport.(*LogRoundTripper).Logger = a.logger
 	a.serviceClient = client
+	a.logger.Debug("Returning from Authenticate...")
 	return client, nil
 }
 
