@@ -292,7 +292,8 @@ func (c *commandCreate) Execute(in, out chan interface{}) {
 
 	for item := range in {
 		wg.Add(1)
-		go func(item interface{}) {
+		item := item
+		go func() {
 			defer wg.Done()
 
 			var m map[string]map[string]interface{}
@@ -324,20 +325,18 @@ func (c *commandCreate) Execute(in, out chan interface{}) {
 						return false, err
 					}
 
-					current := m["server"]
-
-					switch current["status"].(string) {
+					switch m["server"]["status"].(string) {
 					case "ACTIVE":
 						c.Completed(&openstack.ProgressStatus{
 							Name: item.(string),
 						})
-						current["adminPass"] = pwd
-						createdServersChan <- current
+						m["server"]["adminPass"] = pwd
+						createdServersChan <- m["server"]
 						return true, nil
 					default:
 						c.Updated(&openstack.ProgressStatus{
 							Name:      item.(string),
-							Increment: int(current["progress"].(float64)),
+							Increment: int(m["server"]["progress"].(float64)),
 						})
 						return false, nil
 					}
@@ -352,7 +351,7 @@ func (c *commandCreate) Execute(in, out chan interface{}) {
 			default:
 				out <- m["server"]
 			}
-		}(item)
+		}()
 	}
 
 	go func() {
