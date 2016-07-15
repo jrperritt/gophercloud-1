@@ -86,7 +86,7 @@ func (c *commandList) HandleFlags() error {
 	return nil
 }
 
-func (c *commandList) Execute(_ interface{}, out chan interface{}) {
+func (c *commandList) Execute(_, out chan interface{}) {
 	defer func() {
 		close(out)
 	}()

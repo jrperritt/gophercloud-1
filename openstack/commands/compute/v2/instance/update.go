@@ -63,12 +63,11 @@ func (c *commandUpdate) HandleFlags() (err error) {
 	return
 }
 
-func (c *commandUpdate) Execute(_ interface{}, out chan interface{}) {
-	defer func() {
-		close(out)
-	}()
+func (c *commandUpdate) Execute(in, out chan interface{}) {
+	defer close(out)
+	id := (<-in).(string)
 	var m map[string]interface{}
-	err := servers.Update(c.ServiceClient, c.id, c.opts).ExtractInto(&m)
+	err := servers.Update(c.ServiceClient, id, c.opts).ExtractInto(&m)
 	switch err {
 	case nil:
 		out <- m["server"]

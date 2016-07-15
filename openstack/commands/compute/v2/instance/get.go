@@ -57,15 +57,21 @@ func (c *commandGet) HandleSingle() (interface{}, error) {
 	return c.IDOrName(servers.IDFromName)
 }
 
-func (c *commandGet) Execute(item interface{}, out chan interface{}) {
+func (c *commandGet) Execute(in, out chan interface{}) {
 	defer close(out)
-	var m map[string]map[string]interface{}
-	err := servers.Get(c.ServiceClient, item.(string)).ExtractInto(&m)
-	switch err {
-	case nil:
-		out <- m["server"]
-	default:
-		out <- err
+
+	for item := range in {
+		go func() {
+			item := item
+			var m map[string]map[string]interface{}
+			err := servers.Get(c.ServiceClient, item.(string)).ExtractInto(&m)
+			switch err {
+			case nil:
+				out <- m["server"]
+			default:
+				out <- err
+			}
+		}()
 	}
 }
 

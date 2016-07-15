@@ -45,27 +45,6 @@ func (o *output) OutputResult(result interface{}) error {
 		//panic(r)
 	case DebugMsg:
 		o.logger.Debug(r)
-	case *ProgressStatus:
-		switch o.quiet {
-		case false:
-			progresser, ok := o.commander.(lib.Progresser)
-			if !ok {
-				return fmt.Errorf("Command does not allow status updates")
-			}
-			once.Do(progresser.InitProgress)
-			switch r.MsgType {
-			case StatusStarted:
-				progresser.Started(r)
-			case StatusUpdated:
-				progresser.Updated(r)
-			case StatusCompleted:
-				progresser.Completed(r)
-				o.OutputResult(r.Result)
-			case StatusErrored:
-				progresser.Errored(r)
-			}
-			// o.logger.Info(r)
-		}
 	case map[string]interface{}, []map[string]interface{}:
 		o.LimitFields(r)
 		switch o.format {

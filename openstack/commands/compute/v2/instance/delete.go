@@ -60,31 +60,35 @@ func (c *commandDelete) HandleSingle() (interface{}, error) {
 	return c.IDOrName(servers.IDFromName)
 }
 
-func (c *commandDelete) Execute(item interface{}, out chan interface{}) {
-	defer func() {
-		close(out)
-	}()
-	id := item.(string)
-	err := servers.Delete(c.ServiceClient, id).ExtractErr()
-	if err != nil {
-		out <- err
-		return
-	}
+func (c *commandDelete) Execute(in, out chan interface{}) {
+	defer close(out)
 
-	switch c.wait {
-	case true:
-		i := 0
-		for i < 120 {
-			_, err := servers.Get(c.ServiceClient, id).Extract()
+	for item := range in {
+		go func() {
+			item := item
+			id := item.(string)
+			err := servers.Delete(c.ServiceClient, id).ExtractErr()
 			if err != nil {
-				break
+				out <- err
+				return
 			}
-			time.Sleep(5 * time.Second)
-			i++
-		}
-		out <- fmt.Sprintf("Deleted server [%s]\n", id)
-	default:
-		out <- fmt.Sprintf("Deleting server [%s]\n", id)
+
+			switch c.wait {
+			case true:
+				i := 0
+				for i < 120 {
+					_, err := servers.Get(c.ServiceClient, id).Extract()
+					if err != nil {
+						break
+					}
+					time.Sleep(5 * time.Second)
+					i++
+				}
+				out <- fmt.Sprintf("Deleted server [%s]\n", id)
+			default:
+				out <- fmt.Sprintf("Deleting server [%s]\n", id)
+			}
+		}()
 	}
 }
 

@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/codegangsta/cli"
@@ -27,8 +28,9 @@ type commandCreate struct {
 }
 
 var (
-	_ lib.PipeCommander = new(commandCreate)
-	_ lib.Progresser    = new(commandCreate)
+	cc                   = new(commandCreate)
+	_  lib.PipeCommander = cc
+	_  lib.Progresser    = cc
 )
 
 var create = cli.Command{
@@ -36,7 +38,7 @@ var create = cli.Command{
 	Usage:        util.Usage(commandPrefix, "create", "--size <size>"),
 	Description:  "Creates a server",
 	Action:       actionCreate,
-	Flags:        openstack.CommandFlags(flagsCreate, []string{}),
+	Flags:        openstack.CommandFlags(flagsCreate, []string{""}),
 	BashComplete: func(_ *cli.Context) { openstack.BashComplete(flagsCreate) },
 }
 
@@ -280,63 +282,92 @@ func (c *commandCreate) HandleSingle() (interface{}, error) {
 	return c.Context.String("name"), c.CheckFlagsSet([]string{"name"})
 }
 
-func (c *commandCreate) Execute(item interface{}, out chan interface{}) {
+func (c *commandCreate) Execute(in, out chan interface{}) {
 	defer close(out)
-	var m map[string]map[string]interface{}
-	c.opts.(*servers.CreateOpts).Name = item.(string)
-	err := servers.Create(c.ServiceClient, c.opts).ExtractInto(&m)
-	if err != nil {
-		out <- err
-		return
+
+	var wg sync.WaitGroup
+	var once sync.Once
+
+	createdServersChan := make(chan map[string]interface{})
+
+	for item := range in {
+		wg.Add(1)
+		go func(item interface{}) {
+			defer wg.Done()
+
+			var m map[string]map[string]interface{}
+			c.opts.(*servers.CreateOpts).Name = item.(string)
+			err := servers.Create(c.ServiceClient, c.opts).ExtractInto(&m)
+			if err != nil {
+				out <- err
+				return
+			}
+
+			id := m["server"]["id"].(string)
+			pwd := m["server"]["adminPass"]
+
+			switch c.wait {
+			case true:
+
+				once.Do(c.InitProgress)
+
+				c.Started(&openstack.ProgressStatus{
+					Name:      item.(string),
+					TotalSize: 100,
+					StartTime: time.Now(),
+				})
+
+				err := util.WaitFor(900, func() (bool, error) {
+					var m map[string]map[string]interface{}
+					err := servers.Get(c.ServiceClient, id).ExtractInto(&m)
+					if err != nil {
+						return false, err
+					}
+
+					current := m["server"]
+
+					switch current["status"].(string) {
+					case "ACTIVE":
+						c.Completed(&openstack.ProgressStatus{
+							Name: item.(string),
+						})
+						current["adminPass"] = pwd
+						createdServersChan <- current
+						return true, nil
+					default:
+						c.Updated(&openstack.ProgressStatus{
+							Name:      item.(string),
+							Increment: int(current["progress"].(float64)),
+						})
+						return false, nil
+					}
+				})
+
+				if err != nil {
+					c.Errored(&openstack.ProgressStatus{
+						Name: item.(string),
+						Err:  err,
+					})
+				}
+			default:
+				out <- m["server"]
+			}
+		}(item)
 	}
 
-	id := m["server"]["id"].(string)
+	go func() {
+		wg.Wait()
+		close(createdServersChan)
+	}()
 
-	switch c.wait {
-	case true:
-		out <- &openstack.ProgressStatus{
-			Name:      item.(string),
-			TotalSize: 100,
-			StartTime: time.Now(),
-			MsgType:   openstack.StatusStarted,
-		}
+	createdServers := make([]map[string]interface{}, 0)
 
-		err := util.WaitFor(900, func() (bool, error) {
-			var m map[string]map[string]interface{}
-			err := servers.Get(c.ServiceClient, id).ExtractInto(&m)
-			if err != nil {
-				return false, err
-			}
+	for createdServer := range createdServersChan {
+		createdServers = append(createdServers, createdServer)
+	}
 
-			current := m["server"]
-
-			switch current["status"].(string) {
-			case "ACTIVE":
-				out <- &openstack.ProgressStatus{
-					Name:    item.(string),
-					MsgType: openstack.StatusCompleted,
-					Result:  current,
-				}
-				return true, nil
-			default:
-				out <- &openstack.ProgressStatus{
-					Name:      item.(string),
-					MsgType:   openstack.StatusUpdated,
-					Increment: int(current["progress"].(float64)),
-				}
-				return false, nil
-			}
-		})
-
-		if err != nil {
-			out <- &openstack.ProgressStatus{
-				Name:    item.(string),
-				MsgType: openstack.StatusErrored,
-				Err:     err,
-			}
-		}
-	default:
-		out <- m["server"]
+	for _, createdServer := range createdServers {
+		out <- createdServer
 	}
 }
 
@@ -357,9 +388,7 @@ func (c *commandCreate) Started(raw interface{}) {
 	case nil:
 		statusBar := c.summary.AddBar(status.TotalSize).AppendCompleted().PrependElapsed().PrependFunc(func(b *uiprogress.Bar) string {
 			return c.summary.FileNamesByBar[b]
-		}) //.AppendFunc(func(b *uiprogress.Bar) string {
-		//return fmt.Sprintf("%s/%s", humanize.Bytes(uint64(b.Current())), humanize.Bytes(uint64(b.Total)))
-		//})
+		})
 		index := len(c.summary.Bars) - 1
 		c.summary.StatusBarsByName[status.Name] = &openstack.ProgressBarInfo{index, statusBar}
 		c.summary.FileNamesByBar[statusBar] = status.Name
@@ -385,18 +414,8 @@ func (c *commandCreate) Completed(raw interface{}) {
 	if statusBarInfo := c.summary.StatusBarsByName[status.Name]; statusBarInfo != nil {
 		err := statusBarInfo.Bar.Set(statusBarInfo.Bar.Total)
 		if err != nil {
-			fmt.Printf("error setting bar: %+v", err)
+			fmt.Printf("error setting bar value: %+v", err)
 		}
-		/*
-			delete(c.summary.FileNamesByBar, statusBarInfo.Bar)
-			delete(c.summary.StatusBarsByName, status.Name)
-			c.summary.Bars = append(c.summary.Bars[:statusBarInfo.Index], c.summary.Bars[statusBarInfo.Index+1:]...)
-			for i, progressBar := range c.summary.Bars {
-				if i != 0 {
-					c.summary.StatusBarsByName[c.summary.FileNamesByBar[progressBar]].Index = i
-				}
-			}
-		*/
 		c.summary.TotalActive--
 		c.summary.TotalCompleted++
 		c.summary.Update()

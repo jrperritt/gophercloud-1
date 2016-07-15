@@ -67,9 +67,7 @@ func Run(context Contexter, commander Commander) {
 
 	outChannel := Provider.ResultsChannel()
 
-	for item := range inChannel {
-		go commander.Execute(item, outChannel)
-	}
+	go commander.Execute(inChannel, outChannel)
 
 	outputter := Provider.NewResultOutputter(globalOptions, commander)
 

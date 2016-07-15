@@ -2,6 +2,7 @@ package openstack
 
 import (
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/gosuri/uiprogress"
@@ -24,6 +25,7 @@ type ProgressSummary struct {
 	StatusBarsByName                          map[string]*ProgressBarInfo
 	FileNamesByBar                            map[*uiprogress.Bar]string
 	SummaryBar                                *uiprogress.Bar
+	WaitGroup                                 *sync.WaitGroup
 }
 
 type ProgressBarInfo struct {
@@ -49,6 +51,7 @@ func NewTextBar(s string) *uiprogress.Bar {
 
 func NewProgressSummary() *ProgressSummary {
 	ps := &ProgressSummary{
+		WaitGroup:        new(sync.WaitGroup),
 		Progress:         uiprogress.New(),
 		StatusBarsByName: make(map[string]*ProgressBarInfo, 0),
 		FileNamesByBar:   make(map[*uiprogress.Bar]string, 0),

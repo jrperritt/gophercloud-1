@@ -15,7 +15,7 @@ type Commander interface {
 	// and non-piped commands.
 	HandleFlags() error
 	// Execute executes the command's HTTP request.
-	Execute(interface{}, chan interface{})
+	Execute(chan interface{}, chan interface{})
 	Ctx() *cli.Context
 }
 
