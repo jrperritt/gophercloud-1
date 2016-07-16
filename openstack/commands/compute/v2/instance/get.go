@@ -61,8 +61,8 @@ func (c *commandGet) Execute(in, out chan interface{}) {
 	defer close(out)
 
 	for item := range in {
+		item := item
 		go func() {
-			item := item
 			var m map[string]map[string]interface{}
 			err := servers.Get(c.ServiceClient, item.(string)).ExtractInto(&m)
 			switch err {

@@ -64,8 +64,8 @@ func (c *commandDelete) Execute(in, out chan interface{}) {
 	defer close(out)
 
 	for item := range in {
+		item := item
 		go func() {
-			item := item
 			id := item.(string)
 			err := servers.Delete(c.ServiceClient, id).ExtractErr()
 			if err != nil {
