@@ -15,16 +15,16 @@ import (
 	"github.com/gophercloud/cli/util"
 	"github.com/gophercloud/gophercloud"
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/extensions/bootfromvolume"
+	"github.com/gophercloud/gophercloud/openstack/compute/v2/extensions/keypairs"
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/servers"
-	"github.com/gosuri/uiprogress"
 )
 
 type commandCreate struct {
 	openstack.CommandUtil
 	InstanceV2Command
-	opts    servers.CreateOptsBuilder
-	wait    bool
-	summary *openstack.ProgressSummary
+	opts servers.CreateOptsBuilder
+	wait bool
+	*openstack.Progress
 }
 
 var (
@@ -38,8 +38,8 @@ var create = cli.Command{
 	Usage:        util.Usage(commandPrefix, "create", "--size <size>"),
 	Description:  "Creates a server",
 	Action:       actionCreate,
-	Flags:        openstack.CommandFlags(flagsCreate, []string{""}),
-	BashComplete: func(_ *cli.Context) { openstack.BashComplete(flagsCreate) },
+	Flags:        openstack.CommandFlags(append(flagsCreate, flagsCreateExt...), []string{""}),
+	BashComplete: func(_ *cli.Context) { openstack.BashComplete(append(flagsCreate, flagsCreateExt...)) },
 }
 
 func actionCreate(ctx *cli.Context) {
@@ -99,6 +99,13 @@ var flagsCreate = []cli.Flag{
 		Name:  "admin-pass",
 		Usage: "[optional] The root password for the server. If not provided, one will be randomly generated and returned in the output.",
 	},
+	cli.BoolFlag{
+		Name:  "wait",
+		Usage: "[optional] If provided, wait to return until the instance is available.",
+	},
+}
+
+var flagsCreateExt = []cli.Flag{
 	cli.StringFlag{
 		Name:  "keypair",
 		Usage: "[optional] The name of the already-existing SSH KeyPair to be injected into this server.",
@@ -117,22 +124,17 @@ var flagsCreate = []cli.Flag{
 			"\tExamle: --block-device source-type=image,source-id=bb02b1a3-bc77-4d17-ab5b-421d89850fca,volume-size=100,destination-type=volume,delete-on-termination=false",
 		}, "\n"),
 	},
-	cli.BoolFlag{
-		Name:  "wait",
-		Usage: "[optional] If provided, wait to return until the instance is available.",
-	},
 }
 
 func (c *commandCreate) HandleFlags() error {
 	c.wait = c.Context.IsSet("wait")
 
 	opts := &servers.CreateOpts{
-		ImageRef:   c.Context.String("image-id"),
-		ImageName:  c.Context.String("image-name"),
-		FlavorRef:  c.Context.String("flavor-id"),
-		FlavorName: c.Context.String("flavor-name"),
-		AdminPass:  c.Context.String("admin-pass"),
-		//KeyPair:    c.Context.String("keypair"),
+		ImageRef:      c.Context.String("image-id"),
+		ImageName:     c.Context.String("image-name"),
+		FlavorRef:     c.Context.String("flavor-id"),
+		FlavorName:    c.Context.String("flavor-name"),
+		AdminPass:     c.Context.String("admin-pass"),
 		ServiceClient: c.ServiceClient,
 	}
 
@@ -208,6 +210,16 @@ func (c *commandCreate) HandleFlags() error {
 		opts.Metadata = metadata
 	}
 
+	// -------------- Extensions logic starts here -------------------------
+	var optsExt servers.CreateOptsBuilder = opts
+
+	if c.Context.IsSet("keypair") {
+		optsExt = keypairs.CreateOptsExt{
+			CreateOptsBuilder: opts,
+			KeyName:           c.Context.String("keypair"),
+		}
+	}
+
 	if c.Context.IsSet("block-device") {
 		bfvMap, err := c.ValidateKVFlag("block-device")
 		if err != nil {
@@ -267,10 +279,14 @@ func (c *commandCreate) HandleFlags() error {
 			bd.DestinationType = destinationType
 		}
 
-		//opts.BlockDevice = []bootfromvolume.BlockDevice{bd}
+		optsExt = bootfromvolume.CreateOptsExt{
+			CreateOptsBuilder: optsExt,
+			BlockDevice:       []bootfromvolume.BlockDevice{bd},
+		}
 	}
 
-	c.opts = opts
+	c.opts = optsExt
+
 	return nil
 }
 
@@ -312,7 +328,7 @@ func (c *commandCreate) Execute(in, out chan interface{}) {
 
 				once.Do(c.InitProgress)
 
-				c.Started(&openstack.ProgressStatus{
+				c.StartBar(&openstack.ProgressStatus{
 					Name:      item.(string),
 					TotalSize: 100,
 					StartTime: time.Now(),
@@ -327,14 +343,14 @@ func (c *commandCreate) Execute(in, out chan interface{}) {
 
 					switch m["server"]["status"].(string) {
 					case "ACTIVE":
-						c.Completed(&openstack.ProgressStatus{
+						c.CompleteBar(&openstack.ProgressStatus{
 							Name: item.(string),
 						})
 						m["server"]["adminPass"] = pwd
 						createdServersChan <- m["server"]
 						return true, nil
 					default:
-						c.Updated(&openstack.ProgressStatus{
+						c.UpdateBar(&openstack.ProgressStatus{
 							Name:      item.(string),
 							Increment: int(m["server"]["progress"].(float64)),
 						})
@@ -343,7 +359,7 @@ func (c *commandCreate) Execute(in, out chan interface{}) {
 				})
 
 				if err != nil {
-					c.Errored(&openstack.ProgressStatus{
+					c.ErrorBar(&openstack.ProgressStatus{
 						Name: item.(string),
 						Err:  err,
 					})
@@ -375,59 +391,6 @@ func (c *commandCreate) PipeFieldOptions() []string {
 }
 
 func (c *commandCreate) InitProgress() {
-	ps := openstack.NewProgressSummary()
-	ps.Start()
-	c.summary = ps
-}
-
-func (c *commandCreate) Started(raw interface{}) {
-	status := raw.(*openstack.ProgressStatus)
-	statusBarInfo := c.summary.StatusBarsByName[status.Name]
-	switch statusBarInfo {
-	case nil:
-		statusBar := c.summary.AddBar(status.TotalSize).AppendCompleted().PrependElapsed().PrependFunc(func(b *uiprogress.Bar) string {
-			return c.summary.FileNamesByBar[b]
-		})
-		index := len(c.summary.Bars) - 1
-		c.summary.StatusBarsByName[status.Name] = &openstack.ProgressBarInfo{index, statusBar}
-		c.summary.FileNamesByBar[statusBar] = status.Name
-		c.summary.TotalActive++
-	default:
-		c.summary.TotalActive++
-		c.summary.TotalErrored--
-	}
-	c.summary.Update()
-}
-
-func (c *commandCreate) Updated(raw interface{}) {
-	status := raw.(*openstack.ProgressStatus)
-	if statusBarInfo := c.summary.StatusBarsByName[status.Name]; statusBarInfo != nil {
-		statusBarInfo.Bar.Incr()
-		statusBarInfo.Bar.Set(status.Increment - 1)
-		c.summary.Update()
-	}
-}
-
-func (c *commandCreate) Completed(raw interface{}) {
-	status := raw.(*openstack.ProgressStatus)
-	if statusBarInfo := c.summary.StatusBarsByName[status.Name]; statusBarInfo != nil {
-		err := statusBarInfo.Bar.Set(statusBarInfo.Bar.Total)
-		if err != nil {
-			fmt.Printf("error setting bar value: %+v", err)
-		}
-		c.summary.TotalActive--
-		c.summary.TotalCompleted++
-		c.summary.Update()
-		time.Sleep(1 * time.Second)
-	}
-}
-
-func (c *commandCreate) Errored(raw interface{}) {
-	status := raw.(*openstack.ProgressStatus)
-	if statusBarInfo := c.summary.StatusBarsByName[status.Name]; statusBarInfo != nil {
-		c.summary.FileNamesByBar[statusBarInfo.Bar] = fmt.Sprintf("[ERROR: %s] %s", status.Err, status.Name)
-		c.summary.TotalActive--
-		c.summary.TotalErrored++
-		c.summary.Update()
-	}
+	c.Progress = openstack.NewProgress(0)
+	c.Progress.Start()
 }

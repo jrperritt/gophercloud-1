@@ -2,6 +2,8 @@ package instance
 
 import (
 	"fmt"
+	"reflect"
+	"sync"
 	"time"
 
 	"github.com/codegangsta/cli"
@@ -15,7 +17,14 @@ type commandDelete struct {
 	openstack.CommandUtil
 	InstanceV2Command
 	wait bool
+	*openstack.Progress
 }
+
+var (
+	cd                   = new(commandDelete)
+	_  lib.PipeCommander = cd
+	_  lib.Progresser    = cd
+)
 
 var remove = cli.Command{
 	Name:         "delete",
@@ -56,6 +65,10 @@ func (c *commandDelete) HandleFlags() error {
 	return nil
 }
 
+func (c *commandDelete) HandlePipe(item string) (interface{}, error) {
+	return item, nil
+}
+
 func (c *commandDelete) HandleSingle() (interface{}, error) {
 	return c.IDOrName(servers.IDFromName)
 }
@@ -63,10 +76,20 @@ func (c *commandDelete) HandleSingle() (interface{}, error) {
 func (c *commandDelete) Execute(in, out chan interface{}) {
 	defer close(out)
 
+	var wg sync.WaitGroup
+	var once sync.Once
+
+	deletedServersChan := make(chan string)
+
 	for item := range in {
+		wg.Add(1)
 		item := item
 		go func() {
-			id := item.(string)
+			defer wg.Done()
+			id, ok := item.(string)
+			if !ok {
+				panic(fmt.Sprintf("expected string for id of server to delete but got %v [%v]", reflect.TypeOf(item), item))
+			}
 			err := servers.Delete(c.ServiceClient, id).ExtractErr()
 			if err != nil {
 				out <- err
@@ -75,23 +98,59 @@ func (c *commandDelete) Execute(in, out chan interface{}) {
 
 			switch c.wait {
 			case true:
+
+				once.Do(c.InitProgress)
+
+				c.StartBar(&openstack.ProgressStatus{
+					Name:      id,
+					StartTime: time.Now(),
+				})
+
 				i := 0
 				for i < 120 {
 					_, err := servers.Get(c.ServiceClient, id).Extract()
 					if err != nil {
+						c.CompleteBar(&openstack.ProgressStatus{
+							Name: id,
+						})
+						deletedServersChan <- fmt.Sprintf("Deleted server [%s]", id)
 						break
 					}
-					time.Sleep(5 * time.Second)
+					time.Sleep(2 * time.Second)
+					c.UpdateBar(&openstack.ProgressStatus{
+						Name: id,
+					})
 					i++
 				}
-				out <- fmt.Sprintf("Deleted server [%s]\n", id)
 			default:
-				out <- fmt.Sprintf("Deleting server [%s]\n", id)
+				out <- fmt.Sprintf("Deleting server [%s]", id)
 			}
 		}()
+	}
+
+	go func() {
+		wg.Wait()
+		close(deletedServersChan)
+	}()
+
+	deletedServers := make([]string, 0)
+
+	for deletedServer := range deletedServersChan {
+		deletedServers = append(deletedServers, deletedServer)
+	}
+
+	for _, deletedServer := range deletedServers {
+		out <- deletedServer
 	}
 }
 
 func (c *commandDelete) PipeFieldOptions() []string {
 	return []string{"id"}
+}
+
+func (c *commandDelete) InitProgress() {
+	c.Progress = openstack.NewProgress(2)
+	c.Progress.RunningMsg = "Deleting"
+	c.Progress.DoneMsg = "Deleted"
+	c.Progress.Start()
 }
