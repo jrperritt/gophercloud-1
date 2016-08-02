@@ -58,8 +58,9 @@ var flagsDeleteMetadata = []cli.Flag{
 		Usage: "[required] A comma-separated string of keys of the metadata to delete from the server.",
 	},
 	cli.BoolFlag{
-		Name:  "wait",
-		Usage: "[optional] If provided, will wait to return until the server has been deleteMetadataed.",
+		Name: "wait",
+		Usage: "[optional] If provided, will wait to return until the metadata has been deleted from all servers\n" +
+			"\tarriving on STDIN.",
 	},
 }
 
