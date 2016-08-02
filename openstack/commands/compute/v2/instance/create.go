@@ -316,7 +316,12 @@ func (c *commandCreate) Execute(in, out chan interface{}) {
 			c.opts.(*servers.CreateOpts).Name = item.(string)
 			err := servers.Create(c.ServiceClient, c.opts).ExtractInto(&m)
 			if err != nil {
-				out <- err
+				switch c.wait {
+				case true:
+					ch <- err
+				case false:
+					out <- err
+				}
 				return
 			}
 

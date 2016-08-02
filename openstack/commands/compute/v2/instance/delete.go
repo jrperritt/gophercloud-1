@@ -88,7 +88,12 @@ func (c *commandDelete) Execute(in, out chan interface{}) {
 			id := item.(string)
 			err := servers.Delete(c.ServiceClient, id).ExtractErr()
 			if err != nil {
-				out <- err
+				switch c.wait {
+				case true:
+					ch <- err
+				case false:
+					out <- err
+				}
 				return
 			}
 

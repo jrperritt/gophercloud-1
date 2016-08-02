@@ -115,7 +115,12 @@ func (c *commandReboot) Execute(in, out chan interface{}) {
 			id := item.(string)
 			err := servers.Reboot(c.ServiceClient, id, c.opts).ExtractErr()
 			if err != nil {
-				out <- err
+				switch c.wait {
+				case true:
+					ch <- err
+				case false:
+					out <- err
+				}
 				return
 			}
 

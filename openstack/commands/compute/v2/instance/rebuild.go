@@ -30,10 +30,10 @@ var (
 
 var rebuild = cli.Command{
 	Name:         "rebuild",
-	Usage:        util.Usage(commandPrefix, "rebuild", "[--id <serverID> | --name <serverName> | --stdin id] [--soft | --hard]"),
+	Usage:        util.Usage(commandPrefix, "rebuild", "[--id <serverID> | --name <serverName> | --stdin id] [--image-id | --image-name]"),
 	Description:  "Rebuilds a server",
 	Action:       actionRebuild,
-	Flags:        openstack.CommandFlags(flagsRebuild, []string{}),
+	Flags:        openstack.CommandFlags(flagsRebuild, []string{""}),
 	BashComplete: func(_ *cli.Context) { openstack.BashComplete(flagsRebuild) },
 }
 
@@ -183,7 +183,12 @@ func (c *commandRebuild) Execute(in, out chan interface{}) {
 			m := make(map[string]map[string]interface{})
 			err := servers.Rebuild(c.ServiceClient, id, c.opts).ExtractInto(&m)
 			if err != nil {
-				out <- err
+				switch c.wait {
+				case true:
+					ch <- err
+				case false:
+					out <- err
+				}
 				return
 			}
 
