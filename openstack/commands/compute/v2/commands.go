@@ -10,7 +10,7 @@ func Get() []cli.Command {
 	return []cli.Command{
 		{
 			Name:        "instance",
-			Usage:       "Block level volumes to add storage capacity to your servers.",
+			Usage:       "Virtual and bare metal servers.",
 			Subcommands: instance.Get(),
 		},
 	}
