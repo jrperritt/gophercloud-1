@@ -2,7 +2,6 @@ package instance
 
 import (
 	"fmt"
-	"reflect"
 	"sync"
 	"time"
 
@@ -21,9 +20,9 @@ type commandDelete struct {
 }
 
 var (
-	cd                   = new(commandDelete)
-	_  lib.PipeCommander = cd
-	_  lib.Progresser    = cd
+	cDelete                   = new(commandDelete)
+	_       lib.PipeCommander = cDelete
+	_       lib.Progresser    = cDelete
 )
 
 var remove = cli.Command{
@@ -79,17 +78,14 @@ func (c *commandDelete) Execute(in, out chan interface{}) {
 	var wg sync.WaitGroup
 	var once sync.Once
 
-	deletedServersChan := make(chan string)
+	ch := make(chan interface{})
 
 	for item := range in {
 		wg.Add(1)
 		item := item
 		go func() {
 			defer wg.Done()
-			id, ok := item.(string)
-			if !ok {
-				panic(fmt.Sprintf("expected string for id of server to delete but got %v [%v]", reflect.TypeOf(item), item))
-			}
+			id := item.(string)
 			err := servers.Delete(c.ServiceClient, id).ExtractErr()
 			if err != nil {
 				out <- err
@@ -98,29 +94,34 @@ func (c *commandDelete) Execute(in, out chan interface{}) {
 
 			switch c.wait {
 			case true:
-
 				once.Do(c.InitProgress)
-
 				c.StartBar(&openstack.ProgressStatus{
 					Name:      id,
 					StartTime: time.Now(),
 				})
 
-				i := 0
-				for i < 120 {
+				err := util.WaitFor(900, func() (bool, error) {
 					_, err := servers.Get(c.ServiceClient, id).Extract()
 					if err != nil {
 						c.CompleteBar(&openstack.ProgressStatus{
 							Name: id,
 						})
-						deletedServersChan <- fmt.Sprintf("Deleted server [%s]", id)
-						break
+						ch <- fmt.Sprintf("Deleted server [%s]", id)
+						return true, nil
 					}
-					time.Sleep(2 * time.Second)
+
 					c.UpdateBar(&openstack.ProgressStatus{
 						Name: id,
 					})
-					i++
+					return false, nil
+				})
+
+				if err != nil {
+					c.ErrorBar(&openstack.ProgressStatus{
+						Name: item.(string),
+						Err:  err,
+					})
+					ch <- err
 				}
 			default:
 				out <- fmt.Sprintf("Deleting server [%s]", id)
@@ -130,17 +131,22 @@ func (c *commandDelete) Execute(in, out chan interface{}) {
 
 	go func() {
 		wg.Wait()
-		close(deletedServersChan)
+		close(ch)
 	}()
 
-	deletedServers := make([]string, 0)
+	msgs := make([]string, 0)
 
-	for deletedServer := range deletedServersChan {
-		deletedServers = append(deletedServers, deletedServer)
+	for raw := range ch {
+		switch msg := raw.(type) {
+		case error:
+			out <- msg
+		case string:
+			msgs = append(msgs, msg)
+		}
 	}
 
-	for _, deletedServer := range deletedServers {
-		out <- deletedServer
+	for _, msg := range msgs {
+		out <- msg
 	}
 }
 

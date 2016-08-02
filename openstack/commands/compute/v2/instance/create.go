@@ -304,7 +304,7 @@ func (c *commandCreate) Execute(in, out chan interface{}) {
 	var wg sync.WaitGroup
 	var once sync.Once
 
-	createdServersChan := make(chan map[string]interface{})
+	ch := make(chan interface{})
 
 	for item := range in {
 		wg.Add(1)
@@ -347,7 +347,7 @@ func (c *commandCreate) Execute(in, out chan interface{}) {
 							Name: item.(string),
 						})
 						m["server"]["adminPass"] = pwd
-						createdServersChan <- m["server"]
+						ch <- m["server"]
 						return true, nil
 					default:
 						c.UpdateBar(&openstack.ProgressStatus{
@@ -363,6 +363,7 @@ func (c *commandCreate) Execute(in, out chan interface{}) {
 						Name: item.(string),
 						Err:  err,
 					})
+					ch <- err
 				}
 			default:
 				out <- m["server"]
@@ -372,17 +373,22 @@ func (c *commandCreate) Execute(in, out chan interface{}) {
 
 	go func() {
 		wg.Wait()
-		close(createdServersChan)
+		close(ch)
 	}()
 
-	createdServers := make([]map[string]interface{}, 0)
+	msgs := make([]map[string]interface{}, 0)
 
-	for createdServer := range createdServersChan {
-		createdServers = append(createdServers, createdServer)
+	for raw := range ch {
+		switch msg := raw.(type) {
+		case error:
+			out <- msg
+		case map[string]interface{}:
+			msgs = append(msgs, msg)
+		}
 	}
 
-	for _, createdServer := range createdServers {
-		out <- createdServer
+	for _, msg := range msgs {
+		out <- msg
 	}
 }
 
