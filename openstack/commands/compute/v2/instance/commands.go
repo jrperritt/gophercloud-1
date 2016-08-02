@@ -21,5 +21,6 @@ func Get() []cli.Command {
 		resize,
 		rebuild,
 		reboot,
+		deleteMetadata,
 	}
 }
