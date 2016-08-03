@@ -67,7 +67,13 @@ func Run(context Contexter, commander Commander) {
 
 	outChannel := Provider.ResultsChannel()
 
-	go commander.Execute(inChannel, outChannel)
+	waiter, ok := commander.(Waiter)
+	switch ok && waiter.ShouldWait() {
+	case true:
+		go waiter.ExecuteAndWait(inChannel, outChannel)
+	case false:
+		go commander.Execute(inChannel, outChannel)
+	}
 
 	outputter := Provider.NewResultOutputter(globalOptions, commander)
 

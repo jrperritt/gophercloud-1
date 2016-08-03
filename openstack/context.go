@@ -120,9 +120,8 @@ func (c *Context) FillInputChannel(commander lib.Commander, in chan interface{})
 }
 
 func (c *Context) ResultsChannel() chan interface{} {
-	ch := make(chan interface{})
-	c.outChannel = ch
-	return ch
+	c.outChannel = make(chan interface{})
+	return c.outChannel
 }
 
 // NewResultOutputter satisfies the Provider.NewResultOutputter method

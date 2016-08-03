@@ -6,7 +6,6 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/codegangsta/cli"
@@ -23,7 +22,6 @@ type commandCreate struct {
 	openstack.CommandUtil
 	InstanceV2Command
 	opts servers.CreateOptsBuilder
-	wait bool
 	*openstack.Progress
 }
 
@@ -31,6 +29,7 @@ var (
 	cc                   = new(commandCreate)
 	_  lib.PipeCommander = cc
 	_  lib.Progresser    = cc
+	_  lib.Waiter        = cc
 )
 
 var create = cli.Command{
@@ -127,7 +126,7 @@ var flagsCreateExt = []cli.Flag{
 }
 
 func (c *commandCreate) HandleFlags() error {
-	c.wait = c.Context.IsSet("wait")
+	c.Wait = c.Context.IsSet("wait")
 
 	opts := &servers.CreateOpts{
 		ImageRef:      c.Context.String("image-id"),
@@ -300,100 +299,15 @@ func (c *commandCreate) HandleSingle() (interface{}, error) {
 
 func (c *commandCreate) Execute(in, out chan interface{}) {
 	defer close(out)
-
-	var wg sync.WaitGroup
-	var once sync.Once
-
-	ch := make(chan interface{})
-
 	for item := range in {
-		wg.Add(1)
-		item := item
-		go func() {
-			defer wg.Done()
-
-			var m map[string]map[string]interface{}
-			c.opts.(*servers.CreateOpts).Name = item.(string)
-			err := servers.Create(c.ServiceClient, c.opts).ExtractInto(&m)
-			if err != nil {
-				switch c.wait {
-				case true:
-					ch <- err
-				case false:
-					out <- err
-				}
-				return
-			}
-
-			id := m["server"]["id"].(string)
-			pwd := m["server"]["adminPass"]
-
-			switch c.wait {
-			case true:
-
-				once.Do(c.InitProgress)
-
-				c.StartBar(&openstack.ProgressStatus{
-					Name:      item.(string),
-					TotalSize: 100,
-					StartTime: time.Now(),
-				})
-
-				err := util.WaitFor(900, func() (bool, error) {
-					var m map[string]map[string]interface{}
-					err := servers.Get(c.ServiceClient, id).ExtractInto(&m)
-					if err != nil {
-						return false, err
-					}
-
-					switch m["server"]["status"].(string) {
-					case "ACTIVE":
-						c.CompleteBar(&openstack.ProgressStatus{
-							Name: item.(string),
-						})
-						m["server"]["adminPass"] = pwd
-						ch <- m["server"]
-						return true, nil
-					default:
-						c.UpdateBar(&openstack.ProgressStatus{
-							Name:      item.(string),
-							Increment: int(m["server"]["progress"].(float64)),
-						})
-						return false, nil
-					}
-				})
-
-				if err != nil {
-					c.ErrorBar(&openstack.ProgressStatus{
-						Name: item.(string),
-						Err:  err,
-					})
-					ch <- err
-				}
-			default:
-				out <- m["server"]
-			}
-		}()
-	}
-
-	go func() {
-		wg.Wait()
-		close(ch)
-	}()
-
-	msgs := make([]map[string]interface{}, 0)
-
-	for raw := range ch {
-		switch msg := raw.(type) {
-		case error:
-			out <- msg
-		case map[string]interface{}:
-			msgs = append(msgs, msg)
+		var m map[string]map[string]interface{}
+		c.opts.(*servers.CreateOpts).Name = item.(string)
+		err := servers.Create(c.ServiceClient, c.opts).ExtractInto(&m)
+		if err != nil {
+			out <- err
+			return
 		}
-	}
-
-	for _, msg := range msgs {
-		out <- msg
+		out <- m["server"]
 	}
 }
 
@@ -401,7 +315,56 @@ func (c *commandCreate) PipeFieldOptions() []string {
 	return []string{"name"}
 }
 
+func (c *commandCreate) ExecuteAndWait(in, out chan interface{}) {
+	openstack.ExecuteAndWait(c, in, out)
+}
+
 func (c *commandCreate) InitProgress() {
 	c.Progress = openstack.NewProgress(0)
 	c.Progress.Start()
+}
+
+func (c *commandCreate) ShowProgress(in, out chan interface{}) {
+	for raw := range in {
+		orig := raw.(map[string]interface{})
+		id := orig["id"].(string)
+
+		c.StartBar(&openstack.ProgressStatus{
+			Name:      id,
+			TotalSize: 100,
+			StartTime: time.Now(),
+		})
+
+		err := util.WaitFor(900, func() (bool, error) {
+			var m map[string]map[string]interface{}
+			err := servers.Get(c.ServiceClient, id).ExtractInto(&m)
+			if err != nil {
+				return false, err
+			}
+
+			switch m["server"]["status"].(string) {
+			case "ACTIVE":
+				c.CompleteBar(&openstack.ProgressStatus{
+					Name: id,
+				})
+				m["server"]["adminPass"] = orig["adminPass"].(string)
+				out <- m["server"]
+				return true, nil
+			default:
+				c.UpdateBar(&openstack.ProgressStatus{
+					Name:      id,
+					Increment: int(m["server"]["progress"].(float64)),
+				})
+				return false, nil
+			}
+		})
+
+		if err != nil {
+			c.ErrorBar(&openstack.ProgressStatus{
+				Name: id,
+				Err:  err,
+			})
+			out <- err
+		}
+	}
 }

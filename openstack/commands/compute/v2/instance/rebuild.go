@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"path/filepath"
-	"sync"
 	"time"
 
 	"github.com/codegangsta/cli"
@@ -17,7 +16,6 @@ import (
 type commandRebuild struct {
 	openstack.CommandUtil
 	InstanceV2Command
-	wait bool
 	opts servers.RebuildOptsBuilder
 	*openstack.Progress
 }
@@ -26,6 +24,7 @@ var (
 	cRebuild                   = new(commandRebuild)
 	_        lib.PipeCommander = cRebuild
 	_        lib.Progresser    = cRebuild
+	_        lib.Waiter        = cRebuild
 )
 
 var rebuild = cli.Command{
@@ -97,7 +96,7 @@ var flagsRebuild = []cli.Flag{
 }
 
 func (c *commandRebuild) HandleFlags() error {
-	c.wait = c.Context.IsSet("wait")
+	c.Wait = c.Context.IsSet("wait")
 
 	opts := &servers.RebuildOpts{
 		ImageID:       c.Context.String("image-id"),
@@ -162,97 +161,74 @@ func (c *commandRebuild) HandlePipe(item string) (interface{}, error) {
 	return item, nil
 }
 
+func (c *commandRebuild) ExecuteAndWait(in, out chan interface{}) {
+	openstack.ExecuteAndWait(c, in, out)
+}
+
 func (c *commandRebuild) HandleSingle() (interface{}, error) {
 	return c.IDOrName(servers.IDFromName)
 }
 
 func (c *commandRebuild) Execute(in, out chan interface{}) {
 	defer close(out)
-
-	var wg sync.WaitGroup
-	var once sync.Once
-
-	ch := make(chan interface{})
-
 	for item := range in {
-		wg.Add(1)
 		item := item
 		go func() {
-			defer wg.Done()
 			id := item.(string)
 			m := make(map[string]map[string]interface{})
 			err := servers.Rebuild(c.ServiceClient, id, c.opts).ExtractInto(&m)
 			if err != nil {
-				switch c.wait {
-				case true:
-					ch <- err
-				case false:
-					out <- err
-				}
+				out <- err
 				return
 			}
-
-			switch c.wait {
+			switch c.Wait {
 			case true:
-				once.Do(c.InitProgress)
-				c.StartBar(&openstack.ProgressStatus{
-					Name:      id,
-					StartTime: time.Now(),
-				})
-
-				err := util.WaitFor(900, func() (bool, error) {
-					var m map[string]map[string]interface{}
-					err := servers.Get(c.ServiceClient, id).ExtractInto(&m)
-					if err != nil {
-						return false, err
-					}
-
-					switch m["server"]["status"].(string) {
-					case "ACTIVE":
-						c.CompleteBar(&openstack.ProgressStatus{
-							Name: item.(string),
-						})
-						ch <- m
-						return true, nil
-					default:
-						c.UpdateBar(&openstack.ProgressStatus{
-							Name: item.(string),
-						})
-						return false, nil
-					}
-				})
-
-				if err != nil {
-					c.ErrorBar(&openstack.ProgressStatus{
-						Name: item.(string),
-						Err:  err,
-					})
-					ch <- err
-				}
+				out <- id
 			default:
-				out <- m
+				out <- fmt.Sprintf("Deleting server [%s]", id)
 			}
 		}()
 	}
+}
 
-	go func() {
-		wg.Wait()
-		close(ch)
-	}()
+func (c *commandRebuild) ShowProgress(in, out chan interface{}) {
+	raw := <-in
+	orig := raw.(map[string]interface{})
+	id := orig["id"].(string)
 
-	msgs := make([]map[string]interface{}, 0)
+	c.StartBar(&openstack.ProgressStatus{
+		Name:      id,
+		StartTime: time.Now(),
+	})
 
-	for raw := range ch {
-		switch msg := raw.(type) {
-		case error:
-			out <- msg
-		case map[string]interface{}:
-			msgs = append(msgs, msg)
+	err := util.WaitFor(900, func() (bool, error) {
+		var m map[string]map[string]interface{}
+		err := servers.Get(c.ServiceClient, id).ExtractInto(&m)
+		if err != nil {
+			return false, err
 		}
-	}
 
-	for _, msg := range msgs {
-		out <- msg
+		switch m["server"]["status"].(string) {
+		case "ACTIVE":
+			c.CompleteBar(&openstack.ProgressStatus{
+				Name: id,
+			})
+			out <- m
+			return true, nil
+		default:
+			c.UpdateBar(&openstack.ProgressStatus{
+				Name: id,
+			})
+			return false, nil
+		}
+	})
+
+	if err != nil {
+		c.ErrorBar(&openstack.ProgressStatus{
+			Name: id,
+			Err:  err,
+		})
+		out <- err
 	}
 }
 

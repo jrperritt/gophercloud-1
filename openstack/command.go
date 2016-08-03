@@ -17,6 +17,7 @@ type CommandUtil struct {
 	// ServiceClient is the service client used to authenticate the user
 	// and carry out the requests while processing the command.
 	ServiceClient *gophercloud.ServiceClient
+	Wait          bool
 }
 
 func BashComplete(flags []cli.Flag) {
@@ -93,4 +94,8 @@ func (c *CommandUtil) ValidateStructFlag(flagValues []string) ([]map[string]inte
 		valSliceMap[i] = m
 	}
 	return valSliceMap, nil
+}
+
+func (c *CommandUtil) ShouldWait() bool {
+	return c.Wait
 }

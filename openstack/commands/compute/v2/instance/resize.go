@@ -2,7 +2,6 @@ package instance
 
 import (
 	"fmt"
-	"sync"
 	"time"
 
 	"github.com/codegangsta/cli"
@@ -25,6 +24,7 @@ var (
 	cResize                   = new(commandResize)
 	_       lib.PipeCommander = cResize
 	_       lib.Progresser    = cResize
+	_       lib.Waiter        = cResize
 )
 
 var resize = cli.Command{
@@ -103,90 +103,22 @@ func (c *commandResize) HandleSingle() (interface{}, error) {
 
 func (c *commandResize) Execute(in, out chan interface{}) {
 	defer close(out)
-
-	var wg sync.WaitGroup
-	var once sync.Once
-
-	ch := make(chan interface{})
-
 	for item := range in {
-		wg.Add(1)
 		item := item
 		go func() {
-			defer wg.Done()
 			id := item.(string)
 			err := servers.Resize(c.ServiceClient, id, c.opts).ExtractErr()
 			if err != nil {
-				switch c.wait {
-				case true:
-					ch <- err
-				case false:
-					out <- err
-				}
+				out <- err
 				return
 			}
-
-			switch c.wait {
+			switch c.Wait {
 			case true:
-				once.Do(c.InitProgress)
-				c.StartBar(&openstack.ProgressStatus{
-					Name:      id,
-					StartTime: time.Now(),
-				})
-
-				err := util.WaitFor(900, func() (bool, error) {
-					var m map[string]map[string]interface{}
-					err := servers.Get(c.ServiceClient, id).ExtractInto(&m)
-					if err != nil {
-						return false, err
-					}
-
-					switch m["server"]["status"].(string) {
-					case "ACTIVE":
-						c.CompleteBar(&openstack.ProgressStatus{
-							Name: item.(string),
-						})
-						ch <- fmt.Sprintf("Resized server [%s]", id)
-						return true, nil
-					default:
-						c.UpdateBar(&openstack.ProgressStatus{
-							Name: item.(string),
-						})
-						return false, nil
-					}
-				})
-
-				if err != nil {
-					c.ErrorBar(&openstack.ProgressStatus{
-						Name: item.(string),
-						Err:  err,
-					})
-					ch <- err
-				}
+				out <- id
 			default:
 				out <- fmt.Sprintf("Resizing server [%s]", id)
 			}
 		}()
-	}
-
-	go func() {
-		wg.Wait()
-		close(ch)
-	}()
-
-	msgs := make([]string, 0)
-
-	for raw := range ch {
-		switch msg := raw.(type) {
-		case error:
-			out <- msg
-		case string:
-			msgs = append(msgs, msg)
-		}
-	}
-
-	for _, msg := range msgs {
-		out <- msg
 	}
 }
 
@@ -194,9 +126,46 @@ func (c *commandResize) PipeFieldOptions() []string {
 	return []string{"id"}
 }
 
+func (c *commandResize) ExecuteAndWait(in, out chan interface{}) {
+	openstack.ExecuteAndWait(c, in, out)
+}
+
 func (c *commandResize) InitProgress() {
 	c.Progress = openstack.NewProgress(2)
 	c.Progress.RunningMsg = "Resizing"
 	c.Progress.DoneMsg = "Resized"
 	c.Progress.Start()
+}
+
+func (c *commandResize) ShowProgress(in, out chan interface{}) {
+	id := (<-in).(string)
+
+	c.StartBar(&openstack.ProgressStatus{
+		Name:      id,
+		StartTime: time.Now(),
+	})
+
+	err := util.WaitFor(900, func() (bool, error) {
+		_, err := servers.Get(c.ServiceClient, id).Extract()
+		if err != nil {
+			c.CompleteBar(&openstack.ProgressStatus{
+				Name: id,
+			})
+			out <- fmt.Sprintf("Resized server [%s]", id)
+			return true, nil
+		}
+
+		c.UpdateBar(&openstack.ProgressStatus{
+			Name: id,
+		})
+		return false, nil
+	})
+
+	if err != nil {
+		c.ErrorBar(&openstack.ProgressStatus{
+			Name: id,
+			Err:  err,
+		})
+		out <- err
+	}
 }

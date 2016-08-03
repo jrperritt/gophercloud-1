@@ -2,7 +2,6 @@ package instance
 
 import (
 	"fmt"
-	"sync"
 	"time"
 
 	"github.com/codegangsta/cli"
@@ -15,7 +14,6 @@ import (
 type commandDelete struct {
 	openstack.CommandUtil
 	InstanceV2Command
-	wait bool
 	*openstack.Progress
 }
 
@@ -23,6 +21,7 @@ var (
 	cDelete                   = new(commandDelete)
 	_       lib.PipeCommander = cDelete
 	_       lib.Progresser    = cDelete
+	_       lib.Waiter        = cDelete
 )
 
 var remove = cli.Command{
@@ -60,7 +59,7 @@ var flagsDelete = []cli.Flag{
 }
 
 func (c *commandDelete) HandleFlags() error {
-	c.wait = c.Context.IsSet("wait")
+	c.Wait = c.Context.IsSet("wait")
 	return nil
 }
 
@@ -74,84 +73,19 @@ func (c *commandDelete) HandleSingle() (interface{}, error) {
 
 func (c *commandDelete) Execute(in, out chan interface{}) {
 	defer close(out)
-
-	var wg sync.WaitGroup
-	var once sync.Once
-
-	ch := make(chan interface{})
-
 	for item := range in {
-		wg.Add(1)
-		item := item
-		go func() {
-			defer wg.Done()
-			id := item.(string)
-			err := servers.Delete(c.ServiceClient, id).ExtractErr()
-			if err != nil {
-				switch c.wait {
-				case true:
-					ch <- err
-				case false:
-					out <- err
-				}
-				return
-			}
-
-			switch c.wait {
-			case true:
-				once.Do(c.InitProgress)
-				c.StartBar(&openstack.ProgressStatus{
-					Name:      id,
-					StartTime: time.Now(),
-				})
-
-				err := util.WaitFor(900, func() (bool, error) {
-					_, err := servers.Get(c.ServiceClient, id).Extract()
-					if err != nil {
-						c.CompleteBar(&openstack.ProgressStatus{
-							Name: id,
-						})
-						ch <- fmt.Sprintf("Deleted server [%s]", id)
-						return true, nil
-					}
-
-					c.UpdateBar(&openstack.ProgressStatus{
-						Name: id,
-					})
-					return false, nil
-				})
-
-				if err != nil {
-					c.ErrorBar(&openstack.ProgressStatus{
-						Name: item.(string),
-						Err:  err,
-					})
-					ch <- err
-				}
-			default:
-				out <- fmt.Sprintf("Deleting server [%s]", id)
-			}
-		}()
-	}
-
-	go func() {
-		wg.Wait()
-		close(ch)
-	}()
-
-	msgs := make([]string, 0)
-
-	for raw := range ch {
-		switch msg := raw.(type) {
-		case error:
-			out <- msg
-		case string:
-			msgs = append(msgs, msg)
+		id := item.(string)
+		err := servers.Delete(c.ServiceClient, id).ExtractErr()
+		if err != nil {
+			out <- err
+			return
 		}
-	}
-
-	for _, msg := range msgs {
-		out <- msg
+		switch c.Wait {
+		case true:
+			out <- id
+		default:
+			out <- fmt.Sprintf("Deleting server [%s]", id)
+		}
 	}
 }
 
@@ -159,9 +93,48 @@ func (c *commandDelete) PipeFieldOptions() []string {
 	return []string{"id"}
 }
 
+func (c *commandDelete) ExecuteAndWait(in, out chan interface{}) {
+	openstack.ExecuteAndWait(c, in, out)
+}
+
 func (c *commandDelete) InitProgress() {
 	c.Progress = openstack.NewProgress(2)
 	c.Progress.RunningMsg = "Deleting"
 	c.Progress.DoneMsg = "Deleted"
 	c.Progress.Start()
+}
+
+func (c *commandDelete) ShowProgress(in, out chan interface{}) {
+	for raw := range in {
+		id := (raw).(string)
+
+		c.StartBar(&openstack.ProgressStatus{
+			Name:      id,
+			StartTime: time.Now(),
+		})
+
+		err := util.WaitFor(900, func() (bool, error) {
+			_, err := servers.Get(c.ServiceClient, id).Extract()
+			if err != nil {
+				c.CompleteBar(&openstack.ProgressStatus{
+					Name: id,
+				})
+				out <- fmt.Sprintf("Deleted server [%s]", id)
+				return true, nil
+			}
+
+			c.UpdateBar(&openstack.ProgressStatus{
+				Name: id,
+			})
+			return false, nil
+		})
+
+		if err != nil {
+			c.ErrorBar(&openstack.ProgressStatus{
+				Name: id,
+				Err:  err,
+			})
+			out <- err
+		}
+	}
 }

@@ -111,24 +111,26 @@ func (c *commandDeleteMetadata) Execute(in, out chan interface{}) {
 		}()
 	}
 
-	go func() {
-		wg.Wait()
-		close(ch)
-	}()
+	if c.wait {
+		go func() {
+			wg.Wait()
+			close(ch)
+		}()
 
-	msgs := make([]string, 0)
+		msgs := make([]string, 0)
 
-	for raw := range ch {
-		switch msg := raw.(type) {
-		case error:
-			out <- msg
-		case string:
-			msgs = append(msgs, msg)
+		for raw := range ch {
+			switch msg := raw.(type) {
+			case error:
+				out <- msg
+			case string:
+				msgs = append(msgs, msg)
+			}
 		}
-	}
 
-	for _, msg := range msgs {
-		out <- msg
+		for _, msg := range msgs {
+			out <- msg
+		}
 	}
 }
 
