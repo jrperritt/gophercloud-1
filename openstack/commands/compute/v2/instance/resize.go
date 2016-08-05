@@ -104,21 +104,18 @@ func (c *commandResize) HandleSingle() (interface{}, error) {
 func (c *commandResize) Execute(in, out chan interface{}) {
 	defer close(out)
 	for item := range in {
-		item := item
-		go func() {
-			id := item.(string)
-			err := servers.Resize(c.ServiceClient, id, c.opts).ExtractErr()
-			if err != nil {
-				out <- err
-				return
-			}
-			switch c.Wait {
-			case true:
-				out <- id
-			default:
-				out <- fmt.Sprintf("Resizing server [%s]", id)
-			}
-		}()
+		id := item.(string)
+		err := servers.Resize(c.ServiceClient, id, c.opts).ExtractErr()
+		if err != nil {
+			out <- err
+			return
+		}
+		switch c.Wait {
+		case true:
+			out <- id
+		default:
+			out <- fmt.Sprintf("Resizing server [%s]", id)
+		}
 	}
 }
 
@@ -138,34 +135,36 @@ func (c *commandResize) InitProgress() {
 }
 
 func (c *commandResize) ShowProgress(in, out chan interface{}) {
-	id := (<-in).(string)
+	for raw := range in {
+		id := (raw).(string)
 
-	c.StartBar(&openstack.ProgressStatus{
-		Name:      id,
-		StartTime: time.Now(),
-	})
+		c.StartBar(&openstack.ProgressStatus{
+			Name:      id,
+			StartTime: time.Now(),
+		})
 
-	err := util.WaitFor(900, func() (bool, error) {
-		_, err := servers.Get(c.ServiceClient, id).Extract()
-		if err != nil {
-			c.CompleteBar(&openstack.ProgressStatus{
+		err := util.WaitFor(900, func() (bool, error) {
+			_, err := servers.Get(c.ServiceClient, id).Extract()
+			if err != nil {
+				c.CompleteBar(&openstack.ProgressStatus{
+					Name: id,
+				})
+				out <- fmt.Sprintf("Resized server [%s]", id)
+				return true, nil
+			}
+
+			c.UpdateBar(&openstack.ProgressStatus{
 				Name: id,
 			})
-			out <- fmt.Sprintf("Resized server [%s]", id)
-			return true, nil
+			return false, nil
+		})
+
+		if err != nil {
+			c.ErrorBar(&openstack.ProgressStatus{
+				Name: id,
+				Err:  err,
+			})
+			out <- err
 		}
-
-		c.UpdateBar(&openstack.ProgressStatus{
-			Name: id,
-		})
-		return false, nil
-	})
-
-	if err != nil {
-		c.ErrorBar(&openstack.ProgressStatus{
-			Name: id,
-			Err:  err,
-		})
-		out <- err
 	}
 }

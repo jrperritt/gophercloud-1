@@ -172,63 +172,19 @@ func (c *commandRebuild) HandleSingle() (interface{}, error) {
 func (c *commandRebuild) Execute(in, out chan interface{}) {
 	defer close(out)
 	for item := range in {
-		item := item
-		go func() {
-			id := item.(string)
-			m := make(map[string]map[string]interface{})
-			err := servers.Rebuild(c.ServiceClient, id, c.opts).ExtractInto(&m)
-			if err != nil {
-				out <- err
-				return
-			}
-			switch c.Wait {
-			case true:
-				out <- id
-			default:
-				out <- fmt.Sprintf("Deleting server [%s]", id)
-			}
-		}()
-	}
-}
-
-func (c *commandRebuild) ShowProgress(in, out chan interface{}) {
-	raw := <-in
-	orig := raw.(map[string]interface{})
-	id := orig["id"].(string)
-
-	c.StartBar(&openstack.ProgressStatus{
-		Name:      id,
-		StartTime: time.Now(),
-	})
-
-	err := util.WaitFor(900, func() (bool, error) {
-		var m map[string]map[string]interface{}
-		err := servers.Get(c.ServiceClient, id).ExtractInto(&m)
+		id := item.(string)
+		m := make(map[string]map[string]interface{})
+		err := servers.Rebuild(c.ServiceClient, id, c.opts).ExtractInto(&m)
 		if err != nil {
-			return false, err
+			out <- err
+			return
 		}
-
-		switch m["server"]["status"].(string) {
-		case "ACTIVE":
-			c.CompleteBar(&openstack.ProgressStatus{
-				Name: id,
-			})
-			out <- m
-			return true, nil
+		switch c.Wait {
+		case true:
+			out <- id
 		default:
-			c.UpdateBar(&openstack.ProgressStatus{
-				Name: id,
-			})
-			return false, nil
+			out <- fmt.Sprintf("Deleting server [%s]", id)
 		}
-	})
-
-	if err != nil {
-		c.ErrorBar(&openstack.ProgressStatus{
-			Name: id,
-			Err:  err,
-		})
-		out <- err
 	}
 }
 
@@ -241,4 +197,46 @@ func (c *commandRebuild) InitProgress() {
 	c.Progress.RunningMsg = "Rebuilding"
 	c.Progress.DoneMsg = "Rebuilt"
 	c.Progress.Start()
+}
+
+func (c *commandRebuild) ShowProgress(in, out chan interface{}) {
+	for raw := range in {
+		orig := raw.(map[string]interface{})
+		id := orig["id"].(string)
+
+		c.StartBar(&openstack.ProgressStatus{
+			Name:      id,
+			StartTime: time.Now(),
+		})
+
+		err := util.WaitFor(900, func() (bool, error) {
+			var m map[string]map[string]interface{}
+			err := servers.Get(c.ServiceClient, id).ExtractInto(&m)
+			if err != nil {
+				return false, err
+			}
+
+			switch m["server"]["status"].(string) {
+			case "ACTIVE":
+				c.CompleteBar(&openstack.ProgressStatus{
+					Name: id,
+				})
+				out <- m
+				return true, nil
+			default:
+				c.UpdateBar(&openstack.ProgressStatus{
+					Name: id,
+				})
+				return false, nil
+			}
+		})
+
+		if err != nil {
+			c.ErrorBar(&openstack.ProgressStatus{
+				Name: id,
+				Err:  err,
+			})
+			out <- err
+		}
+	}
 }

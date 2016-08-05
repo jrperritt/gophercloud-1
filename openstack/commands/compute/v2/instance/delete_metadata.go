@@ -3,7 +3,6 @@ package instance
 import (
 	"fmt"
 	"strings"
-	"sync"
 
 	"github.com/codegangsta/cli"
 	"github.com/gophercloud/cli/lib"
@@ -15,14 +14,13 @@ import (
 type commandDeleteMetadata struct {
 	openstack.CommandUtil
 	InstanceV2Command
-	wait bool
 	opts []string
-	*openstack.Progress
 }
 
 var (
 	cDeleteMetadata                   = new(commandDeleteMetadata)
 	_               lib.PipeCommander = cDeleteMetadata
+	_               lib.Waiter        = cDeleteMetadata
 )
 
 var deleteMetadata = cli.Command{
@@ -65,7 +63,7 @@ var flagsDeleteMetadata = []cli.Flag{
 }
 
 func (c *commandDeleteMetadata) HandleFlags() error {
-	c.wait = c.Context.IsSet("wait")
+	c.Wait = c.Context.IsSet("wait")
 	c.opts = strings.Split(c.Context.String("metadata-keys"), ",")
 	return nil
 }
@@ -80,60 +78,24 @@ func (c *commandDeleteMetadata) HandleSingle() (interface{}, error) {
 
 func (c *commandDeleteMetadata) Execute(in, out chan interface{}) {
 	defer close(out)
-
-	var wg sync.WaitGroup
-
-	ch := make(chan interface{})
-
 	for item := range in {
-		wg.Add(1)
-		item := item
-		go func() {
-			defer wg.Done()
-			id := item.(string)
-			for _, key := range c.opts {
-				err := servers.DeleteMetadatum(c.ServiceClient, id, key).ExtractErr()
-				var v interface{}
-				switch err {
-				case nil:
-					v = fmt.Sprintf("Deleted metadata [%s] from server [%s]", key, id)
-				default:
-					v = err
-				}
-				switch c.wait {
-				case true:
-					ch <- v
-				case false:
-					out <- v
-				}
-				return
+		id := item.(string)
+		for _, key := range c.opts {
+			err := servers.DeleteMetadatum(c.ServiceClient, id, key).ExtractErr()
+			switch err {
+			case nil:
+				out <- fmt.Sprintf("Deleted metadata [%s] from server [%s]", key, id)
+			default:
+				out <- err
 			}
-		}()
-	}
-
-	if c.wait {
-		go func() {
-			wg.Wait()
-			close(ch)
-		}()
-
-		msgs := make([]string, 0)
-
-		for raw := range ch {
-			switch msg := raw.(type) {
-			case error:
-				out <- msg
-			case string:
-				msgs = append(msgs, msg)
-			}
-		}
-
-		for _, msg := range msgs {
-			out <- msg
 		}
 	}
 }
 
 func (c *commandDeleteMetadata) PipeFieldOptions() []string {
 	return []string{"id"}
+}
+
+func (c *commandDeleteMetadata) ExecuteAndWait(in, out chan interface{}) {
+	openstack.ExecuteAndWait(c, in, out)
 }

@@ -8,10 +8,11 @@ import (
 
 func ExecuteAndWait(c lib.Commander, in, out chan interface{}) {
 	defer close(out)
+
 	var once sync.Once
 	var wg sync.WaitGroup
-	ch1 := make(chan interface{})
 
+	ch1 := make(chan interface{})
 	ch3 := make(chan interface{})
 
 	go c.Execute(in, ch1)
@@ -27,10 +28,12 @@ func ExecuteAndWait(c lib.Commander, in, out chan interface{}) {
 			wg.Add(1)
 			go func() {
 				defer wg.Done()
-				if progresser, ok := c.(lib.Progresser); ok {
+				progresser, ok := c.(lib.Progresser)
+				switch ok {
+				case true:
 					once.Do(progresser.InitProgress)
 					progresser.ShowProgress(ch2, ch3)
-				} else {
+				default:
 					for item := range ch2 {
 						ch3 <- item
 					}

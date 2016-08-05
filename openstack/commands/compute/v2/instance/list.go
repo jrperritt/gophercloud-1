@@ -87,9 +87,7 @@ func (c *commandList) HandleFlags() error {
 }
 
 func (c *commandList) Execute(_, out chan interface{}) {
-	defer func() {
-		close(out)
-	}()
+	defer close(out)
 	pager := servers.List(c.ServiceClient, c.opts)
 	switch c.allPages {
 	case true:
