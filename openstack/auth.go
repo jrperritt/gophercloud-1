@@ -80,7 +80,7 @@ func (a *auth) AuthFromScratch() (*gophercloud.ServiceClient, error) {
 			Availability: a.urlType,
 		})
 		break
-	case "object-storage":
+	case "files":
 		sc, err = openstack.NewObjectStorageV1(pc, gophercloud.EndpointOpts{
 			Region:       a.region,
 			Availability: a.urlType,

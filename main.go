@@ -7,6 +7,7 @@ import (
 	"github.com/gophercloud/cli/lib"
 	"github.com/gophercloud/cli/openstack"
 	"github.com/gophercloud/cli/openstack/commands/compute"
+	"github.com/gophercloud/cli/openstack/commands/files"
 	"github.com/gophercloud/cli/setup"
 
 	"github.com/gophercloud/cli/version"
@@ -88,12 +89,12 @@ func Cmds() []cli.Command {
 			Usage:       "Operations on cloud servers, both virtual and bare metal.",
 			Subcommands: compute.Get(),
 		},
+		{
+			Name:        "files",
+			Usage:       "Object storage for files and media.",
+			Subcommands: files.Get(),
+		},
 		/*
-			{
-				Name:        "files",
-				Usage:       "Object storage for files and media.",
-				Subcommands: filescommands.Get(),
-			},
 			{
 				Name:        "networks",
 				Usage:       "Software-defined networking.",
