@@ -73,7 +73,11 @@ var flagsRebuild = []cli.Flag{
 	},
 	cli.StringFlag{
 		Name:  "admin-pass",
-		Usage: "[optional] The server's admin password",
+		Usage: "[optional; required if `generate-pass` is not provided] The new server's admin password",
+	},
+	cli.BoolFlag{
+		Name:  "generate-pass",
+		Usage: "[optional; required if `admin-pass` is not provided] If provided, a password will be generated for the new server.",
 	},
 	cli.StringFlag{
 		Name:  "rename",
@@ -106,7 +110,6 @@ func (c *commandRebuild) HandleFlags() error {
 	opts := &servers.RebuildOpts{
 		ImageID:       c.Context.String("image-id"),
 		ImageName:     c.Context.String("image-name"),
-		AdminPass:     c.Context.String("admin-pass"),
 		Name:          c.Context.String("rename"),
 		AccessIPv4:    c.Context.String("ipv4"),
 		AccessIPv6:    c.Context.String("ipv6"),
@@ -155,6 +158,22 @@ func (c *commandRebuild) HandleFlags() error {
 			})
 		}
 		opts.Personality = filesToInject
+	}
+
+	switch c.Context.IsSet("generate-pass") {
+	case true:
+		switch c.Context.IsSet("admin-pass") {
+		case true:
+			return fmt.Errorf("Only one of `generate-pass` and `admin-pass` may be provided")
+		case false:
+		}
+	case false:
+		switch c.Context.IsSet("admin-pass") {
+		case true:
+			opts.AdminPass = c.Context.String("admin-pass")
+		case false:
+			return fmt.Errorf("One of `generate-pass` and `admin-pass` must be provided")
+		}
 	}
 
 	c.opts = opts

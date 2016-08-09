@@ -138,5 +138,6 @@ func (c *Context) NewResultOutputter(globalOptionser lib.GlobalOptionser, comman
 }
 
 func (c *Context) ErrExit1(err error) {
-	panic(err)
+	fmt.Println(err)
+	os.Exit(1)
 }
