@@ -26,18 +26,18 @@ type commandCreate struct {
 }
 
 var (
-	cc                   = new(commandCreate)
-	_  lib.PipeCommander = cc
-	_  lib.Progresser    = cc
-	_  lib.Waiter        = cc
+	cCreate                   = new(commandCreate)
+	_       lib.PipeCommander = cCreate
+	_       lib.Progresser    = cCreate
+	_       lib.Waiter        = cCreate
 )
 
 var create = cli.Command{
 	Name:         "create",
-	Usage:        util.Usage(commandPrefix, "create", "--size <size>"),
+	Usage:        util.Usage(commandPrefix, "create", "[--name <name> | --stdin name] \n\t [--image-id <imageID> | --image-name <imageName>] [--flavor-id <flavorID> | --flavor-name <flavorName]"),
 	Description:  "Creates a server",
 	Action:       actionCreate,
-	Flags:        openstack.CommandFlags(append(flagsCreate, flagsCreateExt...), []string{""}),
+	Flags:        openstack.CommandFlags(cCreate),
 	BashComplete: func(_ *cli.Context) { openstack.BashComplete(append(flagsCreate, flagsCreateExt...)) },
 }
 
@@ -45,6 +45,14 @@ func actionCreate(ctx *cli.Context) {
 	c := new(commandCreate)
 	c.Context = ctx
 	lib.Run(ctx, c)
+}
+
+func (c *commandCreate) Flags() []cli.Flag {
+	return append(flagsCreate, flagsCreateExt...)
+}
+
+func (c *commandCreate) Fields() []string {
+	return []string{""}
 }
 
 var flagsCreate = []cli.Flag{
@@ -98,10 +106,6 @@ var flagsCreate = []cli.Flag{
 		Name:  "admin-pass",
 		Usage: "[optional] The root password for the server. If not provided, one will be randomly generated and returned in the output.",
 	},
-	cli.BoolFlag{
-		Name:  "wait",
-		Usage: "[optional] If provided, wait to return until the instance is available.",
-	},
 }
 
 var flagsCreateExt = []cli.Flag{
@@ -127,6 +131,7 @@ var flagsCreateExt = []cli.Flag{
 
 func (c *commandCreate) HandleFlags() error {
 	c.Wait = c.Context.IsSet("wait")
+	c.Quiet = c.Context.IsSet("quiet")
 
 	opts := &servers.CreateOpts{
 		ImageRef:      c.Context.String("image-id"),
@@ -321,50 +326,56 @@ func (c *commandCreate) ExecuteAndWait(in, out chan interface{}) {
 
 func (c *commandCreate) InitProgress() {
 	c.Progress = openstack.NewProgress(0)
-	c.Progress.Start()
+	c.ProgressChan = make(chan *openstack.ProgressStatus)
+	go c.Progress.Listen(c.ProgressChan)
+	if !c.Quiet {
+		c.Progress.Start()
+	}
 }
 
-func (c *commandCreate) ShowProgress(in, out chan interface{}) {
-	for raw := range in {
-		orig := raw.(map[string]interface{})
-		id := orig["id"].(string)
+func (c *commandCreate) ShowProgress(raw interface{}, out chan interface{}) {
+	orig := raw.(map[string]interface{})
+	id := orig["id"].(string)
 
-		c.StartBar(&openstack.ProgressStatus{
-			Name:      id,
-			TotalSize: 100,
-			StartTime: time.Now(),
-		})
+	c.ProgressChan <- &openstack.ProgressStatus{
+		Name:      id,
+		TotalSize: 100,
+		StartTime: time.Now(),
+		Type:      "start",
+	}
 
-		err := util.WaitFor(900, func() (bool, error) {
-			var m map[string]map[string]interface{}
-			err := servers.Get(c.ServiceClient, id).ExtractInto(&m)
-			if err != nil {
-				return false, err
-			}
-
-			switch m["server"]["status"].(string) {
-			case "ACTIVE":
-				c.CompleteBar(&openstack.ProgressStatus{
-					Name: id,
-				})
-				m["server"]["adminPass"] = orig["adminPass"].(string)
-				out <- m["server"]
-				return true, nil
-			default:
-				c.UpdateBar(&openstack.ProgressStatus{
-					Name:      id,
-					Increment: int(m["server"]["progress"].(float64)),
-				})
-				return false, nil
-			}
-		})
-
+	err := util.WaitFor(900, func() (bool, error) {
+		var m map[string]map[string]interface{}
+		err := servers.Get(c.ServiceClient, id).ExtractInto(&m)
 		if err != nil {
-			c.ErrorBar(&openstack.ProgressStatus{
-				Name: id,
-				Err:  err,
-			})
-			out <- err
+			return false, err
 		}
+
+		switch m["server"]["status"].(string) {
+		case "ACTIVE":
+			c.ProgressChan <- &openstack.ProgressStatus{
+				Name: id,
+				Type: "complete",
+			}
+			m["server"]["adminPass"] = orig["adminPass"].(string)
+			out <- m["server"]
+			return true, nil
+		default:
+			c.ProgressChan <- &openstack.ProgressStatus{
+				Name:      id,
+				Increment: int(m["server"]["progress"].(float64)),
+				Type:      "update",
+			}
+			return false, nil
+		}
+	})
+
+	if err != nil {
+		c.ProgressChan <- &openstack.ProgressStatus{
+			Name: id,
+			Err:  err,
+			Type: "error",
+		}
+		out <- err
 	}
 }

@@ -28,7 +28,7 @@ var deleteMetadata = cli.Command{
 	Usage:        util.Usage(commandPrefix, "delete-metadata", "[--id <serverID> | --name <serverName> | --stdin id]"),
 	Description:  "Deletes metadata associated with a server",
 	Action:       actionDeleteMetadata,
-	Flags:        openstack.CommandFlags(flagsDeleteMetadata, []string{}),
+	Flags:        openstack.CommandFlags(cDeleteMetadata),
 	BashComplete: func(_ *cli.Context) { openstack.BashComplete(flagsDeleteMetadata) },
 }
 
@@ -36,6 +36,10 @@ func actionDeleteMetadata(ctx *cli.Context) {
 	c := new(commandDeleteMetadata)
 	c.Context = ctx
 	lib.Run(ctx, c)
+}
+
+func (c *commandDeleteMetadata) Flags() []cli.Flag {
+	return flagsDeleteMetadata
 }
 
 var flagsDeleteMetadata = []cli.Flag{
@@ -54,11 +58,6 @@ var flagsDeleteMetadata = []cli.Flag{
 	cli.StringFlag{
 		Name:  "metadata-keys",
 		Usage: "[required] A comma-separated string of keys of the metadata to delete from the server.",
-	},
-	cli.BoolFlag{
-		Name: "wait",
-		Usage: "[optional] If provided, will wait to return until the metadata has been deleted from all servers\n" +
-			"\tarriving on STDIN.",
 	},
 }
 

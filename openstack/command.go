@@ -18,6 +18,7 @@ type CommandUtil struct {
 	// and carry out the requests while processing the command.
 	ServiceClient *gophercloud.ServiceClient
 	Wait          bool
+	Quiet         bool
 }
 
 func BashComplete(flags []cli.Flag) {
@@ -98,4 +99,21 @@ func (c *CommandUtil) ValidateStructFlag(flagValues []string) ([]map[string]inte
 
 func (c *CommandUtil) ShouldWait() bool {
 	return c.Wait
+}
+
+func (c *CommandUtil) WaitFlags() []cli.Flag {
+	return []cli.Flag{
+		cli.BoolFlag{
+			Name:  "wait",
+			Usage: "[optional] If provided, wait to return until the operation is complete.",
+		},
+		cli.BoolFlag{
+			Name:  "quiet",
+			Usage: "[optional] If provided, only final results are printed.",
+		},
+	}
+}
+
+func (c *CommandUtil) ShouldQuiet() bool {
+	return c.Quiet
 }

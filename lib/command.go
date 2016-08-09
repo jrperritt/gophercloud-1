@@ -17,6 +17,7 @@ type Commander interface {
 	// Execute executes the command's HTTP request.
 	Execute(chan interface{}, chan interface{})
 	Ctx() *cli.Context
+	Flags() []cli.Flag
 }
 
 // PipeCommander is an interface that commands implement if they can accept input

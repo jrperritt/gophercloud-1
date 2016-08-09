@@ -21,7 +21,7 @@ var list = cli.Command{
 	Usage:        util.Usage(commandPrefix, "list", ""),
 	Description:  "Lists existing servers",
 	Action:       actionList,
-	Flags:        openstack.CommandFlags(flagsList, new(commandList).Fields()),
+	Flags:        openstack.CommandFlags(new(commandList)),
 	BashComplete: func(_ *cli.Context) { openstack.BashComplete(flagsList) },
 }
 
@@ -29,6 +29,14 @@ func actionList(ctx *cli.Context) {
 	c := new(commandList)
 	c.Context = ctx
 	lib.Run(ctx, c)
+}
+
+func (c *commandList) Flags() []cli.Flag {
+	return flagsList
+}
+
+func (c *commandList) Fields() []string {
+	return []string{"id", "name", "status", "accessIPv4", "image", "flavor"}
 }
 
 var flagsList = []cli.Flag{
@@ -118,10 +126,6 @@ func (c *commandList) Execute(_, out chan interface{}) {
 			out <- err
 		}
 	}
-}
-
-func (c *commandList) Fields() []string {
-	return []string{"id", "name", "status", "accessIPv4", "image", "flavor"}
 }
 
 func (c *commandList) PreTable(rawServers interface{}) error {

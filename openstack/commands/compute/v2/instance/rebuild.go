@@ -32,7 +32,7 @@ var rebuild = cli.Command{
 	Usage:        util.Usage(commandPrefix, "rebuild", "[--id <serverID> | --name <serverName> | --stdin id] [--image-id | --image-name]"),
 	Description:  "Rebuilds a server",
 	Action:       actionRebuild,
-	Flags:        openstack.CommandFlags(flagsRebuild, []string{""}),
+	Flags:        openstack.CommandFlags(cRebuild),
 	BashComplete: func(_ *cli.Context) { openstack.BashComplete(flagsRebuild) },
 }
 
@@ -40,6 +40,14 @@ func actionRebuild(ctx *cli.Context) {
 	c := new(commandRebuild)
 	c.Context = ctx
 	lib.Run(ctx, c)
+}
+
+func (c *commandRebuild) Flags() []cli.Flag {
+	return flagsRebuild
+}
+
+func (c *commandRebuild) Fields() []string {
+	return []string{""}
 }
 
 var flagsRebuild = []cli.Flag{
@@ -89,14 +97,11 @@ var flagsRebuild = []cli.Flag{
 			"\tdestination to inject the file on the created server; the value is the its local location.\n" +
 			"\tExample: --personality \"C:\\cloud-automation\\bootstrap.cmd=open_hatch.cmd\"",
 	},
-	cli.BoolFlag{
-		Name:  "wait",
-		Usage: "[optional] If provided, will wait to return until the server has been rebuilt.",
-	},
 }
 
 func (c *commandRebuild) HandleFlags() error {
 	c.Wait = c.Context.IsSet("wait")
+	c.Quiet = c.Context.IsSet("quiet")
 
 	opts := &servers.RebuildOpts{
 		ImageID:       c.Context.String("image-id"),
@@ -196,47 +201,53 @@ func (c *commandRebuild) InitProgress() {
 	c.Progress = openstack.NewProgress(2)
 	c.Progress.RunningMsg = "Rebuilding"
 	c.Progress.DoneMsg = "Rebuilt"
-	c.Progress.Start()
+	c.ProgressChan = make(chan *openstack.ProgressStatus)
+	go c.Progress.Listen(c.ProgressChan)
+	if !c.Quiet {
+		c.Progress.Start()
+	}
 }
 
-func (c *commandRebuild) ShowProgress(in, out chan interface{}) {
-	for raw := range in {
-		orig := raw.(map[string]interface{})
-		id := orig["id"].(string)
+func (c *commandRebuild) ShowProgress(raw interface{}, out chan interface{}) {
+	orig := raw.(map[string]interface{})
+	id := orig["id"].(string)
 
-		c.StartBar(&openstack.ProgressStatus{
-			Name:      id,
-			StartTime: time.Now(),
-		})
+	c.ProgressChan <- &openstack.ProgressStatus{
+		Name:      id,
+		StartTime: time.Now(),
+		Type:      "start",
+	}
 
-		err := util.WaitFor(900, func() (bool, error) {
-			var m map[string]map[string]interface{}
-			err := servers.Get(c.ServiceClient, id).ExtractInto(&m)
-			if err != nil {
-				return false, err
-			}
-
-			switch m["server"]["status"].(string) {
-			case "ACTIVE":
-				c.CompleteBar(&openstack.ProgressStatus{
-					Name: id,
-				})
-				out <- m
-				return true, nil
-			default:
-				c.UpdateBar(&openstack.ProgressStatus{
-					Name: id,
-				})
-				return false, nil
-			}
-		})
-
+	err := util.WaitFor(900, func() (bool, error) {
+		var m map[string]map[string]interface{}
+		err := servers.Get(c.ServiceClient, id).ExtractInto(&m)
 		if err != nil {
-			c.ErrorBar(&openstack.ProgressStatus{
-				Name: id,
-				Err:  err,
-			})
-			out <- err
+			return false, err
 		}
+
+		switch m["server"]["status"].(string) {
+		case "ACTIVE":
+			c.ProgressChan <- &openstack.ProgressStatus{
+				Name: id,
+				Type: "complete",
+			}
+			out <- m
+			return true, nil
+		default:
+			c.ProgressChan <- &openstack.ProgressStatus{
+				Name: id,
+				Type: "update",
+			}
+			return false, nil
+		}
+	})
+
+	if err != nil {
+		c.ProgressChan <- &openstack.ProgressStatus{
+			Name: id,
+			Err:  err,
+			Type: "error",
+		}
+		out <- err
 	}
 }

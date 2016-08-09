@@ -25,7 +25,7 @@ var getMetadata = cli.Command{
 	Usage:        util.Usage(commandPrefix, "get-metadata", "[--id <serverID> | --name <serverName> | --stdin id]"),
 	Description:  "Gets metadata associated with a server",
 	Action:       actionGetMetadata,
-	Flags:        openstack.CommandFlags(flagsGetMetadata, []string{""}),
+	Flags:        openstack.CommandFlags(cGetMetadata),
 	BashComplete: func(_ *cli.Context) { openstack.BashComplete(flagsGetMetadata) },
 }
 
@@ -33,6 +33,14 @@ func actionGetMetadata(ctx *cli.Context) {
 	c := new(commandGetMetadata)
 	c.Context = ctx
 	lib.Run(ctx, c)
+}
+
+func (c *commandGetMetadata) Flags() []cli.Flag {
+	return flagsGetMetadata
+}
+
+func (c *commandGetMetadata) Fields() []string {
+	return []string{""}
 }
 
 var flagsGetMetadata = []cli.Flag{
@@ -47,11 +55,6 @@ var flagsGetMetadata = []cli.Flag{
 	cli.StringFlag{
 		Name:  "stdin",
 		Usage: "[optional; required if `id` or `name` isn't provided] The field being piped into STDIN. Valid values are: id",
-	},
-	cli.BoolFlag{
-		Name: "wait",
-		Usage: "[optional] If provided, will wait to return until the metadata has been getd from all servers\n" +
-			"\tarriving on STDIN.",
 	},
 }
 

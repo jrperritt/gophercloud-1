@@ -5,23 +5,33 @@ import (
 	"strings"
 
 	"github.com/codegangsta/cli"
+	"github.com/gophercloud/cli/lib"
 )
 
 // CommandFlags returns the flags for a given command. It takes as a parameter
 // a function for returning flags specific to that command, and then appends those
 // flags with flags that are valid for all commands.
-func CommandFlags(flags []cli.Flag, keys []string) []cli.Flag {
-	if len(keys) > 0 {
-		fields := make([]string, len(keys))
-		for i, key := range keys {
-			fields[i] = strings.Join(strings.Split(strings.ToLower(key), " "), "-")
+func CommandFlags(c lib.Commander) []cli.Flag {
+	flags := c.Flags()
+	if fieldser, ok := c.(lib.Fieldser); ok {
+		keys := fieldser.Fields()
+		if len(keys) > 0 {
+			fields := make([]string, len(keys))
+			for i, key := range keys {
+				fields[i] = strings.Join(strings.Split(strings.ToLower(key), " "), "-")
+			}
+			flagFields := cli.StringFlag{
+				Name:  "fields",
+				Usage: fmt.Sprintf("[optional] Only return these comma-separated case-insensitive fields.\n\tChoices: %s", strings.Join(fields, ", ")),
+			}
+			flags = append(flags, flagFields)
 		}
-		flagFields := cli.StringFlag{
-			Name:  "fields",
-			Usage: fmt.Sprintf("[optional] Only return these comma-separated case-insensitive fields.\n\tChoices: %s", strings.Join(fields, ", ")),
-		}
-		flags = append(flags, flagFields)
 	}
+
+	if waiter, ok := c.(lib.Waiter); ok {
+		flags = append(flags, waiter.WaitFlags()...)
+	}
+
 	flags = append(flags, GlobalFlags()...)
 
 	return flags

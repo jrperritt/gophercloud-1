@@ -20,7 +20,7 @@ var update = cli.Command{
 	Usage:        util.Usage(commandPrefix, "update", "[--id <serverID> | --name <serverName>]"),
 	Description:  "Updates a server",
 	Action:       actionUpdate,
-	Flags:        openstack.CommandFlags(flagsUpdate, []string{}),
+	Flags:        openstack.CommandFlags(new(commandUpdate)),
 	BashComplete: func(_ *cli.Context) { openstack.BashComplete(flagsUpdate) },
 }
 
@@ -28,6 +28,10 @@ func actionUpdate(ctx *cli.Context) {
 	c := new(commandUpdate)
 	c.Context = ctx
 	lib.Run(ctx, c)
+}
+
+func (c *commandUpdate) Flags() []cli.Flag {
+	return flagsUpdate
 }
 
 var flagsUpdate = []cli.Flag{

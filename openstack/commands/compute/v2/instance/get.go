@@ -20,7 +20,7 @@ var get = cli.Command{
 	Usage:        util.Usage(commandPrefix, "get", "[--id <serverID> | --name <serverName> | --stdin id]"),
 	Description:  "Gets a server",
 	Action:       actionGet,
-	Flags:        openstack.CommandFlags(flagsGet, []string{""}),
+	Flags:        openstack.CommandFlags(new(commandGet)),
 	BashComplete: func(_ *cli.Context) { openstack.BashComplete(flagsGet) },
 }
 
@@ -28,6 +28,14 @@ func actionGet(ctx *cli.Context) {
 	c := new(commandGet)
 	c.Context = ctx
 	lib.Run(ctx, c)
+}
+
+func (c *commandGet) Flags() []cli.Flag {
+	return flagsGet
+}
+
+func (c *commandGet) Fields() []string {
+	return []string{""}
 }
 
 var flagsGet = []cli.Flag{
@@ -62,16 +70,14 @@ func (c *commandGet) Execute(in, out chan interface{}) {
 
 	for item := range in {
 		item := item
-		go func() {
-			var m map[string]map[string]interface{}
-			err := servers.Get(c.ServiceClient, item.(string)).ExtractInto(&m)
-			switch err {
-			case nil:
-				out <- m["server"]
-			default:
-				out <- err
-			}
-		}()
+		var m map[string]map[string]interface{}
+		err := servers.Get(c.ServiceClient, item.(string)).ExtractInto(&m)
+		switch err {
+		case nil:
+			out <- m["server"]
+		default:
+			out <- err
+		}
 	}
 }
 

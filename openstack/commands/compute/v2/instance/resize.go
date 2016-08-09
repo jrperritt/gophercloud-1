@@ -15,7 +15,6 @@ import (
 type commandResize struct {
 	openstack.CommandUtil
 	InstanceV2Command
-	wait bool
 	opts servers.ResizeOptsBuilder
 	*openstack.Progress
 }
@@ -32,8 +31,12 @@ var resize = cli.Command{
 	Usage:        util.Usage(commandPrefix, "resize", "[--id <serverID> | --name <serverName> | --stdin id] [--flavor-id | --flavor-name]"),
 	Description:  "Resizes a server",
 	Action:       actionResize,
-	Flags:        openstack.CommandFlags(flagsResize, []string{}),
+	Flags:        openstack.CommandFlags(cResize),
 	BashComplete: func(_ *cli.Context) { openstack.BashComplete(flagsResize) },
+}
+
+func (c *commandResize) Flags() []cli.Flag {
+	return flagsResize
 }
 
 func actionResize(ctx *cli.Context) {
@@ -70,7 +73,8 @@ var flagsResize = []cli.Flag{
 }
 
 func (c *commandResize) HandleFlags() error {
-	c.wait = c.Context.IsSet("wait")
+	c.Wait = c.Context.IsSet("wait")
+	c.Quiet = c.Context.IsSet("quiet")
 
 	opts := new(servers.ResizeOpts)
 
@@ -131,40 +135,46 @@ func (c *commandResize) InitProgress() {
 	c.Progress = openstack.NewProgress(2)
 	c.Progress.RunningMsg = "Resizing"
 	c.Progress.DoneMsg = "Resized"
-	c.Progress.Start()
+	c.ProgressChan = make(chan *openstack.ProgressStatus)
+	go c.Progress.Listen(c.ProgressChan)
+	if !c.Quiet {
+		c.Progress.Start()
+	}
 }
 
-func (c *commandResize) ShowProgress(in, out chan interface{}) {
-	for raw := range in {
-		id := (raw).(string)
+func (c *commandResize) ShowProgress(raw interface{}, out chan interface{}) {
+	id := (raw).(string)
 
-		c.StartBar(&openstack.ProgressStatus{
-			Name:      id,
-			StartTime: time.Now(),
-		})
+	c.ProgressChan <- &openstack.ProgressStatus{
+		Name:      id,
+		StartTime: time.Now(),
+		Type:      "start",
+	}
 
-		err := util.WaitFor(900, func() (bool, error) {
-			_, err := servers.Get(c.ServiceClient, id).Extract()
-			if err != nil {
-				c.CompleteBar(&openstack.ProgressStatus{
-					Name: id,
-				})
-				out <- fmt.Sprintf("Resized server [%s]", id)
-				return true, nil
-			}
-
-			c.UpdateBar(&openstack.ProgressStatus{
-				Name: id,
-			})
-			return false, nil
-		})
-
+	err := util.WaitFor(900, func() (bool, error) {
+		_, err := servers.Get(c.ServiceClient, id).Extract()
 		if err != nil {
-			c.ErrorBar(&openstack.ProgressStatus{
+			c.ProgressChan <- &openstack.ProgressStatus{
 				Name: id,
-				Err:  err,
-			})
-			out <- err
+				Type: "complete",
+			}
+			out <- fmt.Sprintf("Resized server [%s]", id)
+			return true, nil
 		}
+
+		c.ProgressChan <- &openstack.ProgressStatus{
+			Name: id,
+			Type: "update",
+		}
+		return false, nil
+	})
+
+	if err != nil {
+		c.ProgressChan <- &openstack.ProgressStatus{
+			Name: id,
+			Err:  err,
+			Type: "error",
+		}
+		out <- err
 	}
 }

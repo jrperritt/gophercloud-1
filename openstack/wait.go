@@ -6,49 +6,42 @@ import (
 	"github.com/gophercloud/cli/lib"
 )
 
-func ExecuteAndWait(c lib.Commander, in, out chan interface{}) {
+func ExecuteAndWait(waiter lib.Waiter, in, out chan interface{}) {
 	defer close(out)
 
-	var once sync.Once
 	var wg sync.WaitGroup
 
-	ch1 := make(chan interface{})
-	ch3 := make(chan interface{})
+	chExec := make(chan interface{})
+	chRes := make(chan interface{})
 
-	go c.Execute(in, ch1)
+	go waiter.Execute(in, chExec)
 
-	go func() {
-		for item := range ch1 {
-			ch2 := make(chan interface{})
+	progresser, ok := waiter.(lib.Progresser)
+	switch ok {
+	case true:
+		progresser.InitProgress()
+		for item := range chExec {
 			item := item
-			go func() {
-				ch2 <- item
-				close(ch2)
-			}()
 			wg.Add(1)
 			go func() {
 				defer wg.Done()
-				progresser, ok := c.(lib.Progresser)
-				switch ok {
-				case true:
-					once.Do(progresser.InitProgress)
-					progresser.ShowProgress(ch2, ch3)
-				default:
-					for item := range ch2 {
-						ch3 <- item
-					}
-				}
+				progresser.ShowProgress(item, chRes)
 			}()
 		}
 		go func() {
 			wg.Wait()
-			close(ch3)
+			close(chRes)
 		}()
-	}()
+	case false:
+		for item := range chExec {
+			chRes <- item
+		}
+		close(chRes)
+	}
 
 	msgs := make([]interface{}, 0)
 
-	for raw := range ch3 {
+	for raw := range chRes {
 		switch msg := raw.(type) {
 		case error:
 			out <- msg

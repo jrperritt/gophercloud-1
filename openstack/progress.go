@@ -19,6 +19,7 @@ const (
 
 type Progress struct {
 	*uiprogress.Progress
+	ProgressChan                              chan *ProgressStatus
 	SummaryBar                                *ProgressText
 	BarType                                   BarType
 	StatusBarsByName                          map[string]*ProgressItem
@@ -43,6 +44,25 @@ func NewProgress(barType BarType) *Progress {
 	p.SummaryBar.setBarToText()
 
 	return p
+}
+
+func (p *Progress) Listen(pch chan *ProgressStatus) {
+	for s := range pch {
+		switch s.Type {
+		case "start":
+			p.StartBar(s)
+		case "update":
+			p.UpdateBar(s)
+		case "complete":
+			p.CompleteBar(s)
+		case "error":
+			p.ErrorBar(s)
+		}
+	}
+}
+
+func (p *Progress) End() {
+	p.Progress.Stop()
 }
 
 func (p *Progress) Update() {
@@ -95,8 +115,7 @@ func (p *Progress) StartBar(raw lib.ProgressStatuser) {
 }
 
 func (p *Progress) UpdateBar(raw lib.ProgressStatuser) {
-	status := raw.(*ProgressStatus)
-	if statusBarInfo := p.StatusBarsByName[status.Name]; statusBarInfo != nil {
+	if statusBarInfo := p.StatusBarsByName[raw.(*ProgressStatus).Name]; statusBarInfo != nil {
 		statusBarInfo.Content.Update(raw)
 		p.Update()
 	}
@@ -181,6 +200,7 @@ type ProgressStatus struct {
 	StartTime time.Time
 	Err       error
 	Result    interface{}
+	Type      string
 }
 
 func (ps ProgressStatus) Error() error {
@@ -189,4 +209,8 @@ func (ps ProgressStatus) Error() error {
 
 func (ps ProgressStatus) TimeElapsed() time.Duration {
 	return time.Since(ps.StartTime)
+}
+
+func (ps ProgressStatus) ID() string {
+	return ps.Name
 }

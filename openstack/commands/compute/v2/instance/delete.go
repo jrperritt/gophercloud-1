@@ -29,7 +29,7 @@ var remove = cli.Command{
 	Usage:        util.Usage(commandPrefix, "delete", "[--id <serverID> | --name <serverName> | --stdin id]"),
 	Description:  "Deletes a server",
 	Action:       actionDelete,
-	Flags:        openstack.CommandFlags(flagsDelete, []string{}),
+	Flags:        openstack.CommandFlags(cDelete),
 	BashComplete: func(_ *cli.Context) { openstack.BashComplete(flagsDelete) },
 }
 
@@ -37,6 +37,10 @@ func actionDelete(ctx *cli.Context) {
 	c := new(commandDelete)
 	c.Context = ctx
 	lib.Run(ctx, c)
+}
+
+func (c *commandDelete) Flags() []cli.Flag {
+	return flagsDelete
 }
 
 var flagsDelete = []cli.Flag{
@@ -52,14 +56,11 @@ var flagsDelete = []cli.Flag{
 		Name:  "stdin",
 		Usage: "[optional; required if `id` or `name` isn't provided] The field being piped into STDIN. Valid values are: id",
 	},
-	cli.BoolFlag{
-		Name:  "wait",
-		Usage: "[optional] If provided, will wait to return until the server has been deleted.",
-	},
 }
 
 func (c *commandDelete) HandleFlags() error {
 	c.Wait = c.Context.IsSet("wait")
+	c.Quiet = c.Context.IsSet("quiet")
 	return nil
 }
 
@@ -101,40 +102,46 @@ func (c *commandDelete) InitProgress() {
 	c.Progress = openstack.NewProgress(2)
 	c.Progress.RunningMsg = "Deleting"
 	c.Progress.DoneMsg = "Deleted"
-	c.Progress.Start()
+	c.ProgressChan = make(chan *openstack.ProgressStatus)
+	go c.Progress.Listen(c.ProgressChan)
+	if !c.Quiet {
+		c.Progress.Start()
+	}
 }
 
-func (c *commandDelete) ShowProgress(in, out chan interface{}) {
-	for raw := range in {
-		id := (raw).(string)
+func (c *commandDelete) ShowProgress(raw interface{}, out chan interface{}) {
+	id := (raw).(string)
 
-		c.StartBar(&openstack.ProgressStatus{
-			Name:      id,
-			StartTime: time.Now(),
-		})
+	c.ProgressChan <- &openstack.ProgressStatus{
+		Name:      id,
+		StartTime: time.Now(),
+		Type:      "start",
+	}
 
-		err := util.WaitFor(900, func() (bool, error) {
-			_, err := servers.Get(c.ServiceClient, id).Extract()
-			if err != nil {
-				c.CompleteBar(&openstack.ProgressStatus{
-					Name: id,
-				})
-				out <- fmt.Sprintf("Deleted server [%s]", id)
-				return true, nil
-			}
-
-			c.UpdateBar(&openstack.ProgressStatus{
-				Name: id,
-			})
-			return false, nil
-		})
-
+	err := util.WaitFor(900, func() (bool, error) {
+		_, err := servers.Get(c.ServiceClient, id).Extract()
 		if err != nil {
-			c.ErrorBar(&openstack.ProgressStatus{
+			c.ProgressChan <- &openstack.ProgressStatus{
 				Name: id,
-				Err:  err,
-			})
-			out <- err
+				Type: "complete",
+			}
+			out <- fmt.Sprintf("Deleted server [%s]", id)
+			return true, nil
 		}
+
+		c.ProgressChan <- &openstack.ProgressStatus{
+			Name: id,
+			Type: "update",
+		}
+		return false, nil
+	})
+
+	if err != nil {
+		c.ProgressChan <- &openstack.ProgressStatus{
+			Name: id,
+			Err:  err,
+			Type: "error",
+		}
+		out <- err
 	}
 }
