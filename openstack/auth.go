@@ -144,7 +144,7 @@ func (a *auth) AuthFromCache() (*gophercloud.ServiceClient, error) {
 		if err == nil {
 			pc.TokenID = creds.GetToken()
 			pc.ReauthFunc = func() error {
-				return openstack.AuthenticateV3(pc, *a.authOptions, gophercloud.EndpointOpts{Availability: a.urlType})
+				return openstack.AuthenticateV3(pc, a.authOptions, gophercloud.EndpointOpts{Availability: a.urlType})
 			}
 			pc.UserAgent.Prepend(util.UserAgent)
 			pc.HTTPClient = newHTTPClient(a.logger)
