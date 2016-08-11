@@ -1,10 +1,6 @@
 package tokens
 
-import (
-	"time"
-
-	"github.com/gophercloud/gophercloud"
-)
+import "github.com/gophercloud/gophercloud"
 
 // Endpoint represents a single API endpoint offered by a service.
 // It matches either a public, internal or admin URL.
@@ -24,17 +20,13 @@ type Endpoint struct {
 // Note: when looking for the desired service, try, whenever possible, to key off the type field.
 // Otherwise, you'll tie the representation of the service to a specific provider.
 type CatalogEntry struct {
-
 	// Service ID
 	ID string `json:"id"`
-
 	// Name will contain the provider-specified name for the service.
 	Name string `json:"name"`
-
 	// Type will contain a type string if OpenStack defines a type for the service.
 	// Otherwise, for provider-specific services, the provider may assign their own type strings.
 	Type string `json:"type"`
-
 	// Endpoints will let the caller iterate over all the different endpoints that may exist for
 	// the service.
 	Endpoints []Endpoint `json:"endpoints"`
@@ -59,25 +51,18 @@ func (r commonResult) Extract() (*Token, error) {
 // ExtractToken interprets a commonResult as a Token.
 func (r commonResult) ExtractToken() (*Token, error) {
 	var s struct {
-		Token struct {
-			ExpiresAt string `json:"expires_at"`
-		} `json:"token"`
+		Token *Token `json:"token"`
 	}
-
-	var token Token
-
-	// Parse the token itself from the stored headers.
-	token.ID = r.Header.Get("X-Subject-Token")
 
 	err := r.ExtractInto(&s)
 	if err != nil {
 		return nil, err
 	}
 
-	// Attempt to parse the timestamp.
-	token.ExpiresAt, err = time.Parse(gophercloud.RFC3339Milli, s.Token.ExpiresAt)
+	// Parse the token itself from the stored headers.
+	s.Token.ID = r.Header.Get("X-Subject-Token")
 
-	return &token, err
+	return s.Token, err
 }
 
 // ExtractServiceCatalog returns the ServiceCatalog that was generated along with the user's Token.
@@ -118,8 +103,7 @@ type RevokeResult struct {
 // Each Token is valid for a set length of time.
 type Token struct {
 	// ID is the issued token.
-	ID string
-
+	ID string `json:"id"`
 	// ExpiresAt is the timestamp at which this token will no longer be accepted.
-	ExpiresAt time.Time
+	ExpiresAt gophercloud.JSONRFC3339Milli `json:"expires_at"`
 }

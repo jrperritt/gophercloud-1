@@ -177,14 +177,11 @@ type CreateOpts struct {
 
 	// ServiceClient will allow calls to be made to retrieve an image or
 	// flavor ID by name.
-	ServiceClient *gophercloud.ServiceClient `json:"-,omitempty"`
+	ServiceClient *gophercloud.ServiceClient `json:"-"`
 }
 
 // ToServerCreateMap assembles a request body based on the contents of a CreateOpts.
 func (opts CreateOpts) ToServerCreateMap() (map[string]interface{}, error) {
-	sc := *opts.ServiceClient
-	opts.ServiceClient = nil
-
 	b, err := gophercloud.BuildRequestBody(opts, "")
 	if err != nil {
 		return nil, err
@@ -227,12 +224,12 @@ func (opts CreateOpts) ToServerCreateMap() (map[string]interface{}, error) {
 			err.Argument = "ImageRef/ImageName"
 			return nil, err
 		}
-		if &sc == nil {
+		if opts.ServiceClient == nil {
 			err := ErrNoClientProvidedForIDByName{}
 			err.Argument = "ServiceClient"
 			return nil, err
 		}
-		imageID, err := images.IDFromName(&sc, opts.ImageName)
+		imageID, err := images.IDFromName(opts.ServiceClient, opts.ImageName)
 		if err != nil {
 			return nil, err
 		}
@@ -246,12 +243,12 @@ func (opts CreateOpts) ToServerCreateMap() (map[string]interface{}, error) {
 			err.Argument = "FlavorRef/FlavorName"
 			return nil, err
 		}
-		if &sc == nil {
+		if opts.ServiceClient == nil {
 			err := ErrNoClientProvidedForIDByName{}
 			err.Argument = "ServiceClient"
 			return nil, err
 		}
-		flavorID, err := flavors.IDFromName(&sc, opts.FlavorName)
+		flavorID, err := flavors.IDFromName(opts.ServiceClient, opts.FlavorName)
 		if err != nil {
 			return nil, err
 		}

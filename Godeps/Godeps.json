@@ -1,0 +1,125 @@
+{
+	"ImportPath": "github.com/gophercloud/cli",
+	"GoVersion": "go1.7",
+	"GodepVersion": "v74",
+	"Deps": [
+		{
+			"ImportPath": "github.com/Sirupsen/logrus",
+			"Comment": "v0.10.0-4-g7e6f976",
+			"Rev": "7e6f9765803ea8356f45fd9b3c62305fb36cca51"
+		},
+		{
+			"ImportPath": "github.com/codegangsta/cli",
+			"Comment": "1.2.0-237-g71f57d3",
+			"Rev": "71f57d300dd6a780ac1856c005c4b518cfd498ec"
+		},
+		{
+			"ImportPath": "github.com/gophercloud/gophercloud",
+			"Comment": "v1.0.0-1041-g6dea3f1",
+			"Rev": "6dea3f17463923a8ea359d85ce2acaeb3ebb1c23"
+		},
+		{
+			"ImportPath": "github.com/gophercloud/gophercloud/openstack",
+			"Comment": "v1.0.0-1041-g6dea3f1",
+			"Rev": "6dea3f17463923a8ea359d85ce2acaeb3ebb1c23"
+		},
+		{
+			"ImportPath": "github.com/gophercloud/gophercloud/openstack/compute/v2/extensions/bootfromvolume",
+			"Comment": "v1.0.0-1041-g6dea3f1",
+			"Rev": "6dea3f17463923a8ea359d85ce2acaeb3ebb1c23"
+		},
+		{
+			"ImportPath": "github.com/gophercloud/gophercloud/openstack/compute/v2/extensions/keypairs",
+			"Comment": "v1.0.0-1041-g6dea3f1",
+			"Rev": "6dea3f17463923a8ea359d85ce2acaeb3ebb1c23"
+		},
+		{
+			"ImportPath": "github.com/gophercloud/gophercloud/openstack/compute/v2/flavors",
+			"Comment": "v1.0.0-1041-g6dea3f1",
+			"Rev": "6dea3f17463923a8ea359d85ce2acaeb3ebb1c23"
+		},
+		{
+			"ImportPath": "github.com/gophercloud/gophercloud/openstack/compute/v2/images",
+			"Comment": "v1.0.0-1041-g6dea3f1",
+			"Rev": "6dea3f17463923a8ea359d85ce2acaeb3ebb1c23"
+		},
+		{
+			"ImportPath": "github.com/gophercloud/gophercloud/openstack/compute/v2/servers",
+			"Comment": "v1.0.0-1041-g6dea3f1",
+			"Rev": "6dea3f17463923a8ea359d85ce2acaeb3ebb1c23"
+		},
+		{
+			"ImportPath": "github.com/gophercloud/gophercloud/openstack/identity/v2/tenants",
+			"Comment": "v1.0.0-1041-g6dea3f1",
+			"Rev": "6dea3f17463923a8ea359d85ce2acaeb3ebb1c23"
+		},
+		{
+			"ImportPath": "github.com/gophercloud/gophercloud/openstack/identity/v2/tokens",
+			"Comment": "v1.0.0-1041-g6dea3f1",
+			"Rev": "6dea3f17463923a8ea359d85ce2acaeb3ebb1c23"
+		},
+		{
+			"ImportPath": "github.com/gophercloud/gophercloud/openstack/identity/v3/tokens",
+			"Comment": "v1.0.0-1041-g6dea3f1",
+			"Rev": "6dea3f17463923a8ea359d85ce2acaeb3ebb1c23"
+		},
+		{
+			"ImportPath": "github.com/gophercloud/gophercloud/openstack/objectstorage/v1/containers",
+			"Comment": "v1.0.0-1041-g6dea3f1",
+			"Rev": "6dea3f17463923a8ea359d85ce2acaeb3ebb1c23"
+		},
+		{
+			"ImportPath": "github.com/gophercloud/gophercloud/openstack/utils",
+			"Comment": "v1.0.0-1041-g6dea3f1",
+			"Rev": "6dea3f17463923a8ea359d85ce2acaeb3ebb1c23"
+		},
+		{
+			"ImportPath": "github.com/gophercloud/gophercloud/pagination",
+			"Comment": "v1.0.0-1041-g6dea3f1",
+			"Rev": "6dea3f17463923a8ea359d85ce2acaeb3ebb1c23"
+		},
+		{
+			"ImportPath": "github.com/gophercloud/gophercloud/testhelper",
+			"Comment": "v1.0.0-1041-g6dea3f1",
+			"Rev": "6dea3f17463923a8ea359d85ce2acaeb3ebb1c23"
+		},
+		{
+			"ImportPath": "github.com/gophercloud/gophercloud/testhelper/client",
+			"Comment": "v1.0.0-1041-g6dea3f1",
+			"Rev": "6dea3f17463923a8ea359d85ce2acaeb3ebb1c23"
+		},
+		{
+			"ImportPath": "github.com/gosuri/uilive",
+			"Rev": "1b9b73fa2b2cc24489b1aba4d29a82b12cd0a71f"
+		},
+		{
+			"ImportPath": "github.com/gosuri/uiprogress",
+			"Rev": "fd1c82df78a6c1f5ddbd3b6ec46407ea0acda1ad"
+		},
+		{
+			"ImportPath": "github.com/gosuri/uiprogress/util/strutil",
+			"Rev": "fd1c82df78a6c1f5ddbd3b6ec46407ea0acda1ad"
+		},
+		{
+			"ImportPath": "github.com/mattn/go-isatty",
+			"Rev": "66b8e73f3f5cda9f96b69efd03dd3d7fc4a5cdb8"
+		},
+		{
+			"ImportPath": "github.com/mitchellh/mapstructure",
+			"Rev": "281073eb9eb092240d33ef253c404f1cca550309"
+		},
+		{
+			"ImportPath": "golang.org/x/crypto/ssh/terminal",
+			"Rev": "2f6fccd33b9b1fc23ebb73ad4890698820f7174d"
+		},
+		{
+			"ImportPath": "golang.org/x/sys/unix",
+			"Rev": "b776ec39b3e54652e09028aaaaac9757f4f8211a"
+		},
+		{
+			"ImportPath": "gopkg.in/ini.v1",
+			"Comment": "v1.11.0",
+			"Rev": "12f418cc7edc5a618a51407b7ac1f1f512139df3"
+		}
+	]
+}
