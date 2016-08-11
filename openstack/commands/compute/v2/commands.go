@@ -2,6 +2,7 @@ package v2
 
 import (
 	"github.com/codegangsta/cli"
+	"github.com/gophercloud/cli/openstack/commands/compute/v2/flavor"
 	"github.com/gophercloud/cli/openstack/commands/compute/v2/instance"
 )
 
@@ -12,6 +13,11 @@ func Get() []cli.Command {
 			Name:        "instance",
 			Usage:       "Virtual and bare metal servers.",
 			Subcommands: instance.Get(),
+		},
+		{
+			Name:        "flavor",
+			Usage:       "Server flavors (options for operating system and architecture)",
+			Subcommands: flavor.Get(),
 		},
 	}
 }
