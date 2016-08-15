@@ -95,11 +95,12 @@ func (c *commandCreate) Execute(in, out chan interface{}) {
 	for item := range in {
 		var m map[string]interface{}
 		err := containers.Create(c.ServiceClient, item.(string), c.opts).ExtractInto(&m)
-		if err != nil {
+		switch err {
+		case nil:
+			out <- m
+		default:
 			out <- err
-			return
 		}
-		out <- m
 	}
 }
 

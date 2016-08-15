@@ -16,28 +16,35 @@ func ExecuteAndWait(waiter lib.Waiter, in, out chan interface{}) {
 
 	go waiter.Execute(in, chExec)
 
-	progresser, ok := waiter.(lib.Progresser)
-	switch ok {
-	case true:
-		progresser.InitProgress()
-		for item := range chExec {
-			item := item
-			wg.Add(1)
+	go func() {
+		progresser, ok := waiter.(lib.Progresser)
+		switch ok {
+		case true:
+			progresser.InitProgress()
+			for item := range chExec {
+				item := item
+				switch e := item.(type) {
+				case error:
+					chRes <- e
+					continue
+				}
+				wg.Add(1)
+				go func() {
+					defer wg.Done()
+					progresser.ShowProgress(item, chRes)
+				}()
+			}
 			go func() {
-				defer wg.Done()
-				progresser.ShowProgress(item, chRes)
+				wg.Wait()
+				close(chRes)
 			}()
-		}
-		go func() {
-			wg.Wait()
+		case false:
+			for item := range chExec {
+				chRes <- item
+			}
 			close(chRes)
-		}()
-	case false:
-		for item := range chExec {
-			chRes <- item
 		}
-		close(chRes)
-	}
+	}()
 
 	msgs := make([]interface{}, 0)
 

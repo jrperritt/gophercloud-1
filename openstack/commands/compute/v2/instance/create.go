@@ -44,7 +44,7 @@ var create = cli.Command{
 }
 
 func (c *commandCreate) Flags() []cli.Flag {
-	f := []cli.Flag{
+	return []cli.Flag{
 		cli.StringFlag{
 			Name:  "name",
 			Usage: "[optional; required if `stdin` isn't provided] The name that the instance should have.",
@@ -95,8 +95,26 @@ func (c *commandCreate) Flags() []cli.Flag {
 			Name:  "admin-pass",
 			Usage: "[optional] The root password for the server. If not provided, one will be randomly generated and returned in the output.",
 		},
+		cli.StringFlag{
+			Name:  "keypair",
+			Usage: "[optional] The name of the already-existing SSH KeyPair to be injected into this server.",
+		},
+		cli.StringFlag{
+			Name: "block-device",
+			Usage: strings.Join([]string{"[optional] Used to boot from volume.",
+				"\tIf provided, the instance will be created based upon the comma-separated key=value pairs provided to this flag.",
+				"\tOptions:",
+				"\t\tsource-type\t[required] The source type of the device. Options: volume, snapshot, image.",
+				"\t\tsource-id\t[required] The ID of the source resource (volume, snapshot, or image) from which to create the instance.",
+				"\t\tboot-index\t[optional] The boot index of the device. Default is 0.",
+				"\t\tdelete-on-termination\t[optional] Whether or not to delete the attached volume when the server is delete. Default is false. Options: true, false.",
+				"\t\tdestination-type\t[optional] The type that gets created. Options: volume, local.",
+				"\t\tvolume-size\t[optional] The size of the volume to create (in gigabytes).",
+				"\tExamle: --block-device source-type=image,source-id=bb02b1a3-bc77-4d17-ab5b-421d89850fca,volume-size=100,destination-type=volume,delete-on-termination=false",
+			}, "\n"),
+		},
 	}
-	return append(f, flagsCreateExt...)
+	//return append(f, flagsCreateExt...)
 }
 
 var flagsCreateExt = []cli.Flag{
@@ -303,11 +321,12 @@ func (c *commandCreate) Execute(in, out chan interface{}) {
 		var m map[string]map[string]interface{}
 		c.opts.(*servers.CreateOpts).Name = item.(string)
 		err := servers.Create(c.ServiceClient, c.opts).ExtractInto(&m)
-		if err != nil {
+		switch err {
+		case nil:
+			out <- m["server"]
+		default:
 			out <- err
-			return
 		}
-		out <- m["server"]
 	}
 }
 

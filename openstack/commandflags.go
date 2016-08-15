@@ -35,6 +35,8 @@ func CommandFlags(c lib.Commander) []cli.Flag {
 		flags = append(flags, waiter.WaitFlags()...)
 	}
 
+	flags = append(flags, GlobalFlags()...)
+
 	return flags
 }
 
