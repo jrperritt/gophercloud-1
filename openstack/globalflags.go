@@ -1,6 +1,6 @@
 package openstack
 
-import "github.com/codegangsta/cli"
+import "gopkg.in/urfave/cli.v1"
 
 // GlobalFlags returns the flags that can be in any command, such as
 // output flags and authentication flags.

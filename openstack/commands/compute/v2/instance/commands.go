@@ -1,6 +1,6 @@
 package instance
 
-import "github.com/codegangsta/cli"
+import "gopkg.in/urfave/cli.v1"
 
 var commandPrefix = "servers instance"
 

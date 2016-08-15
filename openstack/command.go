@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/codegangsta/cli"
 	"github.com/gophercloud/cli/lib"
 	"github.com/gophercloud/gophercloud"
+	"gopkg.in/urfave/cli.v1"
 )
 
 // CommandUtil is the type that commands have.
@@ -22,15 +22,20 @@ type CommandUtil struct {
 }
 
 func BashComplete(flags []cli.Flag) {
-	CompleteFlags(append(flags, GlobalFlags()...))
+	//CompleteFlags(append(flags, GlobalFlags()...))
+	CompleteFlags(flags)
 }
 
 func (c *CommandUtil) SetServiceClient(sc *gophercloud.ServiceClient) {
 	c.ServiceClient = sc
 }
 
-func (c *CommandUtil) Ctx() *cli.Context {
+func (c *CommandUtil) Ctx() lib.Contexter {
 	return c.Context
+}
+
+func (c *CommandUtil) SetCtx(ctx lib.Contexter) {
+	c.Context = ctx.(*cli.Context)
 }
 
 // IDOrName is a function for retrieving a resource's unique identifier based on
@@ -116,4 +121,10 @@ func (c *CommandUtil) WaitFlags() []cli.Flag {
 
 func (c *CommandUtil) ShouldQuiet() bool {
 	return c.Quiet
+}
+
+func Action(ctx lib.Contexter, c lib.Commander) error {
+	c.SetCtx(ctx)
+	lib.Run(ctx, c)
+	return nil
 }

@@ -6,11 +6,11 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/codegangsta/cli"
 	"github.com/gophercloud/cli/lib"
 	"github.com/gophercloud/cli/openstack"
 	"github.com/gophercloud/cli/util"
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/servers"
+	"gopkg.in/urfave/cli.v1"
 )
 
 type commandRebuild struct {
@@ -25,82 +25,76 @@ var (
 	_        lib.PipeCommander = cRebuild
 	_        lib.Progresser    = cRebuild
 	_        lib.Waiter        = cRebuild
+
+	flagsRebuild = openstack.CommandFlags(cRebuild)
 )
 
 var rebuild = cli.Command{
 	Name:         "rebuild",
 	Usage:        util.Usage(commandPrefix, "rebuild", "[--id <serverID> | --name <serverName> | --stdin id] [--image-id | --image-name]"),
 	Description:  "Rebuilds a server",
-	Action:       actionRebuild,
-	Flags:        openstack.CommandFlags(cRebuild),
+	Action:       func(ctx *cli.Context) error { return openstack.Action(ctx, cRebuild) },
+	Flags:        flagsRebuild,
 	BashComplete: func(_ *cli.Context) { openstack.BashComplete(flagsRebuild) },
 }
 
-func actionRebuild(ctx *cli.Context) {
-	c := new(commandRebuild)
-	c.Context = ctx
-	lib.Run(ctx, c)
-}
-
 func (c *commandRebuild) Flags() []cli.Flag {
-	return flagsRebuild
+	return []cli.Flag{
+		cli.StringFlag{
+			Name:  "id",
+			Usage: "[optional; required if `stdin` or `name` isn't provided] The ID of the server",
+		},
+		cli.StringFlag{
+			Name:  "name",
+			Usage: "[optional; required if `stdin` or `id` isn't provided] The name of the server",
+		},
+		cli.StringFlag{
+			Name:  "stdin",
+			Usage: "[optional; required if `id` or `name` isn't provided] The field being piped into STDIN. Valid values are: id",
+		},
+		cli.StringFlag{
+			Name:  "image-id",
+			Usage: "[optional; required if `image-name`is not provided] The image ID from which to rebuild the server.",
+		},
+		cli.StringFlag{
+			Name:  "image-name",
+			Usage: "[optional; required if `image-id` is not provided] The name of the image from which to rebuild the server.",
+		},
+		cli.StringFlag{
+			Name:  "admin-pass",
+			Usage: "[optional; required if `generate-pass` is not provided] The new server's admin password",
+		},
+		cli.BoolFlag{
+			Name:  "generate-pass",
+			Usage: "[optional; required if `admin-pass` is not provided] If provided, a password will be generated for the new server.",
+		},
+		cli.StringFlag{
+			Name:  "rename",
+			Usage: "[optional] The name for the rebuilt server.",
+		},
+		cli.StringFlag{
+			Name:  "ipv4",
+			Usage: "[optional] The IPv4 address for the rebuilt server.",
+		},
+		cli.StringFlag{
+			Name:  "ipv6",
+			Usage: "[optional] The IPv6 address for the rebuilt server.",
+		},
+		cli.StringFlag{
+			Name:  "metadata",
+			Usage: "[optional] A comma-separated string a key=value pairs.",
+		},
+		cli.StringFlag{
+			Name: "personality",
+			Usage: "[optional] A comma-separated list of key=value pairs. The key is the\n" +
+				"\tdestination to inject the file on the created server; the value is the its local location.\n" +
+				"\tExample: --personality \"C:\\cloud-automation\\bootstrap.cmd=open_hatch.cmd\"",
+		},
+	}
 }
 
 func (c *commandRebuild) Fields() []string {
 	return []string{""}
-}
-
-var flagsRebuild = []cli.Flag{
-	cli.StringFlag{
-		Name:  "id",
-		Usage: "[optional; required if `stdin` or `name` isn't provided] The ID of the server",
-	},
-	cli.StringFlag{
-		Name:  "name",
-		Usage: "[optional; required if `stdin` or `id` isn't provided] The name of the server",
-	},
-	cli.StringFlag{
-		Name:  "stdin",
-		Usage: "[optional; required if `id` or `name` isn't provided] The field being piped into STDIN. Valid values are: id",
-	},
-	cli.StringFlag{
-		Name:  "image-id",
-		Usage: "[optional; required if `image-name`is not provided] The image ID from which to rebuild the server.",
-	},
-	cli.StringFlag{
-		Name:  "image-name",
-		Usage: "[optional; required if `image-id` is not provided] The name of the image from which to rebuild the server.",
-	},
-	cli.StringFlag{
-		Name:  "admin-pass",
-		Usage: "[optional; required if `generate-pass` is not provided] The new server's admin password",
-	},
-	cli.BoolFlag{
-		Name:  "generate-pass",
-		Usage: "[optional; required if `admin-pass` is not provided] If provided, a password will be generated for the new server.",
-	},
-	cli.StringFlag{
-		Name:  "rename",
-		Usage: "[optional] The name for the rebuilt server.",
-	},
-	cli.StringFlag{
-		Name:  "ipv4",
-		Usage: "[optional] The IPv4 address for the rebuilt server.",
-	},
-	cli.StringFlag{
-		Name:  "ipv6",
-		Usage: "[optional] The IPv6 address for the rebuilt server.",
-	},
-	cli.StringFlag{
-		Name:  "metadata",
-		Usage: "[optional] A comma-separated string a key=value pairs.",
-	},
-	cli.StringFlag{
-		Name: "personality",
-		Usage: "[optional] A comma-separated list of key=value pairs. The key is the\n" +
-			"\tdestination to inject the file on the created server; the value is the its local location.\n" +
-			"\tExample: --personality \"C:\\cloud-automation\\bootstrap.cmd=open_hatch.cmd\"",
-	},
 }
 
 func (c *commandRebuild) HandleFlags() error {

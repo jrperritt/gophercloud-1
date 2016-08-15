@@ -9,7 +9,7 @@ import (
 
 	"golang.org/x/crypto/ssh/terminal"
 
-	"github.com/codegangsta/cli"
+	"gopkg.in/urfave/cli.v1"
 	"github.com/gophercloud/cli/util"
 	"gopkg.in/ini.v1"
 )

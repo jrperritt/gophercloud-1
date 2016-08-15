@@ -1,6 +1,6 @@
 package container
 
-import "github.com/codegangsta/cli"
+import "gopkg.in/urfave/cli.v1"
 
 var commandPrefix = "files container"
 
@@ -15,8 +15,8 @@ func Get() []cli.Command {
 	return []cli.Command{
 		list,
 		//get,
-		//update,
-		//create,
+		update,
+		create,
 		//remove,
 	}
 }

@@ -19,7 +19,7 @@ type auth struct {
 	noCache       bool
 	serviceType   string
 	serviceClient *gophercloud.ServiceClient
-	authOptions   *gophercloud.AuthOptions
+	AuthOptions   *gophercloud.AuthOptions
 	region        string
 	urlType       gophercloud.Availability
 	profile       string
@@ -30,14 +30,14 @@ func (a *auth) Authenticate() (*gophercloud.ServiceClient, error) {
 	var client *gophercloud.ServiceClient
 	var err error
 
-	a.authOptions.AllowReauth = true
+	a.AuthOptions.AllowReauth = true
 
-	if authFromCacher, ok := interface{}(a).(lib.AuthFromCacher); ok {
-		client, err = authFromCacher.AuthFromCache()
-		if err != nil {
-			return nil, err
-		}
+	client, err = a.AuthFromCache()
+	if err != nil {
+		return nil, err
 	}
+
+	a.logger.Debugf("provider client after AuthFromCache: %+v", client.ProviderClient)
 
 	if client == nil {
 		client, err = a.AuthFromScratch()
@@ -56,15 +56,15 @@ func (a *auth) AuthFromScratch() (*gophercloud.ServiceClient, error) {
 	a.logger.Info("Authenticating from scratch.\n")
 	a.urlType = gophercloud.AvailabilityPublic
 
-	a.logger.Debugf("auth options: %+v\n", *a.authOptions)
+	a.logger.Debugf("auth options: %+v\n", *a.AuthOptions)
 
-	pc, err := openstack.NewClient(a.authOptions.IdentityEndpoint)
+	pc, err := openstack.NewClient(a.AuthOptions.IdentityEndpoint)
 	if err != nil {
 		return nil, err
 	}
 	pc.HTTPClient = newHTTPClient(a.logger)
 
-	err = openstack.Authenticate(pc, *a.authOptions)
+	err = openstack.Authenticate(pc, *a.AuthOptions)
 	if err != nil {
 		return nil, err
 	}
@@ -140,14 +140,14 @@ func (a *auth) AuthFromCache() (*gophercloud.ServiceClient, error) {
 		creds := credser.(*CacheItem)
 		// we successfully retrieved a value from the cache
 		a.logger.Infof("Using token from cache: %s", creds.TokenID)
-		pc, err := openstack.NewClient(a.authOptions.IdentityEndpoint)
+		pc, err := openstack.NewClient(a.AuthOptions.IdentityEndpoint)
 		if err == nil {
-			pc.TokenID = creds.GetToken()
-			pc.ReauthFunc = func() error {
-				return openstack.AuthenticateV3(pc, a.authOptions, gophercloud.EndpointOpts{Availability: a.urlType})
-			}
 			pc.UserAgent.Prepend(util.UserAgent)
+			pc.TokenID = creds.GetToken()
 			pc.HTTPClient = newHTTPClient(a.logger)
+			pc.ReauthFunc = func() error {
+				return openstack.AuthenticateV3(pc, a.AuthOptions, gophercloud.EndpointOpts{}) //, gophercloud.EndpointOpts{Availability: a.urlType})
+			}
 			return &gophercloud.ServiceClient{
 				ProviderClient: pc,
 				Endpoint:       creds.ServiceEndpoint,
@@ -167,14 +167,14 @@ func (a *auth) GetCache() lib.Cacher {
 func (a *auth) GetCacheKey() string {
 	var usernameOrTenantID string
 	switch {
-	case a.authOptions.Username != "":
-		usernameOrTenantID = a.authOptions.Username
-	case a.authOptions.TenantID != "":
-		usernameOrTenantID = a.authOptions.TenantID
+	case a.AuthOptions.Username != "":
+		usernameOrTenantID = a.AuthOptions.Username
+	case a.AuthOptions.UserID != "":
+		usernameOrTenantID = a.AuthOptions.UserID
 	default:
-		return ""
+		a.logger.Debugf("Username nor User ID set in auth: %+v", a.AuthOptions)
 	}
-	return fmt.Sprintf("%s,%s,%s,%s,%s", usernameOrTenantID, a.authOptions.IdentityEndpoint, a.region, a.serviceType, a.urlType)
+	return fmt.Sprintf("%s,%s,%s,%s,%s", usernameOrTenantID, a.AuthOptions.IdentityEndpoint, a.region, a.serviceType, a.urlType)
 }
 
 // StoreCredentials caches the users auth credentials if available and the `no-cache`

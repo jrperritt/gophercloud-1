@@ -4,11 +4,11 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/codegangsta/cli"
 	"github.com/gophercloud/cli/lib"
 	"github.com/gophercloud/cli/openstack"
 	"github.com/gophercloud/cli/util"
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/servers"
+	"gopkg.in/urfave/cli.v1"
 )
 
 type commandDelete struct {
@@ -22,40 +22,34 @@ var (
 	_       lib.PipeCommander = cDelete
 	_       lib.Progresser    = cDelete
 	_       lib.Waiter        = cDelete
+
+	flagsDelete = openstack.CommandFlags(cDelete)
 )
 
 var remove = cli.Command{
 	Name:         "delete",
 	Usage:        util.Usage(commandPrefix, "delete", "[--id <serverID> | --name <serverName> | --stdin id]"),
 	Description:  "Deletes a server",
-	Action:       actionDelete,
-	Flags:        openstack.CommandFlags(cDelete),
+	Action:       func(ctx *cli.Context) error { return openstack.Action(ctx, cDelete) },
+	Flags:        flagsDelete,
 	BashComplete: func(_ *cli.Context) { openstack.BashComplete(flagsDelete) },
 }
 
-func actionDelete(ctx *cli.Context) {
-	c := new(commandDelete)
-	c.Context = ctx
-	lib.Run(ctx, c)
-}
-
 func (c *commandDelete) Flags() []cli.Flag {
-	return flagsDelete
-}
-
-var flagsDelete = []cli.Flag{
-	cli.StringFlag{
-		Name:  "id",
-		Usage: "[optional; required if `stdin` or `name` isn't provided] The ID of the server.",
-	},
-	cli.StringFlag{
-		Name:  "name",
-		Usage: "[optional; required if `stdin` or `id` isn't provided] The name of the server.",
-	},
-	cli.StringFlag{
-		Name:  "stdin",
-		Usage: "[optional; required if `id` or `name` isn't provided] The field being piped into STDIN. Valid values are: id",
-	},
+	return []cli.Flag{
+		cli.StringFlag{
+			Name:  "id",
+			Usage: "[optional; required if `stdin` or `name` isn't provided] The ID of the server.",
+		},
+		cli.StringFlag{
+			Name:  "name",
+			Usage: "[optional; required if `stdin` or `id` isn't provided] The name of the server.",
+		},
+		cli.StringFlag{
+			Name:  "stdin",
+			Usage: "[optional; required if `id` or `name` isn't provided] The field being piped into STDIN. Valid values are: id",
+		},
+	}
 }
 
 func (c *commandDelete) HandleFlags() error {

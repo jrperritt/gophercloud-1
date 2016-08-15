@@ -1,12 +1,12 @@
 package instance
 
 import (
-	"github.com/codegangsta/cli"
 	"github.com/gophercloud/cli/lib"
 	"github.com/gophercloud/cli/openstack"
 	"github.com/gophercloud/cli/util"
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/servers"
 	"github.com/gophercloud/gophercloud/pagination"
+	"gopkg.in/urfave/cli.v1"
 )
 
 type commandList struct {
@@ -16,66 +16,65 @@ type commandList struct {
 	allPages bool
 }
 
+var (
+	cList               = new(commandList)
+	_     lib.Commander = cList
+
+	flagsList = openstack.CommandFlags(new(commandList))
+)
+
 var list = cli.Command{
 	Name:         "list",
 	Usage:        util.Usage(commandPrefix, "list", ""),
 	Description:  "Lists existing servers",
-	Action:       actionList,
-	Flags:        openstack.CommandFlags(new(commandList)),
+	Action:       func(ctx *cli.Context) error { return openstack.Action(ctx, cList) },
+	Flags:        flagsList,
 	BashComplete: func(_ *cli.Context) { openstack.BashComplete(flagsList) },
 }
 
-func actionList(ctx *cli.Context) {
-	c := new(commandList)
-	c.Context = ctx
-	lib.Run(ctx, c)
-}
-
 func (c *commandList) Flags() []cli.Flag {
-	return flagsList
+	return []cli.Flag{
+		cli.BoolFlag{
+			Name:  "all-pages",
+			Usage: "[optional] Return all servers. Default is to paginate.",
+		},
+		cli.StringFlag{
+			Name:  "name",
+			Usage: "[optional] Only list servers with this name.",
+		},
+		cli.StringFlag{
+			Name:  "changes-since",
+			Usage: "[optional] Only list servers that have been changed since this time/date stamp.",
+		},
+		cli.StringFlag{
+			Name:  "image",
+			Usage: "[optional] Only list servers that have this image ID.",
+		},
+		cli.StringFlag{
+			Name:  "flavor",
+			Usage: "[optional] Only list servers that have this flavor ID.",
+		},
+		cli.StringFlag{
+			Name:  "status",
+			Usage: "[optional] Only list servers that have this status.",
+		},
+		cli.StringFlag{
+			Name:  "marker",
+			Usage: "[optional] Start listing servers at this server ID.",
+		},
+		cli.IntFlag{
+			Name:  "limit",
+			Usage: "[optional] Only return this many servers at most.",
+		},
+		cli.BoolFlag{
+			Name:  "all-tenants",
+			Usage: "[optional] If provided, will show servers from all tenants",
+		},
+	}
 }
 
 func (c *commandList) Fields() []string {
 	return []string{"id", "name", "status", "accessIPv4", "image", "flavor"}
-}
-
-var flagsList = []cli.Flag{
-	cli.BoolFlag{
-		Name:  "all-pages",
-		Usage: "[optional] Return all servers. Default is to paginate.",
-	},
-	cli.StringFlag{
-		Name:  "name",
-		Usage: "[optional] Only list servers with this name.",
-	},
-	cli.StringFlag{
-		Name:  "changes-since",
-		Usage: "[optional] Only list servers that have been changed since this time/date stamp.",
-	},
-	cli.StringFlag{
-		Name:  "image",
-		Usage: "[optional] Only list servers that have this image ID.",
-	},
-	cli.StringFlag{
-		Name:  "flavor",
-		Usage: "[optional] Only list servers that have this flavor ID.",
-	},
-	cli.StringFlag{
-		Name:  "status",
-		Usage: "[optional] Only list servers that have this status.",
-	},
-	cli.StringFlag{
-		Name:  "marker",
-		Usage: "[optional] Start listing servers at this server ID.",
-	},
-	cli.IntFlag{
-		Name:  "limit",
-		Usage: "[optional] Only return this many servers at most.",
-	},
-	cli.BoolFlag{
-		Name:  "all-tenants",
-		Usage: "[optional] If provided, will show servers from all tenants",
-	},
 }
 
 func (c *commandList) HandleFlags() error {

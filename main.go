@@ -12,7 +12,7 @@ import (
 
 	"github.com/gophercloud/cli/version"
 
-	"github.com/codegangsta/cli"
+	"gopkg.in/urfave/cli.v1"
 )
 
 func init() {
@@ -37,7 +37,7 @@ func main() {
 
 // Usage returns, you guessed it, the usage information
 func Usage() string {
-	return "Command-line interface to manage cloud resources"
+	return "Command-line interface to manage OpenStack resources"
 }
 
 // Desc returns, you guessed it, the description

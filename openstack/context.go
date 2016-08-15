@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/codegangsta/cli"
 	"github.com/gophercloud/cli/lib"
 	"github.com/gophercloud/cli/util"
 	"github.com/gophercloud/gophercloud"
+	"gopkg.in/urfave/cli.v1"
 )
 
 // Context satisfies the Provider interface
@@ -34,7 +34,7 @@ func (c *Context) NewAuthenticater(globalOptionser lib.GlobalOptionser, serviceT
 	globalOptions := globalOptionser.(*GlobalOptions)
 
 	return &auth{
-		authOptions: &gophercloud.AuthOptions{
+		AuthOptions: &gophercloud.AuthOptions{
 			Username:         globalOptions.username,
 			UserID:           globalOptions.userID,
 			Password:         globalOptions.password,
@@ -56,7 +56,7 @@ func (c *Context) InputChannel() chan interface{} {
 
 func (c *Context) FillInputChannel(commander lib.Commander, in chan interface{}) {
 	defer close(in)
-	ctx := commander.Ctx()
+	ctx := commander.Ctx().(*cli.Context)
 	switch t := commander.(type) {
 	case lib.PipeCommander:
 		switch ctx.IsSet("stdin") {

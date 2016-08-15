@@ -1,56 +1,53 @@
 package instance
 
 import (
-	"github.com/codegangsta/cli"
 	"github.com/gophercloud/cli/lib"
 	"github.com/gophercloud/cli/openstack"
 	"github.com/gophercloud/cli/util"
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/servers"
+	"gopkg.in/urfave/cli.v1"
 )
-
-var _ lib.PipeCommander = new(commandGet)
 
 type commandGet struct {
 	openstack.CommandUtil
 	InstanceV2Command
 }
 
+var (
+	cGet                   = new(commandGet)
+	_    lib.PipeCommander = cGet
+
+	flagsGet = openstack.CommandFlags(cGet)
+)
+
 var get = cli.Command{
 	Name:         "get",
 	Usage:        util.Usage(commandPrefix, "get", "[--id <serverID> | --name <serverName> | --stdin id]"),
 	Description:  "Gets a server",
-	Action:       actionGet,
-	Flags:        openstack.CommandFlags(new(commandGet)),
+	Action:       func(ctx *cli.Context) error { return openstack.Action(ctx, cGet) },
+	Flags:        flagsGet,
 	BashComplete: func(_ *cli.Context) { openstack.BashComplete(flagsGet) },
 }
 
-func actionGet(ctx *cli.Context) {
-	c := new(commandGet)
-	c.Context = ctx
-	lib.Run(ctx, c)
-}
-
 func (c *commandGet) Flags() []cli.Flag {
-	return flagsGet
+	return []cli.Flag{
+		cli.StringFlag{
+			Name:  "id",
+			Usage: "[optional; required if `stdin` or `name` isn't provided] The ID of the server.",
+		},
+		cli.StringFlag{
+			Name:  "name",
+			Usage: "[optional; required if `stdin` or `id` isn't provided] The name of the server.",
+		},
+		cli.StringFlag{
+			Name:  "stdin",
+			Usage: "[optional; required if `id` or `name` isn't provided] The field being piped into STDIN. Valid values are: id",
+		},
+	}
 }
 
 func (c *commandGet) Fields() []string {
 	return []string{""}
-}
-
-var flagsGet = []cli.Flag{
-	cli.StringFlag{
-		Name:  "id",
-		Usage: "[optional; required if `stdin` or `name` isn't provided] The ID of the server.",
-	},
-	cli.StringFlag{
-		Name:  "name",
-		Usage: "[optional; required if `stdin` or `id` isn't provided] The name of the server.",
-	},
-	cli.StringFlag{
-		Name:  "stdin",
-		Usage: "[optional; required if `id` or `name` isn't provided] The field being piped into STDIN. Valid values are: id",
-	},
 }
 
 func (c *commandGet) HandleFlags() error {
@@ -67,11 +64,10 @@ func (c *commandGet) HandleSingle() (interface{}, error) {
 
 func (c *commandGet) Execute(in, out chan interface{}) {
 	defer close(out)
-
 	for item := range in {
-		item := item
+		id := item.(string)
 		var m map[string]map[string]interface{}
-		err := servers.Get(c.ServiceClient, item.(string)).ExtractInto(&m)
+		err := servers.Get(c.ServiceClient, id).ExtractInto(&m)
 		switch err {
 		case nil:
 			out <- m["server"]

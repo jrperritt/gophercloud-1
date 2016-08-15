@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"unicode/utf8"
 
-	"github.com/codegangsta/cli"
+	"gopkg.in/urfave/cli.v1"
 )
 
 func commandNotFound(c *cli.Context, command string) {

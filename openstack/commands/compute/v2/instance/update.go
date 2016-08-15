@@ -1,11 +1,11 @@
 package instance
 
 import (
-	"github.com/codegangsta/cli"
 	"github.com/gophercloud/cli/lib"
 	"github.com/gophercloud/cli/openstack"
 	"github.com/gophercloud/cli/util"
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/servers"
+	"gopkg.in/urfave/cli.v1"
 )
 
 type commandUpdate struct {
@@ -15,46 +15,45 @@ type commandUpdate struct {
 	opts servers.UpdateOptsBuilder
 }
 
+var (
+	cUpdate               = new(commandUpdate)
+	_       lib.Commander = cUpdate
+
+	flagsUpdate = openstack.CommandFlags(cUpdate)
+)
+
 var update = cli.Command{
 	Name:         "update",
 	Usage:        util.Usage(commandPrefix, "update", "[--id <serverID> | --name <serverName>]"),
 	Description:  "Updates a server",
-	Action:       actionUpdate,
-	Flags:        openstack.CommandFlags(new(commandUpdate)),
+	Action:       func(ctx *cli.Context) error { return openstack.Action(ctx, cUpdate) },
+	Flags:        flagsUpdate,
 	BashComplete: func(_ *cli.Context) { openstack.BashComplete(flagsUpdate) },
 }
 
-func actionUpdate(ctx *cli.Context) {
-	c := new(commandUpdate)
-	c.Context = ctx
-	lib.Run(ctx, c)
-}
-
 func (c *commandUpdate) Flags() []cli.Flag {
-	return flagsUpdate
-}
-
-var flagsUpdate = []cli.Flag{
-	cli.StringFlag{
-		Name:  "id",
-		Usage: "[optional; required if `name` isn't provided] The ID of the volume to server",
-	},
-	cli.StringFlag{
-		Name:  "name",
-		Usage: "[optional; required if `id` isn't provided] The name of the volume to server",
-	},
-	cli.StringFlag{
-		Name:  "rename",
-		Usage: "[optional] Rename this server",
-	},
-	cli.StringFlag{
-		Name:  "ipv4",
-		Usage: "[optional] Change the server's IPv4 address",
-	},
-	cli.StringFlag{
-		Name:  "ipv6",
-		Usage: "[optional] Change the server's IPv6 address",
-	},
+	return []cli.Flag{
+		cli.StringFlag{
+			Name:  "id",
+			Usage: "[optional; required if `name` isn't provided] The ID of the server",
+		},
+		cli.StringFlag{
+			Name:  "name",
+			Usage: "[optional; required if `id` isn't provided] The name of the server",
+		},
+		cli.StringFlag{
+			Name:  "rename",
+			Usage: "[optional] Rename this server",
+		},
+		cli.StringFlag{
+			Name:  "ipv4",
+			Usage: "[optional] Change the server's IPv4 address",
+		},
+		cli.StringFlag{
+			Name:  "ipv6",
+			Usage: "[optional] Change the server's IPv6 address",
+		},
+	}
 }
 
 func (c *commandUpdate) HandleFlags() (err error) {

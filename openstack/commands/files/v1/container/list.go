@@ -1,12 +1,12 @@
 package container
 
 import (
-	"github.com/codegangsta/cli"
 	"github.com/gophercloud/cli/lib"
 	"github.com/gophercloud/cli/openstack"
 	"github.com/gophercloud/cli/util"
 	"github.com/gophercloud/gophercloud/openstack/objectstorage/v1/containers"
 	"github.com/gophercloud/gophercloud/pagination"
+	"gopkg.in/urfave/cli.v1"
 )
 
 type commandList struct {
@@ -16,50 +16,49 @@ type commandList struct {
 	allPages bool
 }
 
+var (
+	cList               = new(commandList)
+	_     lib.Commander = cList
+
+	flagsList = openstack.CommandFlags(cList)
+)
+
 var list = cli.Command{
 	Name:         "list",
 	Usage:        util.Usage(commandPrefix, "list", ""),
 	Description:  "Lists existing containers",
-	Action:       actionList,
-	Flags:        openstack.CommandFlags(new(commandList)),
+	Action:       func(ctx *cli.Context) error { return openstack.Action(ctx, cList) },
+	Flags:        flagsList,
 	BashComplete: func(_ *cli.Context) { openstack.BashComplete(flagsList) },
 }
 
-func actionList(ctx *cli.Context) {
-	c := new(commandList)
-	c.Context = ctx
-	lib.Run(ctx, c)
-}
-
 func (c *commandList) Flags() []cli.Flag {
-	return flagsList
+	return []cli.Flag{
+		cli.BoolFlag{
+			Name:  "all-pages",
+			Usage: "[optional] Return all containers. Default is to paginate.",
+		},
+		cli.StringFlag{
+			Name:  "prefix",
+			Usage: "[optional] Only return containers with this prefix.",
+		},
+		cli.StringFlag{
+			Name:  "end-marker",
+			Usage: "[optional] Only return containers with name less than this value.",
+		},
+		cli.StringFlag{
+			Name:  "marker",
+			Usage: "[optional] Start listing containers at this container name.",
+		},
+		cli.IntFlag{
+			Name:  "limit",
+			Usage: "[optional] Only return this many containers at most.",
+		},
+	}
 }
 
 func (c *commandList) Fields() []string {
 	return []string{"name", "count", "bytes"}
-}
-
-var flagsList = []cli.Flag{
-	cli.BoolFlag{
-		Name:  "all-pages",
-		Usage: "[optional] Return all containers. Default is to paginate.",
-	},
-	cli.StringFlag{
-		Name:  "prefix",
-		Usage: "[optional] Only return containers with this prefix.",
-	},
-	cli.StringFlag{
-		Name:  "end-marker",
-		Usage: "[optional] Only return containers with name less than this value.",
-	},
-	cli.StringFlag{
-		Name:  "marker",
-		Usage: "[optional] Start listing containers at this container name.",
-	},
-	cli.IntFlag{
-		Name:  "limit",
-		Usage: "[optional] Only return this many containers at most.",
-	},
 }
 
 func (c *commandList) HandleFlags() error {

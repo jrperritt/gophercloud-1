@@ -1,7 +1,7 @@
 package flavor
 
 import (
-	"github.com/codegangsta/cli"
+	"gopkg.in/urfave/cli.v1"
 	"github.com/gophercloud/cli/lib"
 	"github.com/gophercloud/cli/openstack"
 	"github.com/gophercloud/cli/util"

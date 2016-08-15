@@ -11,7 +11,7 @@ import (
 	"github.com/gophercloud/cli/lib"
 	"github.com/gophercloud/cli/util"
 
-	"github.com/codegangsta/cli"
+	"gopkg.in/urfave/cli.v1"
 	"gopkg.in/ini.v1"
 )
 

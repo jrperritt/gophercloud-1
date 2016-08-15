@@ -1,7 +1,7 @@
 package v2
 
 import (
-	"github.com/codegangsta/cli"
+	"gopkg.in/urfave/cli.v1"
 	"github.com/gophercloud/cli/openstack/commands/compute/v2/flavor"
 	"github.com/gophercloud/cli/openstack/commands/compute/v2/instance"
 )

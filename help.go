@@ -7,7 +7,7 @@ import (
 	"text/tabwriter"
 	"text/template"
 
-	"github.com/codegangsta/cli"
+	"gopkg.in/urfave/cli.v1"
 	"github.com/gophercloud/cli/lib"
 	"github.com/gophercloud/cli/openstack"
 )

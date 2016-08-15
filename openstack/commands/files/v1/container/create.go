@@ -1,11 +1,11 @@
 package container
 
 import (
-	"github.com/codegangsta/cli"
 	"github.com/gophercloud/cli/lib"
 	"github.com/gophercloud/cli/openstack"
 	"github.com/gophercloud/cli/util"
 	"github.com/gophercloud/gophercloud/openstack/objectstorage/v1/containers"
+	"gopkg.in/urfave/cli.v1"
 )
 
 type commandCreate struct {
@@ -18,52 +18,46 @@ var (
 	cCreate                   = new(commandCreate)
 	_       lib.PipeCommander = cCreate
 	_       lib.Waiter        = cCreate
+
+	flagsCreate = openstack.CommandFlags(cCreate)
 )
 
 var create = cli.Command{
 	Name:         "create",
 	Usage:        util.Usage(commandPrefix, "create", "[--name <name> | --stdin name]"),
 	Description:  "Creates a container",
-	Action:       actionCreate,
-	Flags:        openstack.CommandFlags(cCreate),
+	Action:       func(ctx *cli.Context) error { return openstack.Action(ctx, cCreate) },
+	Flags:        flagsCreate,
 	BashComplete: func(_ *cli.Context) { openstack.BashComplete(flagsCreate) },
 }
 
-func actionCreate(ctx *cli.Context) {
-	c := new(commandCreate)
-	c.Context = ctx
-	lib.Run(ctx, c)
-}
-
 func (c *commandCreate) Flags() []cli.Flag {
-	return flagsCreate
+	return []cli.Flag{
+		cli.StringFlag{
+			Name:  "name",
+			Usage: "[optional; required if `stdin` isn't provided] The name of the container",
+		},
+		cli.StringFlag{
+			Name:  "stdin",
+			Usage: "[optional; required if `name` isn't provided] The field being piped into STDIN. Valid values are: name",
+		},
+		cli.StringFlag{
+			Name:  "metadata",
+			Usage: "[optional] Comma-separated key-value pairs for the container. Example: key1=val1,key2=val2",
+		},
+		cli.StringFlag{
+			Name:  "container-read",
+			Usage: "[optional] Comma-separated list of users for whom to grant read access to the container",
+		},
+		cli.StringFlag{
+			Name:  "container-write",
+			Usage: "[optional] Comma-separated list of users for whom to grant write access to the container",
+		},
+	}
 }
 
 func (c *commandCreate) Fields() []string {
 	return []string{""}
-}
-
-var flagsCreate = []cli.Flag{
-	cli.StringFlag{
-		Name:  "name",
-		Usage: "[optional; required if `stdin` isn't provided] The name of the container",
-	},
-	cli.StringFlag{
-		Name:  "stdin",
-		Usage: "[optional; required if `name` isn't provided] The field being piped into STDIN. Valid values are: name",
-	},
-	cli.StringFlag{
-		Name:  "metadata",
-		Usage: "[optional] Comma-separated key-value pairs for the container. Example: key1=val1,key2=val2",
-	},
-	cli.StringFlag{
-		Name:  "container-read",
-		Usage: "[optional] Comma-separated list of users for whom to grant read access to the container",
-	},
-	cli.StringFlag{
-		Name:  "container-write",
-		Usage: "[optional] Comma-separated list of users for whom to grant write access to the container",
-	},
 }
 
 func (c *commandCreate) HandleFlags() error {

@@ -4,12 +4,12 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/codegangsta/cli"
 	"github.com/gophercloud/cli/lib"
 	"github.com/gophercloud/cli/openstack"
 	"github.com/gophercloud/cli/util"
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/flavors"
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/servers"
+	"gopkg.in/urfave/cli.v1"
 )
 
 type commandResize struct {
@@ -24,52 +24,46 @@ var (
 	_       lib.PipeCommander = cResize
 	_       lib.Progresser    = cResize
 	_       lib.Waiter        = cResize
+
+	flagsResize = openstack.CommandFlags(cResize)
 )
 
 var resize = cli.Command{
 	Name:         "resize",
 	Usage:        util.Usage(commandPrefix, "resize", "[--id <serverID> | --name <serverName> | --stdin id] [--flavor-id | --flavor-name]"),
 	Description:  "Resizes a server",
-	Action:       actionResize,
-	Flags:        openstack.CommandFlags(cResize),
+	Action:       func(ctx *cli.Context) error { return openstack.Action(ctx, cResize) },
+	Flags:        flagsResize,
 	BashComplete: func(_ *cli.Context) { openstack.BashComplete(flagsResize) },
 }
 
 func (c *commandResize) Flags() []cli.Flag {
-	return flagsResize
-}
-
-func actionResize(ctx *cli.Context) {
-	c := new(commandResize)
-	c.Context = ctx
-	lib.Run(ctx, c)
-}
-
-var flagsResize = []cli.Flag{
-	cli.StringFlag{
-		Name:  "id",
-		Usage: "[optional; required if `stdin` or `name` isn't provided] The ID of the server.",
-	},
-	cli.StringFlag{
-		Name:  "name",
-		Usage: "[optional; required if `stdin` or `id` isn't provided] The name of the server.",
-	},
-	cli.StringFlag{
-		Name:  "stdin",
-		Usage: "[optional; required if `id` or `name` isn't provided] The field being piped into STDIN. Valid values are: id",
-	},
-	cli.StringFlag{
-		Name:  "flavor-id",
-		Usage: "[optional; required if `flavor-name` is not provided] The ID of the flavor that the resized server should have.",
-	},
-	cli.StringFlag{
-		Name:  "flavor-name",
-		Usage: "[optional; required if `flavor-id` is not provided] The name of the flavor that the resized server should have.",
-	},
-	cli.BoolFlag{
-		Name:  "wait",
-		Usage: "[optional] If provided, will wait to return until the server has been resizeed.",
-	},
+	return []cli.Flag{
+		cli.StringFlag{
+			Name:  "id",
+			Usage: "[optional; required if `stdin` or `name` isn't provided] The ID of the server.",
+		},
+		cli.StringFlag{
+			Name:  "name",
+			Usage: "[optional; required if `stdin` or `id` isn't provided] The name of the server.",
+		},
+		cli.StringFlag{
+			Name:  "stdin",
+			Usage: "[optional; required if `id` or `name` isn't provided] The field being piped into STDIN. Valid values are: id",
+		},
+		cli.StringFlag{
+			Name:  "flavor-id",
+			Usage: "[optional; required if `flavor-name` is not provided] The ID of the flavor that the resized server should have.",
+		},
+		cli.StringFlag{
+			Name:  "flavor-name",
+			Usage: "[optional; required if `flavor-id` is not provided] The name of the flavor that the resized server should have.",
+		},
+		cli.BoolFlag{
+			Name:  "wait",
+			Usage: "[optional] If provided, will wait to return until the server has been resizeed.",
+		},
+	}
 }
 
 func (c *commandResize) HandleFlags() error {

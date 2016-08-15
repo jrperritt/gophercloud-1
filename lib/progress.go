@@ -3,7 +3,7 @@ package lib
 import (
 	"time"
 
-	"github.com/codegangsta/cli"
+	"gopkg.in/urfave/cli.v1"
 )
 
 type ProgressStatuser interface {

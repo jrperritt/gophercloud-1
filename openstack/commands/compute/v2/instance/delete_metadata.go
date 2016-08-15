@@ -4,11 +4,11 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/codegangsta/cli"
 	"github.com/gophercloud/cli/lib"
 	"github.com/gophercloud/cli/openstack"
 	"github.com/gophercloud/cli/util"
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/servers"
+	"gopkg.in/urfave/cli.v1"
 )
 
 type commandDeleteMetadata struct {
@@ -21,44 +21,38 @@ var (
 	cDeleteMetadata                   = new(commandDeleteMetadata)
 	_               lib.PipeCommander = cDeleteMetadata
 	_               lib.Waiter        = cDeleteMetadata
+
+	flagsDeleteMetadata = openstack.CommandFlags(cDeleteMetadata)
 )
 
 var deleteMetadata = cli.Command{
 	Name:         "delete-metadata",
 	Usage:        util.Usage(commandPrefix, "delete-metadata", "[--id <serverID> | --name <serverName> | --stdin id]"),
 	Description:  "Deletes metadata associated with a server",
-	Action:       actionDeleteMetadata,
-	Flags:        openstack.CommandFlags(cDeleteMetadata),
+	Action:       func(ctx *cli.Context) error { return openstack.Action(ctx, cDeleteMetadata) },
+	Flags:        flagsDeleteMetadata,
 	BashComplete: func(_ *cli.Context) { openstack.BashComplete(flagsDeleteMetadata) },
 }
 
-func actionDeleteMetadata(ctx *cli.Context) {
-	c := new(commandDeleteMetadata)
-	c.Context = ctx
-	lib.Run(ctx, c)
-}
-
 func (c *commandDeleteMetadata) Flags() []cli.Flag {
-	return flagsDeleteMetadata
-}
-
-var flagsDeleteMetadata = []cli.Flag{
-	cli.StringFlag{
-		Name:  "id",
-		Usage: "[optional; required if `stdin` or `name` isn't provided] The ID of the server.",
-	},
-	cli.StringFlag{
-		Name:  "name",
-		Usage: "[optional; required if `stdin` or `id` isn't provided] The name of the server.",
-	},
-	cli.StringFlag{
-		Name:  "stdin",
-		Usage: "[optional; required if `id` or `name` isn't provided] The field being piped into STDIN. Valid values are: id",
-	},
-	cli.StringFlag{
-		Name:  "metadata-keys",
-		Usage: "[required] A comma-separated string of keys of the metadata to delete from the server.",
-	},
+	return []cli.Flag{
+		cli.StringFlag{
+			Name:  "id",
+			Usage: "[optional; required if `stdin` or `name` isn't provided] The ID of the server.",
+		},
+		cli.StringFlag{
+			Name:  "name",
+			Usage: "[optional; required if `stdin` or `id` isn't provided] The name of the server.",
+		},
+		cli.StringFlag{
+			Name:  "stdin",
+			Usage: "[optional; required if `id` or `name` isn't provided] The field being piped into STDIN. Valid values are: id",
+		},
+		cli.StringFlag{
+			Name:  "metadata-keys",
+			Usage: "[required] A comma-separated string of keys of the metadata to delete from the server.",
+		},
+	}
 }
 
 func (c *commandDeleteMetadata) HandleFlags() error {

@@ -4,11 +4,11 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/codegangsta/cli"
 	"github.com/gophercloud/cli/lib"
 	"github.com/gophercloud/cli/openstack"
 	"github.com/gophercloud/cli/util"
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/servers"
+	"gopkg.in/urfave/cli.v1"
 )
 
 type commandReboot struct {
@@ -23,48 +23,42 @@ var (
 	_       lib.PipeCommander = cReboot
 	_       lib.Progresser    = cReboot
 	_       lib.Waiter        = cReboot
+
+	flagsReboot = openstack.CommandFlags(cReboot)
 )
 
 var reboot = cli.Command{
 	Name:         "reboot",
 	Usage:        util.Usage(commandPrefix, "reboot", "[--id <serverID> | --name <serverName> | --stdin id] [--soft | --hard]"),
 	Description:  "Reboots a server",
-	Action:       actionReboot,
-	Flags:        openstack.CommandFlags(cReboot),
+	Action:       func(ctx *cli.Context) error { return openstack.Action(ctx, cReboot) },
+	Flags:        flagsReboot,
 	BashComplete: func(_ *cli.Context) { openstack.BashComplete(flagsReboot) },
 }
 
-func actionReboot(ctx *cli.Context) {
-	c := new(commandReboot)
-	c.Context = ctx
-	lib.Run(ctx, c)
-}
-
 func (c *commandReboot) Flags() []cli.Flag {
-	return flagsReboot
-}
-
-var flagsReboot = []cli.Flag{
-	cli.StringFlag{
-		Name:  "id",
-		Usage: "[optional; required if `stdin` or `name` isn't provided] The ID of the server.",
-	},
-	cli.StringFlag{
-		Name:  "name",
-		Usage: "[optional; required if `stdin` or `id` isn't provided] The name of the server.",
-	},
-	cli.StringFlag{
-		Name:  "stdin",
-		Usage: "[optional; required if `id` or `name` isn't provided] The field being piped into STDIN. Valid values are: id",
-	},
-	cli.BoolFlag{
-		Name:  "soft",
-		Usage: "[optional; required if 'hard' is not provided] Ask the OS to restart under its own procedures.",
-	},
-	cli.BoolFlag{
-		Name:  "hard",
-		Usage: "[optional; required if 'soft' is not provided] Cut power to the machine and then restore it after a brief while.",
-	},
+	return []cli.Flag{
+		cli.StringFlag{
+			Name:  "id",
+			Usage: "[optional; required if `stdin` or `name` isn't provided] The ID of the server.",
+		},
+		cli.StringFlag{
+			Name:  "name",
+			Usage: "[optional; required if `stdin` or `id` isn't provided] The name of the server.",
+		},
+		cli.StringFlag{
+			Name:  "stdin",
+			Usage: "[optional; required if `id` or `name` isn't provided] The field being piped into STDIN. Valid values are: id",
+		},
+		cli.BoolFlag{
+			Name:  "soft",
+			Usage: "[optional; required if 'hard' is not provided] Ask the OS to restart under its own procedures.",
+		},
+		cli.BoolFlag{
+			Name:  "hard",
+			Usage: "[optional; required if 'soft' is not provided] Cut power to the machine and then restore it after a brief while.",
+		},
+	}
 }
 
 func (c *commandReboot) HandleFlags() error {

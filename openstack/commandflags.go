@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/codegangsta/cli"
 	"github.com/gophercloud/cli/lib"
+	"gopkg.in/urfave/cli.v1"
 )
 
 // CommandFlags returns the flags for a given command. It takes as a parameter
@@ -13,17 +13,20 @@ import (
 // flags with flags that are valid for all commands.
 func CommandFlags(c lib.Commander) []cli.Flag {
 	flags := c.Flags()
+
 	if fieldser, ok := c.(lib.Fieldser); ok {
 		keys := fieldser.Fields()
 		if len(keys) > 0 {
-			fields := make([]string, len(keys))
-			for i, key := range keys {
-				fields[i] = strings.Join(strings.Split(strings.ToLower(key), " "), "-")
+			usage := "[optional] Only return these comma-separated case-insensitive fields."
+			if keys[0] != "" {
+				usage = fmt.Sprintf(usage+"\n\tChoices: %s", strings.Join(keys, ", "))
 			}
+
 			flagFields := cli.StringFlag{
 				Name:  "fields",
-				Usage: fmt.Sprintf("[optional] Only return these comma-separated case-insensitive fields.\n\tChoices: %s", strings.Join(fields, ", ")),
+				Usage: usage,
 			}
+
 			flags = append(flags, flagFields)
 		}
 	}
@@ -31,8 +34,6 @@ func CommandFlags(c lib.Commander) []cli.Flag {
 	if waiter, ok := c.(lib.Waiter); ok {
 		flags = append(flags, waiter.WaitFlags()...)
 	}
-
-	flags = append(flags, GlobalFlags()...)
 
 	return flags
 }

@@ -8,7 +8,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/codegangsta/cli"
 	"github.com/gophercloud/cli/lib"
 	"github.com/gophercloud/cli/openstack"
 	"github.com/gophercloud/cli/util"
@@ -16,6 +15,7 @@ import (
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/extensions/bootfromvolume"
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/extensions/keypairs"
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/servers"
+	"gopkg.in/urfave/cli.v1"
 )
 
 type commandCreate struct {
@@ -30,82 +30,73 @@ var (
 	_       lib.PipeCommander = cCreate
 	_       lib.Progresser    = cCreate
 	_       lib.Waiter        = cCreate
+
+	flagsCreate = openstack.CommandFlags(cCreate)
 )
 
 var create = cli.Command{
 	Name:         "create",
 	Usage:        util.Usage(commandPrefix, "create", "[--name <name> | --stdin name] \n\t [--image-id <imageID> | --image-name <imageName>] [--flavor-id <flavorID> | --flavor-name <flavorName]"),
 	Description:  "Creates a server",
-	Action:       actionCreate,
-	Flags:        openstack.CommandFlags(cCreate),
-	BashComplete: func(_ *cli.Context) { openstack.BashComplete(append(flagsCreate, flagsCreateExt...)) },
-}
-
-func actionCreate(ctx *cli.Context) {
-	c := new(commandCreate)
-	c.Context = ctx
-	lib.Run(ctx, c)
+	Action:       func(ctx *cli.Context) error { return openstack.Action(ctx, cCreate) },
+	Flags:        flagsCreate,
+	BashComplete: func(_ *cli.Context) { openstack.BashComplete(flagsCreate) },
 }
 
 func (c *commandCreate) Flags() []cli.Flag {
-	return append(flagsCreate, flagsCreateExt...)
-}
-
-func (c *commandCreate) Fields() []string {
-	return []string{""}
-}
-
-var flagsCreate = []cli.Flag{
-	cli.StringFlag{
-		Name:  "name",
-		Usage: "[optional; required if `stdin` isn't provided] The name that the instance should have.",
-	},
-	cli.StringFlag{
-		Name:  "stdin",
-		Usage: "[optional; required if `name` isn't provided] The field being piped into STDIN. Valid values are: name",
-	},
-	cli.StringFlag{
-		Name:  "image-id",
-		Usage: "[optional; required if `image-name` or `block-device` is not provided] The image ID from which to create the server.",
-	},
-	cli.StringFlag{
-		Name:  "image-name",
-		Usage: "[optional; required if `image-id` or `block-device` is not provided] The name of the image from which to create the server.",
-	},
-	cli.StringFlag{
-		Name:  "flavor-id",
-		Usage: "[optional; required if `flavor-name` is not provided] The flavor ID that the server should have.",
-	},
-	cli.StringFlag{
-		Name:  "flavor-name",
-		Usage: "[optional; required if `flavor-id` is not provided] The name of the flavor that the server should have.",
-	},
-	cli.StringFlag{
-		Name:  "security-groups",
-		Usage: "[optional] A comma-separated string of names of the security groups to which this server should belong.",
-	},
-	cli.StringFlag{
-		Name: "personality",
-		Usage: "[optional] A comma-separated list of key=value pairs. The key is the\n" +
-			"\tdestination to inject the file on the created server; the value is the its local location.\n" +
-			"\tExample: --personality \"C:\\cloud-automation\\bootstrap.cmd=open_hatch.cmd\"",
-	},
-	cli.StringFlag{
-		Name:  "user-data",
-		Usage: "[optional] Configuration information or scripts to use after the server boots.",
-	},
-	cli.StringFlag{
-		Name:  "networks",
-		Usage: "[optional] A comma-separated string of IDs of the networks to attach to this server. If not provided, a public and private network will be attached.",
-	},
-	cli.StringFlag{
-		Name:  "metadata",
-		Usage: "[optional] A comma-separated string of key=value pairs.",
-	},
-	cli.StringFlag{
-		Name:  "admin-pass",
-		Usage: "[optional] The root password for the server. If not provided, one will be randomly generated and returned in the output.",
-	},
+	f := []cli.Flag{
+		cli.StringFlag{
+			Name:  "name",
+			Usage: "[optional; required if `stdin` isn't provided] The name that the instance should have.",
+		},
+		cli.StringFlag{
+			Name:  "stdin",
+			Usage: "[optional; required if `name` isn't provided] The field being piped into STDIN. Valid values are: name",
+		},
+		cli.StringFlag{
+			Name:  "image-id",
+			Usage: "[optional; required if `image-name` or `block-device` is not provided] The image ID from which to create the server.",
+		},
+		cli.StringFlag{
+			Name:  "image-name",
+			Usage: "[optional; required if `image-id` or `block-device` is not provided] The name of the image from which to create the server.",
+		},
+		cli.StringFlag{
+			Name:  "flavor-id",
+			Usage: "[optional; required if `flavor-name` is not provided] The flavor ID that the server should have.",
+		},
+		cli.StringFlag{
+			Name:  "flavor-name",
+			Usage: "[optional; required if `flavor-id` is not provided] The name of the flavor that the server should have.",
+		},
+		cli.StringFlag{
+			Name:  "security-groups",
+			Usage: "[optional] A comma-separated string of names of the security groups to which this server should belong.",
+		},
+		cli.StringFlag{
+			Name: "personality",
+			Usage: "[optional] A comma-separated list of key=value pairs. The key is the\n" +
+				"\tdestination to inject the file on the created server; the value is the its local location.\n" +
+				"\tExample: --personality \"C:\\cloud-automation\\bootstrap.cmd=open_hatch.cmd\"",
+		},
+		cli.StringFlag{
+			Name:  "user-data",
+			Usage: "[optional] Configuration information or scripts to use after the server boots.",
+		},
+		cli.StringFlag{
+			Name:  "networks",
+			Usage: "[optional] A comma-separated string of IDs of the networks to attach to this server. If not provided, a public and private network will be attached.",
+		},
+		cli.StringFlag{
+			Name:  "metadata",
+			Usage: "[optional] A comma-separated string of key=value pairs.",
+		},
+		cli.StringFlag{
+			Name:  "admin-pass",
+			Usage: "[optional] The root password for the server. If not provided, one will be randomly generated and returned in the output.",
+		},
+	}
+	return append(f, flagsCreateExt...)
 }
 
 var flagsCreateExt = []cli.Flag{
@@ -127,6 +118,10 @@ var flagsCreateExt = []cli.Flag{
 			"\tExamle: --block-device source-type=image,source-id=bb02b1a3-bc77-4d17-ab5b-421d89850fca,volume-size=100,destination-type=volume,delete-on-termination=false",
 		}, "\n"),
 	},
+}
+
+func (c *commandCreate) Fields() []string {
+	return []string{""}
 }
 
 func (c *commandCreate) HandleFlags() error {

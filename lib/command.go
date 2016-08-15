@@ -1,8 +1,8 @@
 package lib
 
 import (
-	"github.com/codegangsta/cli"
 	"github.com/gophercloud/gophercloud"
+	"gopkg.in/urfave/cli.v1"
 )
 
 // Commander is an interface that all commands implement.
@@ -16,7 +16,8 @@ type Commander interface {
 	HandleFlags() error
 	// Execute executes the command's HTTP request.
 	Execute(chan interface{}, chan interface{})
-	Ctx() *cli.Context
+	Ctx() Contexter
+	SetCtx(Contexter)
 	Flags() []cli.Flag
 }
 
