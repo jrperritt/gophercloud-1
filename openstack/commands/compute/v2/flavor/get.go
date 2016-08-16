@@ -1,56 +1,53 @@
 package flavor
 
 import (
-	"gopkg.in/urfave/cli.v1"
 	"github.com/gophercloud/cli/lib"
 	"github.com/gophercloud/cli/openstack"
 	"github.com/gophercloud/cli/util"
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/flavors"
+	"gopkg.in/urfave/cli.v1"
 )
-
-var _ lib.PipeCommander = new(commandGet)
 
 type commandGet struct {
 	openstack.CommandUtil
 	FlavorV2Command
 }
 
+var (
+	cGet                   = new(commandGet)
+	_    lib.PipeCommander = cGet
+
+	flagsGet = openstack.CommandFlags(cGet)
+)
+
 var get = cli.Command{
 	Name:         "get",
 	Usage:        util.Usage(commandPrefix, "get", "[--id <flavorID> | --name <flavorName> | --stdin id]"),
 	Description:  "Retreives information about a flavor",
-	Action:       actionGet,
-	Flags:        openstack.CommandFlags(new(commandGet)),
+	Action:       func(ctx *cli.Context) error { return openstack.Action(ctx, cGet) },
+	Flags:        flagsGet,
 	BashComplete: func(_ *cli.Context) { openstack.BashComplete(flagsGet) },
 }
 
-func actionGet(ctx *cli.Context) {
-	c := new(commandGet)
-	c.Context = ctx
-	lib.Run(ctx, c)
-}
-
 func (c *commandGet) Flags() []cli.Flag {
-	return flagsGet
+	return []cli.Flag{
+		cli.StringFlag{
+			Name:  "id",
+			Usage: "[optional; required if `stdin` or `name` isn't provided] The ID of the flavor.",
+		},
+		cli.StringFlag{
+			Name:  "name",
+			Usage: "[optional; required if `stdin` or `id` isn't provided] The name of the flavor.",
+		},
+		cli.StringFlag{
+			Name:  "stdin",
+			Usage: "[optional; required if `id` or `name` isn't provided] The field being piped into STDIN. Valid values are: id",
+		},
+	}
 }
 
 func (c *commandGet) Fields() []string {
 	return []string{""}
-}
-
-var flagsGet = []cli.Flag{
-	cli.StringFlag{
-		Name:  "id",
-		Usage: "[optional; required if `stdin` or `name` isn't provided] The ID of the flavor.",
-	},
-	cli.StringFlag{
-		Name:  "name",
-		Usage: "[optional; required if `stdin` or `id` isn't provided] The name of the flavor.",
-	},
-	cli.StringFlag{
-		Name:  "stdin",
-		Usage: "[optional; required if `id` or `name` isn't provided] The field being piped into STDIN. Valid values are: id",
-	},
 }
 
 func (c *commandGet) HandleFlags() error {
@@ -67,7 +64,6 @@ func (c *commandGet) HandleSingle() (interface{}, error) {
 
 func (c *commandGet) Execute(in, out chan interface{}) {
 	defer close(out)
-
 	for item := range in {
 		item := item
 		var m map[string]map[string]interface{}

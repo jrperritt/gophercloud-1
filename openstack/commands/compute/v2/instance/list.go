@@ -20,7 +20,7 @@ var (
 	cList               = new(commandList)
 	_     lib.Commander = cList
 
-	flagsList = openstack.CommandFlags(new(commandList))
+	flagsList = openstack.CommandFlags(cList)
 )
 
 var list = cli.Command{

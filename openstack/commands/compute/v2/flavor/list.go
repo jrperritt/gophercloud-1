@@ -1,12 +1,12 @@
 package flavor
 
 import (
-	"gopkg.in/urfave/cli.v1"
 	"github.com/gophercloud/cli/lib"
 	"github.com/gophercloud/cli/openstack"
 	"github.com/gophercloud/cli/util"
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/flavors"
 	"github.com/gophercloud/gophercloud/pagination"
+	"gopkg.in/urfave/cli.v1"
 )
 
 type commandList struct {
@@ -16,49 +16,48 @@ type commandList struct {
 	allPages bool
 }
 
+var (
+	cList               = new(commandList)
+	_     lib.Commander = cList
+
+	flagsList = openstack.CommandFlags(cList)
+)
+
 var list = cli.Command{
 	Name:         "list",
 	Usage:        util.Usage(commandPrefix, "list", ""),
 	Description:  "Lists existing flavors",
-	Action:       actionList,
-	Flags:        openstack.CommandFlags(new(commandList)),
+	Action:       func(ctx *cli.Context) error { return openstack.Action(ctx, cList) },
+	Flags:        flagsList,
 	BashComplete: func(_ *cli.Context) { openstack.BashComplete(flagsList) },
 }
 
-func actionList(ctx *cli.Context) {
-	c := new(commandList)
-	c.Context = ctx
-	lib.Run(ctx, c)
-}
-
 func (c *commandList) Flags() []cli.Flag {
-	return flagsList
+	return []cli.Flag{
+		cli.BoolFlag{
+			Name:  "all-pages",
+			Usage: "[optional] Return all flavors. Default is to paginate.",
+		},
+		cli.IntFlag{
+			Name:  "min-disk",
+			Usage: "[optional] Only list flavors that have at least this much disk storage (in GB).",
+		},
+		cli.IntFlag{
+			Name:  "min-ram",
+			Usage: "[optional] Only list flavors that have at least this much RAM (in GB).",
+		}, cli.StringFlag{
+			Name:  "marker",
+			Usage: "[optional] Start listing flavors at this flavor ID.",
+		},
+		cli.IntFlag{
+			Name:  "limit",
+			Usage: "[optional] Only return this many flavors at most.",
+		},
+	}
 }
 
 func (c *commandList) Fields() []string {
 	return []string{"id", "name", "ram", "disk", "swap", "vcpus", "rxtx_factor"}
-}
-
-var flagsList = []cli.Flag{
-	cli.BoolFlag{
-		Name:  "all-pages",
-		Usage: "[optional] Return all flavors. Default is to paginate.",
-	},
-	cli.IntFlag{
-		Name:  "min-disk",
-		Usage: "[optional] Only list flavors that have at least this much disk storage (in GB).",
-	},
-	cli.IntFlag{
-		Name:  "min-ram",
-		Usage: "[optional] Only list flavors that have at least this much RAM (in GB).",
-	}, cli.StringFlag{
-		Name:  "marker",
-		Usage: "[optional] Start listing flavors at this flavor ID.",
-	},
-	cli.IntFlag{
-		Name:  "limit",
-		Usage: "[optional] Only return this many flavors at most.",
-	},
 }
 
 func (c *commandList) HandleFlags() error {
