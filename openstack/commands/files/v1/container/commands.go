@@ -14,9 +14,9 @@ func (_ ContainerV1Command) ServiceClientType() string {
 func Get() []cli.Command {
 	return []cli.Command{
 		list,
-		//get,
+		get,
 		update,
 		create,
-		//remove,
+		remove,
 	}
 }
