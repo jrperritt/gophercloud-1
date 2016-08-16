@@ -78,7 +78,7 @@ func (c *commandUpdate) Execute(in, out chan interface{}) {
 		r := containers.Update(c.ServiceClient, name, c.opts)
 		switch r.Err {
 		case nil:
-			out <- fmt.Sprintf("Successfully updated container [%s]\n", name)
+			out <- fmt.Sprintf("Successfully updated container [%s]", name)
 		default:
 			out <- r.Err
 		}

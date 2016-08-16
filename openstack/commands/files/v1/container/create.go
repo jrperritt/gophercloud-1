@@ -1,6 +1,8 @@
 package container
 
 import (
+	"fmt"
+
 	"github.com/gophercloud/cli/lib"
 	"github.com/gophercloud/cli/openstack"
 	"github.com/gophercloud/cli/util"
@@ -97,7 +99,7 @@ func (c *commandCreate) Execute(in, out chan interface{}) {
 		err := containers.Create(c.ServiceClient, item.(string), c.opts).ExtractInto(&m)
 		switch err {
 		case nil:
-			out <- m
+			out <- fmt.Sprintf("Successfully created container [%s]", item.(string))
 		default:
 			out <- err
 		}
