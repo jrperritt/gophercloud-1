@@ -2,9 +2,6 @@
 	"ImportPath": "github.com/gophercloud/cli",
 	"GoVersion": "go1.7",
 	"GodepVersion": "v74",
-	"Packages": [
-		"./..."
-	],
 	"Deps": [
 		{
 			"ImportPath": "github.com/Sirupsen/logrus",
@@ -12,82 +9,69 @@
 			"Rev": "7e6f9765803ea8356f45fd9b3c62305fb36cca51"
 		},
 		{
-			"ImportPath": "github.com/cenkalti/backoff",
-			"Comment": "v1.0.0",
-			"Rev": "32cd0c5b3aef12c76ed64aaf678f6c79736be7dc"
-		},
-		{
-			"ImportPath": "github.com/dustin/go-humanize",
-			"Rev": "8929fe90cee4b2cb9deb468b51fb34eba64d1bf0"
-		},
-		{
-			"ImportPath": "github.com/fatih/structs",
-			"Rev": "73c4e3dc02a78deaba8640d5f3a8c236ec1352bf"
-		},
-		{
 			"ImportPath": "github.com/gophercloud/gophercloud",
-			"Comment": "v1.0.0-1041-g6dea3f1",
-			"Rev": "6dea3f17463923a8ea359d85ce2acaeb3ebb1c23"
+			"Comment": "v1.0.0-1043-g26ecbd0",
+			"Rev": "26ecbd04d30f2b7131c1c46726cb950e4bfe8a0f"
 		},
 		{
 			"ImportPath": "github.com/gophercloud/gophercloud/openstack",
-			"Comment": "v1.0.0-1041-g6dea3f1",
-			"Rev": "6dea3f17463923a8ea359d85ce2acaeb3ebb1c23"
+			"Comment": "v1.0.0-1043-g26ecbd0",
+			"Rev": "26ecbd04d30f2b7131c1c46726cb950e4bfe8a0f"
 		},
 		{
 			"ImportPath": "github.com/gophercloud/gophercloud/openstack/compute/v2/extensions/bootfromvolume",
-			"Comment": "v1.0.0-1041-g6dea3f1",
-			"Rev": "6dea3f17463923a8ea359d85ce2acaeb3ebb1c23"
+			"Comment": "v1.0.0-1043-g26ecbd0",
+			"Rev": "26ecbd04d30f2b7131c1c46726cb950e4bfe8a0f"
 		},
 		{
 			"ImportPath": "github.com/gophercloud/gophercloud/openstack/compute/v2/extensions/keypairs",
-			"Comment": "v1.0.0-1041-g6dea3f1",
-			"Rev": "6dea3f17463923a8ea359d85ce2acaeb3ebb1c23"
+			"Comment": "v1.0.0-1043-g26ecbd0",
+			"Rev": "26ecbd04d30f2b7131c1c46726cb950e4bfe8a0f"
 		},
 		{
 			"ImportPath": "github.com/gophercloud/gophercloud/openstack/compute/v2/flavors",
-			"Comment": "v1.0.0-1041-g6dea3f1",
-			"Rev": "6dea3f17463923a8ea359d85ce2acaeb3ebb1c23"
+			"Comment": "v1.0.0-1043-g26ecbd0",
+			"Rev": "26ecbd04d30f2b7131c1c46726cb950e4bfe8a0f"
 		},
 		{
 			"ImportPath": "github.com/gophercloud/gophercloud/openstack/compute/v2/images",
-			"Comment": "v1.0.0-1041-g6dea3f1",
-			"Rev": "6dea3f17463923a8ea359d85ce2acaeb3ebb1c23"
+			"Comment": "v1.0.0-1043-g26ecbd0",
+			"Rev": "26ecbd04d30f2b7131c1c46726cb950e4bfe8a0f"
 		},
 		{
 			"ImportPath": "github.com/gophercloud/gophercloud/openstack/compute/v2/servers",
-			"Comment": "v1.0.0-1041-g6dea3f1",
-			"Rev": "6dea3f17463923a8ea359d85ce2acaeb3ebb1c23"
+			"Comment": "v1.0.0-1043-g26ecbd0",
+			"Rev": "26ecbd04d30f2b7131c1c46726cb950e4bfe8a0f"
 		},
 		{
 			"ImportPath": "github.com/gophercloud/gophercloud/openstack/identity/v2/tenants",
-			"Comment": "v1.0.0-1041-g6dea3f1",
-			"Rev": "6dea3f17463923a8ea359d85ce2acaeb3ebb1c23"
+			"Comment": "v1.0.0-1043-g26ecbd0",
+			"Rev": "26ecbd04d30f2b7131c1c46726cb950e4bfe8a0f"
 		},
 		{
 			"ImportPath": "github.com/gophercloud/gophercloud/openstack/identity/v2/tokens",
-			"Comment": "v1.0.0-1041-g6dea3f1",
-			"Rev": "6dea3f17463923a8ea359d85ce2acaeb3ebb1c23"
+			"Comment": "v1.0.0-1043-g26ecbd0",
+			"Rev": "26ecbd04d30f2b7131c1c46726cb950e4bfe8a0f"
 		},
 		{
 			"ImportPath": "github.com/gophercloud/gophercloud/openstack/identity/v3/tokens",
-			"Comment": "v1.0.0-1041-g6dea3f1",
-			"Rev": "6dea3f17463923a8ea359d85ce2acaeb3ebb1c23"
+			"Comment": "v1.0.0-1043-g26ecbd0",
+			"Rev": "26ecbd04d30f2b7131c1c46726cb950e4bfe8a0f"
 		},
 		{
 			"ImportPath": "github.com/gophercloud/gophercloud/openstack/objectstorage/v1/containers",
-			"Comment": "v1.0.0-1041-g6dea3f1",
-			"Rev": "6dea3f17463923a8ea359d85ce2acaeb3ebb1c23"
+			"Comment": "v1.0.0-1043-g26ecbd0",
+			"Rev": "26ecbd04d30f2b7131c1c46726cb950e4bfe8a0f"
 		},
 		{
 			"ImportPath": "github.com/gophercloud/gophercloud/openstack/utils",
-			"Comment": "v1.0.0-1041-g6dea3f1",
-			"Rev": "6dea3f17463923a8ea359d85ce2acaeb3ebb1c23"
+			"Comment": "v1.0.0-1043-g26ecbd0",
+			"Rev": "26ecbd04d30f2b7131c1c46726cb950e4bfe8a0f"
 		},
 		{
 			"ImportPath": "github.com/gophercloud/gophercloud/pagination",
-			"Comment": "v1.0.0-1041-g6dea3f1",
-			"Rev": "6dea3f17463923a8ea359d85ce2acaeb3ebb1c23"
+			"Comment": "v1.0.0-1043-g26ecbd0",
+			"Rev": "26ecbd04d30f2b7131c1c46726cb950e4bfe8a0f"
 		},
 		{
 			"ImportPath": "github.com/gosuri/uilive",
@@ -104,11 +88,6 @@
 		{
 			"ImportPath": "github.com/mattn/go-isatty",
 			"Rev": "66b8e73f3f5cda9f96b69efd03dd3d7fc4a5cdb8"
-		},
-		{
-			"ImportPath": "github.com/urfave/cli",
-			"Comment": "v1.18.0-47-g168c954",
-			"Rev": "168c95418e66e019fe17b8f4f5c45aa62ff80e23"
 		},
 		{
 			"ImportPath": "golang.org/x/crypto/ssh/terminal",
