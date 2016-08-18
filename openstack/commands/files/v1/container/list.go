@@ -106,25 +106,3 @@ func (c *commandList) Execute(_, out chan interface{}) {
 		}
 	}
 }
-
-func (c *commandList) PreTable(rawServers interface{}) error {
-	if rawServers, ok := rawServers.([]map[string]interface{}); ok {
-		for i, rawServer := range rawServers {
-			for k, v := range rawServer {
-				switch k {
-				case "image":
-					if imageMap, ok := v.(map[string]interface{}); ok {
-						rawServer["image"] = imageMap["id"]
-						rawServers[i] = rawServer
-					}
-				case "flavor":
-					if flavorMap, ok := v.(map[string]interface{}); ok {
-						rawServer["flavor"] = flavorMap["id"]
-						rawServers[i] = rawServer
-					}
-				}
-			}
-		}
-	}
-	return nil
-}

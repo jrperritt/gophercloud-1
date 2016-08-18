@@ -95,10 +95,10 @@ func (c *Context) FillInputChannel(commander lib.Commander, in chan interface{})
 			stdin := ctx.String("stdin")
 			switch util.Contains(t.StreamFieldOptions(), stdin) {
 			case true:
-				item, err := t.HandleStreamPipe(stdin)
+				stream, err := t.HandleStreamPipe(os.Stdin)
 				switch err {
 				case nil:
-					in <- item
+					in <- stream
 				default:
 					c.outChannel <- err
 				}

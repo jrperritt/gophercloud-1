@@ -1,6 +1,8 @@
 package lib
 
 import (
+	"io"
+
 	"github.com/gophercloud/gophercloud"
 	"gopkg.in/urfave/cli.v1"
 )
@@ -43,7 +45,7 @@ type StreamPipeCommander interface {
 	// from STDIN.
 	PipeCommander
 	// HandleStreamPipe is a method that commands implement for processing streaming, piped input.
-	HandleStreamPipe(string) (interface{}, error)
+	HandleStreamPipe(io.Reader) (io.Reader, error)
 	// StreamFieldOptions is a slice of the fields that the command accepts for streaming input on STDIN.
 	StreamFieldOptions() []string
 }
