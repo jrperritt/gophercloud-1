@@ -123,12 +123,21 @@ func (lrt *LogRoundTripper) logRequestBody(original io.ReadCloser, headers http.
 }
 
 func (lrt *LogRoundTripper) formatJSON(raw []byte) string {
-	var data map[string]interface{}
+	var data interface{}
 
-	err := json.Unmarshal(raw, &data)
-	if err != nil {
-		lrt.Logger.Debugf("Unable to parse JSON: %s\n\n", err)
-		return string(raw)
+	var m map[string]interface{}
+	err := json.Unmarshal(raw, &m)
+	switch err {
+	case nil:
+		data = m
+	default:
+		var slice []map[string]interface{}
+		err := json.Unmarshal(raw, &slice)
+		if err != nil {
+			lrt.Logger.Debugf("Unable to parse JSON: %s\n\n", err)
+			return string(raw)
+		}
+		data = slice
 	}
 
 	pretty, err := json.MarshalIndent(data, "", "  ")
