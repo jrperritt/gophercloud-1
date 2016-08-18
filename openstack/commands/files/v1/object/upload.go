@@ -17,10 +17,14 @@ import (
 type commandUpload struct {
 	openstack.CommandUtil
 	ObjectV1Command
+	opts       objects.CreateOptsBuilder
+	pipedField string
+}
+
+type pipeData struct {
 	container string
 	object    string
-	stream    io.Reader
-	opts      objects.CreateOptsBuilder
+	content   io.Reader
 }
 
 var (
@@ -82,7 +86,6 @@ func (c *commandUpload) HandleFlags() error {
 	if err != nil {
 		return err
 	}
-	c.container = c.Context.String("container")
 
 	c.Wait = c.Context.IsSet("wait")
 	c.Quiet = c.Context.IsSet("quiet")
@@ -102,56 +105,105 @@ func (c *commandUpload) HandleFlags() error {
 
 	c.opts = opts
 
+	switch c.Context.IsSet("stdin") {
+	case true:
+		c.pipedField = c.Context.String("stdin")
+	}
+
 	return nil
 }
 
 func (c *commandUpload) HandlePipe(item string) (interface{}, error) {
-	return os.Open(item)
+	pd := new(pipeData)
+	switch c.pipedField {
+	case "container":
+		pd.container = item
+		switch c.Context.IsSet("file") {
+		case true:
+			f, err := os.Open(c.Context.String("file"))
+			if err != nil {
+				return nil, err
+			}
+			pd.content = f
+			switch c.Context.IsSet("name") {
+			case true:
+				pd.object = c.Context.String("name")
+			case false:
+				pd.object = f.Name()
+			}
+		case false:
+			switch c.Context.IsSet("content") {
+			case true:
+				err := c.CheckFlagsSet([]string{"name"})
+				if err != nil {
+					return nil, err
+				}
+				pd.object = c.Context.String("name")
+				pd.content = strings.NewReader(c.Context.String("content"))
+			case false:
+				return nil, fmt.Errorf("One of `--file` and `--content` must be provided if not piping to STDIN")
+			}
+		}
+	case "file":
+		err := c.CheckFlagsSet([]string{"container"})
+		if err != nil {
+			return nil, err
+		}
+		pd.container = c.Context.String("container")
+		f, err := os.Open(item)
+		if err != nil {
+			return nil, err
+		}
+		pd.content = f
+		pd.object = f.Name()
+	}
+
+	return pd, nil
 }
 
-func (c *commandUpload) HandleStreamPipe(stream io.Reader) (io.Reader, error) {
-	err := c.CheckFlagsSet([]string{"name"})
+func (c *commandUpload) HandleStreamPipe(stream io.Reader) (interface{}, error) {
+	err := c.CheckFlagsSet([]string{"container", "name"})
 	if err != nil {
 		return nil, err
 	}
-	c.object = c.Context.String("name")
-	return stream, nil
+	pd := new(pipeData)
+	pd.content = stream
+	pd.container = c.Context.String("container")
+	pd.object = c.Context.String("name")
+	return pd, nil
 }
 
-func (c *commandUpload) HandleSingle() (s interface{}, err error) {
-	err = c.CheckFlagsSet([]string{"name"})
+func (c *commandUpload) HandleSingle() (interface{}, error) {
+	err := c.CheckFlagsSet([]string{"container", "name"})
 	if err != nil {
-		return
+		return nil, err
 	}
-	c.object = c.Context.String("name")
+
+	pd := new(pipeData)
+	pd.object = c.Context.String("name")
+	pd.container = c.Context.String("container")
 
 	switch c.Context.IsSet("file") {
 	case true:
-		s, err = os.Open(c.Context.String("file"))
+		pd.content, err = os.Open(c.Context.String("file"))
 	case false:
 		switch c.Context.IsSet("content") {
 		case true:
-			s = strings.NewReader(c.Context.String("content"))
+			pd.content = strings.NewReader(c.Context.String("content"))
 		case false:
 			err = fmt.Errorf("One of `--file` and `--content` must be provided if not piping to STDIN")
 		}
 	}
 
-	return
+	return pd, err
 }
 
 func (c *commandUpload) Execute(in, out chan interface{}) {
 	defer close(out)
 	for item := range in {
-		object := c.object
-		switch f := item.(type) {
-		case *os.File:
-			if c.object == "" {
-				object = f.Name()
-			}
-		}
+		pd := item.(*pipeData)
 
-		reader, ok := item.(io.Reader)
+		reader, ok := pd.content.(io.Reader)
 		if !ok {
 			out <- fmt.Errorf("Expected an io.Reader but instead got %v", reflect.TypeOf(item))
 		}
@@ -165,10 +217,10 @@ func (c *commandUpload) Execute(in, out chan interface{}) {
 		c.opts.(*objects.CreateOpts).Content = reader
 
 		var m map[string]interface{}
-		err := objects.Create(c.ServiceClient, c.container, object, c.opts).ExtractInto(&m)
+		err := objects.Create(c.ServiceClient, pd.container, pd.object, c.opts).ExtractInto(&m)
 		switch err {
 		case nil:
-			out <- fmt.Sprintf("Successfully uploaded object [%s] to container [%s]", object, c.container)
+			out <- fmt.Sprintf("Successfully uploaded object [%s] to container [%s]", pd.object, pd.container)
 		default:
 			out <- err
 		}
@@ -176,7 +228,7 @@ func (c *commandUpload) Execute(in, out chan interface{}) {
 }
 
 func (c *commandUpload) PipeFieldOptions() []string {
-	return []string{"file"}
+	return []string{"file", "container"}
 }
 
 func (c *commandUpload) StreamFieldOptions() []string {

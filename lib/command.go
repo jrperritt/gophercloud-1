@@ -45,7 +45,7 @@ type StreamPipeCommander interface {
 	// from STDIN.
 	PipeCommander
 	// HandleStreamPipe is a method that commands implement for processing streaming, piped input.
-	HandleStreamPipe(io.Reader) (io.Reader, error)
+	HandleStreamPipe(io.Reader) (interface{}, error)
 	// StreamFieldOptions is a slice of the fields that the command accepts for streaming input on STDIN.
 	StreamFieldOptions() []string
 }
