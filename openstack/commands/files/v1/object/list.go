@@ -105,7 +105,9 @@ func (c *commandList) Execute(in, out chan interface{}) {
 			err = (page.(objects.ObjectPage)).ExtractInto(&tmp)
 			switch err {
 			case nil:
-				out <- tmp
+				if len(tmp) > 0 {
+					out <- tmp
+				}
 			default:
 				out <- err
 			}
@@ -113,11 +115,14 @@ func (c *commandList) Execute(in, out chan interface{}) {
 			err := pager.EachPage(func(page pagination.Page) (bool, error) {
 				var tmp []map[string]interface{}
 				err := (page.(objects.ObjectPage)).ExtractInto(&tmp)
-				if err != nil {
-					return false, err
+				switch err {
+				case nil:
+					if len(tmp) > 0 {
+						out <- tmp
+					}
+					return true, nil
 				}
-				out <- tmp
-				return true, nil
+				return false, err
 			})
 			if err != nil {
 				out <- err
