@@ -106,12 +106,7 @@ func (c *commandUpload) HandleFlags() error {
 }
 
 func (c *commandUpload) HandlePipe(item string) (interface{}, error) {
-	f, err := os.Open(item)
-	if err != nil {
-		return nil, err
-	}
-	c.object = f.Name()
-	return f, nil
+	return os.Open(item)
 }
 
 func (c *commandUpload) HandleStreamPipe(stream io.Reader) (io.Reader, error) {
@@ -148,21 +143,32 @@ func (c *commandUpload) HandleSingle() (s interface{}, err error) {
 func (c *commandUpload) Execute(in, out chan interface{}) {
 	defer close(out)
 	for item := range in {
+		object := c.object
+		switch f := item.(type) {
+		case *os.File:
+			if c.object == "" {
+				object = f.Name()
+			}
+		}
+
 		reader, ok := item.(io.Reader)
 		if !ok {
 			out <- fmt.Errorf("Expected an io.Reader but instead got %v", reflect.TypeOf(item))
 		}
-		c.opts.(*objects.CreateOpts).Content = reader
+
 		defer func() {
 			if closeable, ok := reader.(io.ReadCloser); ok {
 				closeable.Close()
 			}
 		}()
+
+		c.opts.(*objects.CreateOpts).Content = reader
+
 		var m map[string]interface{}
-		err := objects.Create(c.ServiceClient, c.container, c.object, c.opts).ExtractInto(&m)
+		err := objects.Create(c.ServiceClient, c.container, object, c.opts).ExtractInto(&m)
 		switch err {
 		case nil:
-			out <- fmt.Sprintf("Successfully uploaded object [%s] to container [%s]", c.object, c.container)
+			out <- fmt.Sprintf("Successfully uploaded object [%s] to container [%s]", object, c.container)
 		default:
 			out <- err
 		}
