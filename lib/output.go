@@ -1,16 +1,18 @@
 package lib
 
+import "io"
+
 type Outputter interface {
 	OutputResult(interface{}) error
 	LimitFields(interface{})
 }
 
-type Tabler interface {
-	ToTable()
+type ToTabler interface {
+	ToTable() error
 }
 
-type JSONer interface {
-	ToJSON()
+type ToJSONer interface {
+	ToJSON() error
 }
 
 // PreJSONer is an interface that commands will satisfy if they have a `PreJSON` method.
@@ -21,4 +23,8 @@ type PreJSONer interface {
 // PreTabler is an interface that commands will satisfy if they have a `PreTable` method.
 type PreTabler interface {
 	PreTable(interface{}) error
+}
+
+type CustomWriterer interface {
+	CustomWriter() io.Writer
 }

@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"os"
 	"sort"
 	"strings"
@@ -42,7 +43,6 @@ func (o *output) OutputResult(result interface{}) error {
 			fmt.Fprintf(o.writer, "%v\n", r)
 		}
 		return nil
-		//panic(r)
 	case DebugMsg:
 		o.logger.Debug(r)
 	case map[string]interface{}, []map[string]interface{}:
@@ -62,9 +62,38 @@ func (o *output) OutputResult(result interface{}) error {
 		if rc, ok := r.(io.ReadCloser); ok {
 			defer rc.Close()
 		}
-		_, err := io.Copy(o.writer, r)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error copying (io.Reader) result: %s\n", err)
+		var writer io.Writer
+		customWriterer, ok := o.commander.(lib.CustomWriterer)
+		switch ok {
+		case true:
+			writer = customWriterer.CustomWriter()
+		case false:
+			writer = o.writer
+		}
+		switch o.format {
+		case "json":
+			toJSONer, ok := o.commander.(lib.ToJSONer)
+			switch ok {
+			case true:
+				return toJSONer.ToJSON()
+			case false:
+				bytes, err := ioutil.ReadAll(r)
+				if err != nil {
+					return err
+				}
+				o.defaultJSON(string(bytes))
+			}
+		default:
+			toTabler, ok := o.commander.(lib.ToTabler)
+			switch ok {
+			case true:
+				return toTabler.ToTable()
+			case false:
+				_, err := io.Copy(writer, r)
+				if err != nil {
+					fmt.Fprintf(os.Stderr, "Error copying (io.Reader) result: %s\n", err)
+				}
+			}
 		}
 	default:
 		switch o.format {
