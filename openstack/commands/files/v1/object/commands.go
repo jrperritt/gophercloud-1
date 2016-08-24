@@ -17,6 +17,6 @@ func Get() []cli.Command {
 		get,
 		upload,
 		//download,
-		//remove,
+		remove,
 	}
 }
