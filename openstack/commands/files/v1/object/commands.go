@@ -14,7 +14,7 @@ func (_ ObjectV1Command) ServiceClientType() string {
 func Get() []cli.Command {
 	return []cli.Command{
 		list,
-		//get,
+		get,
 		upload,
 		//download,
 		//remove,
