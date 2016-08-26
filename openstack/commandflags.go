@@ -35,6 +35,10 @@ func CommandFlags(c lib.Commander) []cli.Flag {
 		flags = append(flags, waiter.WaitFlags()...)
 	}
 
+	if progresser, ok := c.(lib.Progresser); ok {
+		flags = append(flags, progresser.ProgressFlags()...)
+	}
+
 	flags = append(flags, GlobalFlags()...)
 
 	return flags

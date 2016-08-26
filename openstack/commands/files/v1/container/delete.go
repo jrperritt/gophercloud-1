@@ -11,8 +11,8 @@ import (
 )
 
 type commandDelete struct {
-	openstack.CommandUtil
 	ContainerV1Command
+	purge bool
 }
 
 var (
@@ -63,13 +63,19 @@ func (c *commandDelete) HandleSingle() (interface{}, error) {
 func (c *commandDelete) Execute(in, out chan interface{}) {
 	defer close(out)
 	for item := range in {
-		var m map[string]interface{}
-		err := containers.Delete(c.ServiceClient, item.(string)).ExtractInto(&m)
-		switch err {
+		if c.purge {
+			err := handleEmpty(cDelete.ContainerV1Command)
+			if err != nil {
+				out <- fmt.Errorf("Error purging container [%s]: %s", item.(string), err)
+				continue
+			}
+		}
+		res := containers.Delete(c.ServiceClient, item.(string))
+		switch res.Err {
 		case nil:
 			out <- fmt.Sprintf("Successfully deleted container [%s]", item.(string))
 		default:
-			out <- err
+			out <- res.Err
 		}
 	}
 }

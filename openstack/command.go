@@ -112,15 +112,20 @@ func (c *CommandUtil) WaitFlags() []cli.Flag {
 			Name:  "wait",
 			Usage: "[optional] If provided, wait to return until the operation is complete.",
 		},
+	}
+}
+
+func (c *CommandUtil) ShouldProgress() bool {
+	return !c.Quiet
+}
+
+func (c *CommandUtil) ProgressFlags() []cli.Flag {
+	return []cli.Flag{
 		cli.BoolFlag{
 			Name:  "quiet",
 			Usage: "[optional] If provided, only final results are printed.",
 		},
 	}
-}
-
-func (c *CommandUtil) ShouldQuiet() bool {
-	return c.Quiet
 }
 
 func Action(ctx lib.Contexter, c lib.Commander) error {

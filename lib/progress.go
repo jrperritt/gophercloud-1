@@ -3,8 +3,15 @@ package lib
 import (
 	"time"
 
-	"gopkg.in/urfave/cli.v1"
+	cli "gopkg.in/urfave/cli.v1"
 )
+
+type Waiter interface {
+	Commander
+	ShouldWait() bool
+	WaitFlags() []cli.Flag
+	ExecuteAndWait(in, out chan interface{})
+}
 
 type ProgressStatuser interface {
 	Error() error
@@ -20,16 +27,10 @@ type ProgressContenter interface {
 }
 
 type Progresser interface {
-	Commander
+	Waiter
 	InitProgress()
 	ShowProgress(item interface{}, out chan interface{})
-	End()
-}
-
-type Waiter interface {
-	Commander
-	ShouldWait() bool
-	WaitFlags() []cli.Flag
-	ShouldQuiet() bool
-	ExecuteAndWait(in, out chan interface{})
+	EndProgress()
+	ShouldProgress() bool
+	ProgressFlags() []cli.Flag
 }

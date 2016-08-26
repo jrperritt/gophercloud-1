@@ -6,7 +6,7 @@ import (
 	"gopkg.in/urfave/cli.v1"
 )
 
-// Get returns all the commands allowed for a `files` v2 request.
+// Get returns all the commands allowed for a `files` v1 request.
 func Get() []cli.Command {
 	return []cli.Command{
 		/*

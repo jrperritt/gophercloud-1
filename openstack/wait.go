@@ -18,7 +18,7 @@ func ExecuteAndWait(waiter lib.Waiter, in, out chan interface{}) {
 
 	go func() {
 		progresser, ok := waiter.(lib.Progresser)
-		switch ok {
+		switch ok && progresser.ShouldProgress() {
 		case true:
 			progresser.InitProgress()
 			for item := range chExec {

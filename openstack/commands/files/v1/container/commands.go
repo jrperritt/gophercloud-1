@@ -1,10 +1,16 @@
 package container
 
-import "gopkg.in/urfave/cli.v1"
+import (
+	"github.com/gophercloud/cli/openstack"
+	"gopkg.in/urfave/cli.v1"
+)
 
 var commandPrefix = "files container"
 
-type ContainerV1Command struct{}
+type ContainerV1Command struct {
+	openstack.CommandUtil
+	name string
+}
 
 func (_ ContainerV1Command) ServiceClientType() string {
 	return "files"

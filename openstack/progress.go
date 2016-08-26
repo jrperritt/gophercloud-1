@@ -61,7 +61,7 @@ func (p *Progress) Listen(pch chan *ProgressStatus) {
 	}
 }
 
-func (p *Progress) End() {
+func (p *Progress) EndProgress() {
 	p.Progress.Stop()
 }
 
