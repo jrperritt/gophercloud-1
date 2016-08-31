@@ -24,7 +24,7 @@ func handleEmpty(c ContainerV1Command) error {
 		return err
 	}
 
-	if header.ObjectCount != "0" {
+	if header.ObjectCount != 0 {
 		handleEmpty(c)
 	}
 
