@@ -5,8 +5,8 @@ import (
 	"github.com/gophercloud/gophercloud/openstack/objectstorage/v1/objects"
 )
 
-func handleEmpty(c ContainerV1Command) error {
-	allPages, err := objects.List(c.ServiceClient, c.name, nil).AllPages()
+func handleEmpty(c ContainerV1Command, container string) error {
+	allPages, err := objects.List(c.ServiceClient, container, nil).AllPages()
 	if err != nil {
 		return err
 	}
@@ -16,7 +16,10 @@ func handleEmpty(c ContainerV1Command) error {
 	}
 
 	for _, name := range names {
-		objects.Delete(c.ServiceClient, c.name, name, nil)
+		_, err := objects.Delete(c.ServiceClient, container, name, nil).Extract()
+		if err != nil {
+			return err
+		}
 	}
 
 	header, err := containers.Get(c.ServiceClient, c.name).Extract()
@@ -25,7 +28,7 @@ func handleEmpty(c ContainerV1Command) error {
 	}
 
 	if header.ObjectCount != 0 {
-		handleEmpty(c)
+		handleEmpty(c, container)
 	}
 
 	return nil

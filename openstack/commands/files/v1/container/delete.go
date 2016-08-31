@@ -41,6 +41,10 @@ func (c *commandDelete) Flags() []cli.Flag {
 			Name:  "stdin",
 			Usage: "[optional; required if `name` isn't provided] The field being piped into STDIN. Valid values are: name",
 		},
+		cli.BoolFlag{
+			Name:  "purge",
+			Usage: "[optional] Delete all objects in the container, and then delete the container.",
+		},
 	}
 }
 
@@ -49,6 +53,7 @@ func (c *commandDelete) Fields() []string {
 }
 
 func (c *commandDelete) HandleFlags() error {
+	c.purge = c.Context.IsSet("purge")
 	return nil
 }
 
@@ -63,17 +68,18 @@ func (c *commandDelete) HandleSingle() (interface{}, error) {
 func (c *commandDelete) Execute(in, out chan interface{}) {
 	defer close(out)
 	for item := range in {
+		item := item.(string)
 		if c.purge {
-			err := handleEmpty(cDelete.ContainerV1Command)
+			err := handleEmpty(cDelete.ContainerV1Command, item)
 			if err != nil {
-				out <- fmt.Errorf("Error purging container [%s]: %s", item.(string), err)
+				out <- fmt.Errorf("Error purging container [%s]: %s", item, err)
 				continue
 			}
 		}
-		res := containers.Delete(c.ServiceClient, item.(string))
+		res := containers.Delete(c.ServiceClient, item)
 		switch res.Err {
 		case nil:
-			out <- fmt.Sprintf("Successfully deleted container [%s]", item.(string))
+			out <- fmt.Sprintf("Successfully deleted container [%s]", item)
 		default:
 			out <- res.Err
 		}
