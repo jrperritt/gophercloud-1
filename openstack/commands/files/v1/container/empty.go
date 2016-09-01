@@ -11,7 +11,6 @@ import (
 
 type commandEmpty struct {
 	ContainerV1Command
-	purge bool
 }
 
 var (
