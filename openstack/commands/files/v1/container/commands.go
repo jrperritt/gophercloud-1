@@ -16,7 +16,7 @@ func (_ ContainerV1Command) ServiceClientType() string {
 	return "files"
 }
 
-// Get returns all the commands allowed for a `servers instance` v2 request.
+// Get returns all the commands allowed for a `files container` v1 request.
 func Get() []cli.Command {
 	return []cli.Command{
 		list,
@@ -24,5 +24,6 @@ func Get() []cli.Command {
 		update,
 		create,
 		remove,
+		empty,
 	}
 }
