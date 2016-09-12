@@ -9,12 +9,12 @@ import (
 
 	"golang.org/x/crypto/ssh/terminal"
 
-	"gopkg.in/urfave/cli.v1"
 	"github.com/gophercloud/cli/util"
 	"gopkg.in/ini.v1"
+	"gopkg.in/urfave/cli.v1"
 )
 
-func configure(c *cli.Context) {
+func configure(c *cli.Context) error {
 	fmt.Println("\nThis interactive session will walk you through creating\n" +
 		"a profile in your configuration file. You may fill in all or none of the\n" +
 		"values.\n")
@@ -32,8 +32,7 @@ func configure(c *cli.Context) {
 	fmt.Print("Password: ")
 	pwd, err := terminal.ReadPassword(syscall.Stdin)
 	if err != nil {
-		fmt.Println(err)
-		return
+		return err
 	}
 	m["password"] = string(pwd)
 
@@ -47,7 +46,7 @@ func configure(c *cli.Context) {
 
 	configFile, err := util.ConfigFile()
 	if err != nil {
-		return
+		return err
 	}
 
 	var cfg *ini.File
@@ -86,7 +85,7 @@ func configure(c *cli.Context) {
 	section, err = cfg.NewSection(profile)
 	if err != nil {
 		//fmt.Printf("Error creating new section [%s] in config file: %s\n", profile, err)
-		return
+		return err
 	}
 
 	for key, val := range m {
@@ -96,7 +95,7 @@ func configure(c *cli.Context) {
 	err = cfg.SaveTo(configFile)
 	if err != nil {
 		//fmt.Printf("Error saving config file: %s\n", err)
-		return
+		return err
 	}
 
 	if profile == "DEFAULT" {
@@ -104,5 +103,7 @@ func configure(c *cli.Context) {
 	} else {
 		fmt.Printf("\nCreated profile %s with username %s", profile, username)
 	}
+
+	return nil
 
 }

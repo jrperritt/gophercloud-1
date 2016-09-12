@@ -17,11 +17,6 @@ type Context struct {
 	commander  lib.Commander
 }
 
-// Name satisfies the Provider.Name method
-func (c *Context) Name() string {
-	return "openstack"
-}
-
 // NewGlobalOptionser satisfies the Provider.NewGlobalOptionser method
 func (c *Context) NewGlobalOptionser(context lib.Contexter) lib.GlobalOptionser {
 	g := new(GlobalOptions)

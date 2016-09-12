@@ -1,16 +1,16 @@
 package v2
 
 import (
-	"gopkg.in/urfave/cli.v1"
 	"github.com/gophercloud/cli/openstack/commands/compute/v2/flavor"
 	"github.com/gophercloud/cli/openstack/commands/compute/v2/instance"
+	"gopkg.in/urfave/cli.v1"
 )
 
-// Get returns all the commands allowed for a `servers` v2 request.
+// Get returns all the commands allowed for a `compute` v2 request.
 func Get() []cli.Command {
 	return []cli.Command{
 		{
-			Name:        "instance",
+			Name:        "server",
 			Usage:       "Virtual and bare metal servers.",
 			Subcommands: instance.Get(),
 		},

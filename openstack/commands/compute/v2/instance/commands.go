@@ -2,7 +2,7 @@ package instance
 
 import "gopkg.in/urfave/cli.v1"
 
-var commandPrefix = "servers instance"
+var commandPrefix = "compute server"
 
 type InstanceV2Command struct{}
 
@@ -10,7 +10,7 @@ func (_ InstanceV2Command) ServiceClientType() string {
 	return "compute"
 }
 
-// Get returns all the commands allowed for a `servers instance` v2 request.
+// Get returns all the commands allowed for a `compute server` v2 request.
 func Get() []cli.Command {
 	return []cli.Command{
 		list,

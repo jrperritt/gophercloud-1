@@ -2,14 +2,13 @@ package main
 
 import (
 	"fmt"
+	"html/template"
 	"io"
 	"strings"
 	"text/tabwriter"
-	"text/template"
 
-	"gopkg.in/urfave/cli.v1"
 	"github.com/gophercloud/cli/lib"
-	"github.com/gophercloud/cli/openstack"
+	"gopkg.in/urfave/cli.v1"
 )
 
 var appHelpTemplate = `NAME:
@@ -22,23 +21,17 @@ VERSION:
    {{end}}{{if .Commands}}
 COMMANDS:
    {{range .Commands}}{{join .Names ", "}}{{ "\t" }}{{.Usage}}
+	 {{end}}{{end}}{{if .Flags}}
+FLAGS:
+   {{range .Flags}}{{flag .}}
    {{end}}{{end}}
 `
 
 var commandHelpTemplate = `NAME: {{.Name}} - {{.Usage}}{{if .Description}}
-
 DESCRIPTION: {{.Description}}{{end}}{{if .Flags}}
-
-COMMAND FLAGS:{{with $info := commandInfo .}}{{if ne $info ""}}
-
-{{commandInfo .}}{{end}}{{end}}
-
-{{range .Flags}}{{if isNotGlobalFlag .}}{{flag .}}
-{{end}}{{end}}
-
-GLOBAL FLAGS:
-{{range .Flags}}{{if isGlobalFlag .}}{{flag .}}
-{{end}}{{end}}{{ end }}
+COMMAND FLAGS:
+   {{range .Flags}}{{flag .}}
+   {{end}}{{end}}
 `
 
 var subcommandHelpTemplate = `NAME:
@@ -46,18 +39,15 @@ var subcommandHelpTemplate = `NAME:
 USAGE:
    {{.Name}}{{if eq (len (split .Name " ")) 2}} <subcommand>{{end}} <action> [FLAGS]
 {{if eq (len (split .Name " ")) 2}}SUBCOMMANDS{{else}}ACTIONS{{end}}:
-   {{range .Commands}}{{join .Names ", "}}{{ "\t" }}{{.Usage}}
+   {{range .Commands}}{{join .Names ", "}}
    {{end}}
 `
 
 func printHelp(out io.Writer, templ string, data interface{}) {
 	funcMap := template.FuncMap{
-		"split":           strings.Split,
-		"join":            strings.Join,
-		"isGlobalFlag":    isGlobalFlag,
-		"isNotGlobalFlag": isNotGlobalFlag,
-		"flag":            flag,
-		"commandInfo":     commandInfo,
+		"split": strings.Split,
+		"join":  strings.Join,
+		"flag":  flag,
 	}
 
 	w := tabwriter.NewWriter(out, 0, 8, 1, '\t', 0)
@@ -69,27 +59,10 @@ func printHelp(out io.Writer, templ string, data interface{}) {
 	w.Flush()
 }
 
-func isGlobalFlag(cliflag cli.Flag) bool {
-	globalFlags := openstack.GlobalFlags()
-	for _, globalFlag := range globalFlags {
-		if globalFlag == cliflag {
-			return true
-		}
-	}
-	return false
-}
-
-func isNotGlobalFlag(cliflag cli.Flag) bool {
-	globalFlags := openstack.GlobalFlags()
-	for _, globalFlag := range globalFlags {
-		if globalFlag == cliflag {
-			return false
-		}
-	}
-	return true
-}
-
 func flag(cliflag cli.Flag) string {
+	if cliflag.GetName() == "generate-bash-completion" {
+		return ""
+	}
 	var flagString string
 	switch flagType := cliflag.(type) {
 	case cli.StringFlag:

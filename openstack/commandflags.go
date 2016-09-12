@@ -39,27 +39,5 @@ func CommandFlags(c lib.Commander) []cli.Flag {
 		flags = append(flags, progresser.ProgressFlags()...)
 	}
 
-	flags = append(flags, GlobalFlags()...)
-
 	return flags
-}
-
-// CompleteFlags returns the possible flags for bash completion.
-func CompleteFlags(flags []cli.Flag) {
-	for _, flag := range flags {
-		flagName := ""
-		switch f := flag.(type) {
-		case cli.StringFlag:
-			flagName = f.Name
-		case cli.IntFlag:
-			flagName = f.Name
-		case cli.BoolFlag:
-			flagName = f.Name
-		case cli.StringSliceFlag:
-			flagName = f.Name
-		default:
-			continue
-		}
-		fmt.Println("--" + flagName)
-	}
 }
