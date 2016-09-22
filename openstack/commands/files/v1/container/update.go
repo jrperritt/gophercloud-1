@@ -3,24 +3,23 @@ package container
 import (
 	"fmt"
 
-	"github.com/gophercloud/cli/lib"
 	"github.com/gophercloud/cli/openstack"
+	"github.com/gophercloud/cli/openstack/commands"
 	"github.com/gophercloud/cli/util"
 	"github.com/gophercloud/gophercloud/openstack/objectstorage/v1/containers"
 	"gopkg.in/urfave/cli.v1"
 )
 
-type commandUpdate struct {
-	openstack.CommandUtil
+type CommandUpdate struct {
 	ContainerV1Command
+	commands.WaitCommand
 	name string
 	opts containers.UpdateOptsBuilder
 }
 
 var (
-	cUpdate                   = new(commandUpdate)
-	_       lib.PipeCommander = cUpdate
-	_       lib.Waiter        = cUpdate
+	cUpdate                         = new(CommandUpdate)
+	_       openstack.PipeCommander = cUpdate
 
 	flagsUpdate = openstack.CommandFlags(cUpdate)
 )
@@ -31,10 +30,10 @@ var update = cli.Command{
 	Description:  "Updates a container",
 	Action:       func(ctx *cli.Context) error { return openstack.Action(ctx, cUpdate) },
 	Flags:        flagsUpdate,
-	BashComplete: func(_ *cli.Context) { openstack.BashComplete(flagsUpdate) },
+	BashComplete: func(_ *cli.Context) { util.CompleteFlags(flagsUpdate) },
 }
 
-func (c *commandUpdate) Flags() []cli.Flag {
+func (c *CommandUpdate) Flags() []cli.Flag {
 	return []cli.Flag{
 		cli.StringFlag{
 			Name:  "name",
@@ -55,7 +54,7 @@ func (c *commandUpdate) Flags() []cli.Flag {
 	}
 }
 
-func (c *commandUpdate) HandleFlags() (err error) {
+func (c *CommandUpdate) HandleFlags() (err error) {
 	c.opts = &containers.UpdateOpts{
 		ContainerRead:  c.Context.String("container-read"),
 		ContainerWrite: c.Context.String("container-write"),
@@ -63,32 +62,25 @@ func (c *commandUpdate) HandleFlags() (err error) {
 	return
 }
 
-func (c *commandUpdate) HandlePipe(item string) (interface{}, error) {
+func (c *CommandUpdate) HandlePipe(item string) (interface{}, error) {
 	return item, nil
 }
 
-func (c *commandUpdate) HandleSingle() (interface{}, error) {
+func (c *CommandUpdate) HandleSingle() (interface{}, error) {
 	return c.Context.String("name"), c.CheckFlagsSet([]string{"name"})
 }
 
-func (c *commandUpdate) Execute(in, out chan interface{}) {
-	defer close(out)
-	for item := range in {
-		name := item.(string)
-		r := containers.Update(c.ServiceClient, name, c.opts)
-		switch r.Err {
-		case nil:
-			out <- fmt.Sprintf("Successfully updated container [%s]", name)
-		default:
-			out <- r.Err
-		}
+func (c *CommandUpdate) Execute(item interface{}, out chan interface{}) {
+	name := item.(string)
+	r := containers.Update(c.ServiceClient, name, c.opts)
+	switch r.Err {
+	case nil:
+		out <- fmt.Sprintf("Successfully updated container [%s]", name)
+	default:
+		out <- r.Err
 	}
 }
 
-func (c *commandUpdate) PipeFieldOptions() []string {
+func (c *CommandUpdate) PipeFieldOptions() []string {
 	return []string{"name"}
-}
-
-func (c *commandUpdate) ExecuteAndWait(in, out chan interface{}) {
-	openstack.ExecuteAndWait(c, in, out)
 }

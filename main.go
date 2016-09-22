@@ -4,16 +4,13 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/gophercloud/cli/lib"
-	"github.com/gophercloud/cli/openstack"
-	"github.com/rackspace/rack/version"
+	"github.com/gophercloud/cli/util"
+	"github.com/gophercloud/cli/version"
 
 	"gopkg.in/urfave/cli.v1"
 )
 
 func main() {
-	lib.CloudProvider = new(openstack.Context)
-
 	cli.HelpPrinter = printHelp
 	cli.AppHelpTemplate = appHelpTemplate
 	cli.CommandHelpTemplate = commandHelpTemplate
@@ -36,5 +33,5 @@ func globalComplete(ctx *cli.Context) {
 	for _, cmd := range ctx.App.Commands {
 		fmt.Println(cmd.Name)
 	}
-	openstack.CompleteFlags(globalFlags)
+	util.CompleteFlags(globalFlags)
 }

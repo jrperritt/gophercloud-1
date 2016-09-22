@@ -1,19 +1,19 @@
 package object
 
 import (
-	"github.com/gophercloud/cli/openstack"
+	"github.com/gophercloud/cli/openstack/commands"
 	"gopkg.in/urfave/cli.v1"
 )
 
 var commandPrefix = "files object"
 
 type ObjectV1Command struct {
-	openstack.CommandUtil
+	commands.Command
 	container string
 	name      string
 }
 
-func (_ ObjectV1Command) ServiceClientType() string {
+func (_ ObjectV1Command) ServiceType() string {
 	return "files"
 }
 

@@ -7,16 +7,16 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/gophercloud/cli/lib"
 	"github.com/gophercloud/cli/openstack"
+	"github.com/gophercloud/cli/openstack/commands"
 	"github.com/gophercloud/cli/util"
 	"github.com/gophercloud/gophercloud/openstack/objectstorage/v1/objects"
 	"gopkg.in/urfave/cli.v1"
 )
 
 type commandUpload struct {
-	openstack.CommandUtil
 	ObjectV1Command
+	commands.ProgressCommand
 	opts       objects.CreateOptsBuilder
 	pipedField string
 }
@@ -28,9 +28,9 @@ type pipeData struct {
 }
 
 var (
-	cUpload                         = new(commandUpload)
-	_       lib.StreamPipeCommander = cUpload
-	_       lib.Waiter              = cUpload
+	cUpload                               = new(commandUpload)
+	_       openstack.StreamPipeCommander = cUpload
+	//_       openstack.Progresser          = cUpload
 
 	flagsUpload = openstack.CommandFlags(cUpload)
 )
@@ -41,7 +41,7 @@ var upload = cli.Command{
 	Description:  "Uploads an object",
 	Action:       func(ctx *cli.Context) error { return openstack.Action(ctx, cUpload) },
 	Flags:        flagsUpload,
-	BashComplete: func(_ *cli.Context) { openstack.BashComplete(flagsUpload) },
+	BashComplete: func(_ *cli.Context) { util.CompleteFlags(flagsUpload) },
 }
 
 func (c *commandUpload) Flags() []cli.Flag {
@@ -82,11 +82,6 @@ func (c *commandUpload) Flags() []cli.Flag {
 }
 
 func (c *commandUpload) HandleFlags() error {
-	err := c.CheckFlagsSet([]string{"container"})
-	if err != nil {
-		return err
-	}
-
 	c.Wait = c.Context.IsSet("wait")
 	c.Quiet = c.Context.IsSet("quiet")
 
@@ -105,8 +100,7 @@ func (c *commandUpload) HandleFlags() error {
 
 	c.opts = opts
 
-	switch c.Context.IsSet("stdin") {
-	case true:
+	if c.Context.IsSet("stdin") {
 		c.pipedField = c.Context.String("stdin")
 	}
 
@@ -198,32 +192,29 @@ func (c *commandUpload) HandleSingle() (interface{}, error) {
 	return pd, err
 }
 
-func (c *commandUpload) Execute(in, out chan interface{}) {
-	defer close(out)
-	for item := range in {
-		pd := item.(*pipeData)
+func (c *commandUpload) Execute(item interface{}, out chan interface{}) {
+	pd := item.(*pipeData)
 
-		reader, ok := pd.content.(io.Reader)
-		if !ok {
-			out <- fmt.Errorf("Expected an io.Reader but instead got %v", reflect.TypeOf(item))
+	reader, ok := pd.content.(io.Reader)
+	if !ok {
+		out <- fmt.Errorf("Expected an io.Reader but instead got %v", reflect.TypeOf(item))
+	}
+
+	defer func() {
+		if closeable, ok := reader.(io.ReadCloser); ok {
+			closeable.Close()
 		}
+	}()
 
-		defer func() {
-			if closeable, ok := reader.(io.ReadCloser); ok {
-				closeable.Close()
-			}
-		}()
+	c.opts.(*objects.CreateOpts).Content = reader
 
-		c.opts.(*objects.CreateOpts).Content = reader
-
-		var m map[string]interface{}
-		err := objects.Create(c.ServiceClient, pd.container, pd.object, c.opts).ExtractInto(&m)
-		switch err {
-		case nil:
-			out <- fmt.Sprintf("Successfully uploaded object [%s] to container [%s]", pd.object, pd.container)
-		default:
-			out <- err
-		}
+	var m map[string]interface{}
+	err := objects.Create(c.ServiceClient, pd.container, pd.object, c.opts).ExtractInto(&m)
+	switch err {
+	case nil:
+		out <- fmt.Sprintf("Successfully uploaded object [%s] to container [%s]", pd.object, pd.container)
+	default:
+		out <- err
 	}
 }
 
@@ -233,8 +224,4 @@ func (c *commandUpload) PipeFieldOptions() []string {
 
 func (c *commandUpload) StreamFieldOptions() []string {
 	return []string{"content"}
-}
-
-func (c *commandUpload) ExecuteAndWait(in, out chan interface{}) {
-	openstack.ExecuteAndWait(c, in, out)
 }

@@ -44,7 +44,7 @@ function global:TabExpansion2 {
         $ast = [System.Management.Automation.Language.Parser]::ParseInput($inputScript, [ref]$tokens, [ref]$null)
       }
       $text = $ast.Extent.Text
-    	if($text -match '^*rack.exe*') {
+    	if($text -match '^*stack.exe*') {
         $cmd1 = $text -split '\s+'
         $end = $cmd1.count - 2
         $cmd2 = $cmd1[0..$end]

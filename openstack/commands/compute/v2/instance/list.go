@@ -1,7 +1,8 @@
 package instance
 
 import (
-	"github.com/gophercloud/cli/lib"
+	"reflect"
+
 	"github.com/gophercloud/cli/openstack"
 	"github.com/gophercloud/cli/util"
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/servers"
@@ -9,30 +10,26 @@ import (
 	"gopkg.in/urfave/cli.v1"
 )
 
-type commandList struct {
-	openstack.CommandUtil
-	InstanceV2Command
+type CommandList struct {
+	ServerV2Command
 	opts     servers.ListOptsBuilder
 	allPages bool
 }
 
 var (
-	cList               = new(commandList)
-	_     lib.Commander = cList
-
+	cList     = new(CommandList)
 	flagsList = openstack.CommandFlags(cList)
+	list      = cli.Command{
+		Name:         "list",
+		Usage:        util.Usage(commandPrefix, "list", ""),
+		Description:  "Lists existing servers",
+		Action:       func(ctx *cli.Context) error { return openstack.Action(ctx, cList) },
+		Flags:        flagsList,
+		BashComplete: func(_ *cli.Context) { util.CompleteFlags(flagsList) },
+	}
 )
 
-var list = cli.Command{
-	Name:         "list",
-	Usage:        util.Usage(commandPrefix, "list", ""),
-	Description:  "Lists existing servers",
-	Action:       func(ctx *cli.Context) error { return openstack.Action(ctx, cList) },
-	Flags:        flagsList,
-	BashComplete: func(_ *cli.Context) { openstack.BashComplete(flagsList) },
-}
-
-func (c *commandList) Flags() []cli.Flag {
+func (c *CommandList) Flags() []cli.Flag {
 	return []cli.Flag{
 		cli.BoolFlag{
 			Name:  "all-pages",
@@ -73,11 +70,15 @@ func (c *commandList) Flags() []cli.Flag {
 	}
 }
 
-func (c *commandList) Fields() []string {
+func (c *CommandList) Fields() []string {
+	return []string{""}
+}
+
+func (c *CommandList) DefaultTableFields() []string {
 	return []string{"id", "name", "status", "accessIPv4", "image", "flavor"}
 }
 
-func (c *commandList) HandleFlags() error {
+func (c *CommandList) HandleFlags() error {
 	c.opts = &servers.ListOpts{
 		ChangesSince: c.Context.String("changes-since"),
 		Image:        c.Context.String("image-name"),
@@ -93,8 +94,7 @@ func (c *commandList) HandleFlags() error {
 	return nil
 }
 
-func (c *commandList) Execute(_, out chan interface{}) {
-	defer close(out)
+func (c *CommandList) Execute(_ interface{}, out chan interface{}) {
 	pager := servers.List(c.ServiceClient, c.opts)
 	switch c.allPages {
 	case true:
@@ -127,7 +127,7 @@ func (c *commandList) Execute(_, out chan interface{}) {
 	}
 }
 
-func (c *commandList) PreTable(rawServers interface{}) error {
+func (c *CommandList) PreTable(rawServers interface{}) error {
 	if rawServers, ok := rawServers.([]map[string]interface{}); ok {
 		for i, rawServer := range rawServers {
 			for k, v := range rawServer {
@@ -142,6 +142,10 @@ func (c *commandList) PreTable(rawServers interface{}) error {
 						rawServer["flavor"] = flavorMap["id"]
 						rawServers[i] = rawServer
 					}
+				}
+				switch reflect.ValueOf(v).Kind() {
+				case reflect.Map, reflect.Slice, reflect.Struct:
+					delete(rawServer, k)
 				}
 			}
 		}

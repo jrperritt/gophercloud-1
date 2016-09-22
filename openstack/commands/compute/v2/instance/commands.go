@@ -1,12 +1,19 @@
 package instance
 
-import "gopkg.in/urfave/cli.v1"
+import (
+	"github.com/gophercloud/cli/openstack/commands"
+	"gopkg.in/urfave/cli.v1"
+)
 
-var commandPrefix = "compute server"
+var (
+	commandPrefix = "compute server"
+)
 
-type InstanceV2Command struct{}
+type ServerV2Command struct {
+	commands.Command
+}
 
-func (_ InstanceV2Command) ServiceClientType() string {
+func (c *ServerV2Command) ServiceType() string {
 	return "compute"
 }
 

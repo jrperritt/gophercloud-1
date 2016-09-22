@@ -1,8 +1,8 @@
 package object
 
 import (
-	"github.com/gophercloud/cli/lib"
 	"github.com/gophercloud/cli/openstack"
+	"github.com/gophercloud/cli/openstack/commands"
 	"github.com/gophercloud/cli/util"
 	"github.com/gophercloud/gophercloud/openstack/objectstorage/v1/objects"
 	"github.com/gophercloud/gophercloud/pagination"
@@ -10,15 +10,15 @@ import (
 )
 
 type commandList struct {
-	openstack.CommandUtil
 	ObjectV1Command
+	commands.WaitCommand
 	opts     objects.ListOptsBuilder
 	allPages bool
 }
 
 var (
-	cList                   = new(commandList)
-	_     lib.PipeCommander = cList
+	cList                         = new(commandList)
+	_     openstack.PipeCommander = cList
 
 	flagsList = openstack.CommandFlags(cList)
 )
@@ -29,7 +29,7 @@ var list = cli.Command{
 	Description:  "Lists objects in a container",
 	Action:       func(ctx *cli.Context) error { return openstack.Action(ctx, cList) },
 	Flags:        flagsList,
-	BashComplete: func(_ *cli.Context) { openstack.BashComplete(flagsList) },
+	BashComplete: func(_ *cli.Context) { util.CompleteFlags(flagsList) },
 }
 
 func (c *commandList) Flags() []cli.Flag {
@@ -89,44 +89,41 @@ func (c *commandList) HandleSingle() (interface{}, error) {
 	return c.Context.String("container"), c.CheckFlagsSet([]string{"container"})
 }
 
-func (c *commandList) Execute(in, out chan interface{}) {
-	defer close(out)
+func (c *commandList) Execute(item interface{}, out chan interface{}) {
 	c.opts.(*objects.ListOpts).Full = true
-	for item := range in {
-		pager := objects.List(c.ServiceClient, item.(string), c.opts)
-		switch c.allPages {
-		case true:
-			page, err := pager.AllPages()
-			if err != nil {
-				out <- err
-				return
+	pager := objects.List(c.ServiceClient, item.(string), c.opts)
+	switch c.allPages {
+	case true:
+		page, err := pager.AllPages()
+		if err != nil {
+			out <- err
+			return
+		}
+		var tmp []map[string]interface{}
+		err = (page.(objects.ObjectPage)).ExtractInto(&tmp)
+		switch err {
+		case nil:
+			if len(tmp) > 0 {
+				out <- tmp
 			}
+		default:
+			out <- err
+		}
+	default:
+		err := pager.EachPage(func(page pagination.Page) (bool, error) {
 			var tmp []map[string]interface{}
-			err = (page.(objects.ObjectPage)).ExtractInto(&tmp)
+			err := (page.(objects.ObjectPage)).ExtractInto(&tmp)
 			switch err {
 			case nil:
 				if len(tmp) > 0 {
 					out <- tmp
 				}
-			default:
-				out <- err
+				return true, nil
 			}
-		default:
-			err := pager.EachPage(func(page pagination.Page) (bool, error) {
-				var tmp []map[string]interface{}
-				err := (page.(objects.ObjectPage)).ExtractInto(&tmp)
-				switch err {
-				case nil:
-					if len(tmp) > 0 {
-						out <- tmp
-					}
-					return true, nil
-				}
-				return false, err
-			})
-			if err != nil {
-				out <- err
-			}
+			return false, err
+		})
+		if err != nil {
+			out <- err
 		}
 	}
 }

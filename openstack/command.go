@@ -1,135 +1,230 @@
 package openstack
 
 import (
+	"bufio"
 	"fmt"
-	"strings"
+	"io"
+	"os"
 
-	"github.com/gophercloud/cli/lib"
+	"github.com/gophercloud/cli/util"
 	"github.com/gophercloud/gophercloud"
 	"gopkg.in/urfave/cli.v1"
 )
 
-// CommandUtil is the type that commands have.
-type CommandUtil struct {
-	// cli.Context is the context that the `cli` library uses. Used to
-	// access flags.
-	Context *cli.Context
-	// ServiceClient is the service client used to authenticate the user
-	// and carry out the requests while processing the command.
-	ServiceClient *gophercloud.ServiceClient
-	Wait          bool
-	Quiet         bool
+type Commander interface {
+	HandleFlags() error
+	Execute(item interface{}, out chan interface{})
+	Flags() []cli.Flag
+	SetServiceClient(*gophercloud.ServiceClient) error
+	SetContext(*cli.Context) error
+	ServiceType() string
 }
 
-func BashComplete(flags []cli.Flag) {
-	//CompleteFlags(append(flags, GlobalFlags()...))
-	CompleteFlags(flags)
+type PipeCommander interface {
+	Commander
+	Waiter
+	HandleSingle() (interface{}, error)
+	HandlePipe(string) (interface{}, error)
+	PipeFieldOptions() []string
 }
 
-func (c *CommandUtil) SetServiceClient(sc *gophercloud.ServiceClient) {
-	c.ServiceClient = sc
+type StreamPipeCommander interface {
+	PipeCommander
+	HandleStreamPipe(io.Reader) (interface{}, error)
+	StreamFieldOptions() []string
 }
 
-func (c *CommandUtil) Ctx() lib.Contexter {
-	return c.Context
+type Waiter interface {
+	WaitFor(item interface{})
+	ShouldWait() bool
+	WaitFlags() []cli.Flag
 }
 
-func (c *CommandUtil) SetCtx(ctx lib.Contexter) {
-	c.Context = ctx.(*cli.Context)
+type Fieldser interface {
+	Fields() []string
 }
 
-// IDOrName is a function for retrieving a resource's unique identifier based on
-// whether an `id` or a `name` flag was provided
-func (c *CommandUtil) IDOrName(idFromNameFunc func(*gophercloud.ServiceClient, string) (string, error)) (string, error) {
-	switch c.Context.IsSet("id") {
+func runPipeCommand() {
+	switch GC.Command.(type) {
+	case StreamPipeCommander:
+		handleStreamPipeCommand()
+	case PipeCommander:
+		handlePipeCommands()
+	default:
+	}
+}
+
+func handlePipeCommand(text string) {
+	defer GC.wgExecute.Done()
+	GC.GlobalOptions.logger.Info("Running HandlePipe...")
+	item, err := GC.Command.(PipeCommander).HandlePipe(text)
+	switch err {
+	case nil:
+		GC.GlobalOptions.logger.Info("Running Execute...")
+		GC.Command.Execute(item, GC.ExecuteResults)
+	default:
+		GC.ExecuteResults <- err
+	}
+}
+
+func handlePipeCommands() {
+	switch util.Contains(GC.Command.(PipeCommander).PipeFieldOptions(), GC.CommandContext.String("stdin")) {
 	case true:
-		switch c.Context.IsSet("name") {
-		case true:
-			return "", fmt.Errorf("Only one of either --id or --name may be provided.")
-		case false:
-			return c.Context.String("id"), nil
+		scanner := bufio.NewScanner(os.Stdin)
+		for scanner.Scan() {
+			GC.wgExecute.Add(1)
+			text := scanner.Text()
+			go handlePipeCommand(text)
 		}
-	case false:
-		switch c.Context.IsSet("name") {
-		case true:
-			name := c.Context.String("name")
-			id, err := idFromNameFunc(c.ServiceClient, name)
-			return id, err
+		if scanner.Err() != nil {
+			GC.ExecuteResults <- scanner.Err()
 		}
+	default:
+		GC.ExecuteResults <- fmt.Errorf("Unknown STDIN field: %s\n", GC.CommandContext.String("stdin"))
 	}
-	return "", lib.ErrMissingFlag{Msg: "One of either --id or --name must be provided."}
 }
 
-// CheckFlagsSet checks that the given flag names are set for the command.
-func (c *CommandUtil) CheckFlagsSet(flagNames []string) error {
-	for _, flagName := range flagNames {
-		if !c.Context.IsSet(flagName) {
-			return lib.ErrMissingFlag{Msg: fmt.Sprintf("--%s is required.", flagName)}
+func handleStreamPipeCommand() {
+	switch util.Contains(GC.Command.(StreamPipeCommander).StreamFieldOptions(), GC.CommandContext.String("stdin")) {
+	case true:
+		GC.GlobalOptions.logger.Info("Running HandleStreamPipe...")
+		stream, err := GC.Command.(StreamPipeCommander).HandleStreamPipe(os.Stdin)
+		switch err {
+		case nil:
+			GC.wgExecute.Add(1)
+			go func() {
+				defer GC.wgExecute.Done()
+				GC.Command.Execute(stream, GC.ExecuteResults)
+			}()
+		default:
+			GC.ExecuteResults <- err
 		}
+	default:
+		handlePipeCommands()
 	}
-	return nil
 }
 
-// CheckKVFlag is a function used for verifying the format of a key-value flag.
-func (c *CommandUtil) ValidateKVFlag(flagName string) (map[string]string, error) {
-	kv := make(map[string]string)
-	kvStrings := strings.Split(c.Context.String(flagName), ",")
-	for _, kvString := range kvStrings {
-		temp := strings.Split(kvString, "=")
-		if len(temp) != 2 {
-			return nil, lib.ErrFlagFormatting{Msg: fmt.Sprintf("Expected key1=value1,key2=value2 format but got %s for --%s.\n", kvString, flagName)}
+func runSingleCommand() {
+	switch GC.Command.(type) {
+	case PipeCommander, StreamPipeCommander:
+		GC.GlobalOptions.logger.Info("Running HandleSingle...")
+		item, err := GC.Command.(PipeCommander).HandleSingle()
+		switch err {
+		case nil:
+			GC.GlobalOptions.logger.Info("Running Execute...")
+			GC.Command.Execute(item, GC.ExecuteResults)
+		default:
+			GC.ExecuteResults <- err
 		}
-		kv[temp[0]] = temp[1]
+	default:
+		GC.Command.Execute(nil, GC.ExecuteResults)
 	}
-	return kv, nil
 }
 
-// CheckStructFlag is a function used for verifying the format of a struct flag.
-func (c *CommandUtil) ValidateStructFlag(flagValues []string) ([]map[string]interface{}, error) {
-	valSliceMap := make([]map[string]interface{}, len(flagValues))
-	for i, flagValue := range flagValues {
-		kvStrings := strings.Split(flagValue, ",")
-		m := make(map[string]interface{})
-		for _, kvString := range kvStrings {
-			temp := strings.Split(kvString, "=")
-			if len(temp) != 2 {
-				return nil, lib.ErrFlagFormatting{Msg: fmt.Sprintf("Expected key1=value1,key2=value2 format but got %s.\n", kvString)}
+func handleProgress() {
+	p := GC.Command.(Progresser)
+	go p.InitProgress()
+	for item := range GC.ExecuteResults {
+		item := item
+		GC.wgProgress.Add(1)
+		go func() {
+			defer GC.wgProgress.Done()
+			switch e := item.(type) {
+			case error:
+				GC.DoneChan <- e
+			default:
+				GC.GlobalOptions.logger.Infof("running WaitFor for item: %v", item)
+				go p.WaitFor(item)
+				id := p.BarID(item)
+				p.ShowBar(id)
 			}
-			m[temp[0]] = temp[1]
-		}
-		valSliceMap[i] = m
+			GC.GlobalOptions.logger.Info("done waiting on item: %v", item)
+		}()
 	}
-	return valSliceMap, nil
-}
 
-func (c *CommandUtil) ShouldWait() bool {
-	return c.Wait
-}
+	go func() {
+		GC.wgProgress.Wait()
+		GC.GlobalOptions.logger.Infoln("closing GC.DoneChan...")
+		close(GC.ProgressDoneChan)
+	}()
 
-func (c *CommandUtil) WaitFlags() []cli.Flag {
-	return []cli.Flag{
-		cli.BoolFlag{
-			Name:  "wait",
-			Usage: "[optional] If provided, wait to return until the operation is complete.",
-		},
+	progressResults := make([]interface{}, 0)
+
+	GC.Logger.Info("Waiting for items on GC.ProgressDoneChan...")
+	for r := range GC.ProgressDoneChan {
+		progressResults = append(progressResults, r)
 	}
-}
 
-func (c *CommandUtil) ShouldProgress() bool {
-	return !c.Quiet
-}
-
-func (c *CommandUtil) ProgressFlags() []cli.Flag {
-	return []cli.Flag{
-		cli.BoolFlag{
-			Name:  "quiet",
-			Usage: "[optional] If provided, only final results are printed.",
-		},
+	for _, r := range progressResults {
+		GC.ResultsRunCommand <- r
 	}
 }
 
-func Action(ctx lib.Contexter, c lib.Commander) error {
-	c.SetCtx(ctx)
-	lib.Run(ctx, c)
-	return nil
+func handleWait() {
+	for item := range GC.ExecuteResults {
+		item := item
+		GC.wgProgress.Add(1)
+		go func() {
+			defer GC.wgProgress.Done()
+			switch e := item.(type) {
+			case error:
+				GC.DoneChan <- e
+			default:
+				GC.GlobalOptions.logger.Infof("running WaitFor for item: %v", item)
+				GC.Command.(Waiter).WaitFor(item)
+			}
+		}()
+	}
+
+	go func() {
+		GC.wgProgress.Wait()
+		GC.GlobalOptions.logger.Infoln("closing GC.DoneChan...")
+		close(GC.DoneChan)
+	}()
+
+	waitResults := make([]interface{}, 0)
+
+	GC.Logger.Info("Waiting for items on GC.DoneChan...")
+	for r := range GC.DoneChan {
+		waitResults = append(waitResults, r)
+	}
+
+	for _, r := range waitResults {
+		GC.ResultsRunCommand <- r
+	}
+}
+
+func handleQuietNoWait() {
+	for r := range GC.ExecuteResults {
+		GC.ResultsRunCommand <- r
+	}
+}
+
+func RunCommand() {
+	defer close(GC.ResultsRunCommand)
+	switch GC.CommandContext.IsSet("stdin") {
+	case true:
+		GC.GlobalOptions.logger.Info("Running runPipeCommand...")
+		runPipeCommand()
+	default:
+		GC.GlobalOptions.logger.Info("Running runSingleCommand...")
+		GC.wgExecute.Add(1)
+		go func() {
+			defer GC.wgExecute.Done()
+			runSingleCommand()
+		}()
+	}
+
+	go func() {
+		GC.wgExecute.Wait()
+		close(GC.ExecuteResults)
+	}()
+
+	if progresser, ok := GC.Command.(Progresser); ok && progresser.ShouldProgress() {
+		handleProgress()
+	} else if waiter, ok := GC.Command.(Waiter); ok && waiter.ShouldWait() {
+		handleWait()
+	} else {
+		handleQuietNoWait()
+	}
 }

@@ -1,12 +1,17 @@
 package flavor
 
-import "gopkg.in/urfave/cli.v1"
+import (
+	"github.com/gophercloud/cli/openstack/commands"
+	"gopkg.in/urfave/cli.v1"
+)
 
 var commandPrefix = "compute flavor"
 
-type FlavorV2Command struct{}
+type FlavorV2Command struct {
+	commands.Command
+}
 
-func (_ FlavorV2Command) ServiceClientType() string {
+func (_ FlavorV2Command) ServiceType() string {
 	return "compute"
 }
 

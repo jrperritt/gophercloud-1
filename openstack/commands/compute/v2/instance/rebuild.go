@@ -4,27 +4,24 @@ import (
 	"fmt"
 	"io/ioutil"
 	"path/filepath"
-	"time"
 
-	"github.com/gophercloud/cli/lib"
 	"github.com/gophercloud/cli/openstack"
+	"github.com/gophercloud/cli/openstack/commands"
 	"github.com/gophercloud/cli/util"
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/servers"
 	"gopkg.in/urfave/cli.v1"
 )
 
-type commandRebuild struct {
-	openstack.CommandUtil
-	InstanceV2Command
+type CommandRebuild struct {
+	ServerV2Command
+	commands.ProgressCommand
 	opts servers.RebuildOptsBuilder
-	*openstack.Progress
 }
 
 var (
-	cRebuild                   = new(commandRebuild)
-	_        lib.PipeCommander = cRebuild
-	_        lib.Progresser    = cRebuild
-	_        lib.Waiter        = cRebuild
+	cRebuild                         = new(CommandRebuild)
+	_        openstack.PipeCommander = cRebuild
+	_        openstack.Progresser    = cRebuild
 
 	flagsRebuild = openstack.CommandFlags(cRebuild)
 )
@@ -35,10 +32,10 @@ var rebuild = cli.Command{
 	Description:  "Rebuilds a server",
 	Action:       func(ctx *cli.Context) error { return openstack.Action(ctx, cRebuild) },
 	Flags:        flagsRebuild,
-	BashComplete: func(_ *cli.Context) { openstack.BashComplete(flagsRebuild) },
+	BashComplete: func(_ *cli.Context) { util.CompleteFlags(flagsRebuild) },
 }
 
-func (c *commandRebuild) Flags() []cli.Flag {
+func (c *CommandRebuild) Flags() []cli.Flag {
 	return []cli.Flag{
 		cli.StringFlag{
 			Name:  "id",
@@ -93,11 +90,11 @@ func (c *commandRebuild) Flags() []cli.Flag {
 	}
 }
 
-func (c *commandRebuild) Fields() []string {
+func (c *CommandRebuild) Fields() []string {
 	return []string{""}
 }
 
-func (c *commandRebuild) HandleFlags() error {
+func (c *CommandRebuild) HandleFlags() error {
 	c.Wait = c.Context.IsSet("wait")
 	c.Quiet = c.Context.IsSet("quiet")
 
@@ -175,61 +172,37 @@ func (c *commandRebuild) HandleFlags() error {
 	return nil
 }
 
-func (c *commandRebuild) HandlePipe(item string) (interface{}, error) {
+func (c *CommandRebuild) HandlePipe(item string) (interface{}, error) {
 	return item, nil
 }
 
-func (c *commandRebuild) ExecuteAndWait(in, out chan interface{}) {
-	openstack.ExecuteAndWait(c, in, out)
-}
-
-func (c *commandRebuild) HandleSingle() (interface{}, error) {
+func (c *CommandRebuild) HandleSingle() (interface{}, error) {
 	return c.IDOrName(servers.IDFromName)
 }
 
-func (c *commandRebuild) Execute(in, out chan interface{}) {
-	defer close(out)
-	for item := range in {
-		id := item.(string)
-		m := make(map[string]map[string]interface{})
-		err := servers.Rebuild(c.ServiceClient, id, c.opts).ExtractInto(&m)
-		if err != nil {
-			out <- err
-			return
-		}
-		switch c.Wait {
-		case true:
-			out <- id
-		default:
-			out <- fmt.Sprintf("Deleting server [%s]", id)
-		}
+func (c *CommandRebuild) Execute(item interface{}, out chan interface{}) {
+	id := item.(string)
+	m := make(map[string]map[string]interface{})
+	err := servers.Rebuild(c.ServiceClient, id, c.opts).ExtractInto(&m)
+	if err != nil {
+		out <- err
+		return
+	}
+	switch c.Wait || !c.Quiet {
+	case true:
+		out <- m
+	default:
+		out <- fmt.Sprintf("Rebuilding server [%s]", id)
 	}
 }
 
-func (c *commandRebuild) PipeFieldOptions() []string {
+func (c *CommandRebuild) PipeFieldOptions() []string {
 	return []string{"id"}
 }
 
-func (c *commandRebuild) InitProgress() {
-	c.Progress = openstack.NewProgress(2)
-	c.Progress.RunningMsg = "Rebuilding"
-	c.Progress.DoneMsg = "Rebuilt"
-	c.ProgressChan = make(chan *openstack.ProgressStatus)
-	go c.Progress.Listen(c.ProgressChan)
-	if !c.Quiet {
-		c.Progress.Start()
-	}
-}
-
-func (c *commandRebuild) ShowProgress(raw interface{}, out chan interface{}) {
+func (c *CommandRebuild) WaitFor(raw interface{}) {
 	orig := raw.(map[string]interface{})
 	id := orig["id"].(string)
-
-	c.ProgressChan <- &openstack.ProgressStatus{
-		Name:      id,
-		StartTime: time.Now(),
-		Type:      "start",
-	}
 
 	err := util.WaitFor(900, func() (bool, error) {
 		var m map[string]map[string]interface{}
@@ -240,27 +213,52 @@ func (c *commandRebuild) ShowProgress(raw interface{}, out chan interface{}) {
 
 		switch m["server"]["status"].(string) {
 		case "ACTIVE":
-			c.ProgressChan <- &openstack.ProgressStatus{
-				Name: id,
-				Type: "complete",
-			}
-			out <- m
+			m["server"]["adminPass"] = orig["adminPass"].(string)
+			openstack.GC.DoneChan <- m["server"]
 			return true, nil
 		default:
-			c.ProgressChan <- &openstack.ProgressStatus{
-				Name: id,
-				Type: "update",
+			if !c.Quiet {
+				openstack.GC.UpdateChan <- m["server"]["progress"].(float64)
 			}
 			return false, nil
 		}
 	})
 
 	if err != nil {
-		c.ProgressChan <- &openstack.ProgressStatus{
-			Name: id,
-			Err:  err,
-			Type: "error",
+		openstack.GC.DoneChan <- err
+	}
+}
+
+func (c *CommandRebuild) InitProgress() {
+	c.ProgressInfo = openstack.NewProgressInfo(2)
+	c.ProgressInfo.RunningMsg = "Rebuilding"
+	c.ProgressInfo.DoneMsg = "Rebuilt"
+	c.ProgressCommand.InitProgress()
+}
+
+func (c *CommandRebuild) BarID(raw interface{}) string {
+	orig := raw.(map[string]interface{})
+	return orig["id"].(string)
+}
+
+func (c *CommandRebuild) ShowBar(id string) {
+	s := new(openstack.ProgressStatusStart)
+	s.Name = id
+	c.StartChan <- s
+
+	for {
+		select {
+		case r := <-openstack.GC.DoneChan:
+			s := new(openstack.ProgressStatusComplete)
+			s.Name = id
+			c.ProgressInfo.CompleteChan <- s
+			openstack.GC.ProgressDoneChan <- r
+			return
+		case r := <-openstack.GC.UpdateChan:
+			s := new(openstack.ProgressStatusUpdate)
+			s.Name = id
+			s.Increment = int(r.(float64))
+			c.ProgressInfo.UpdateChan <- s
 		}
-		out <- err
 	}
 }

@@ -1,7 +1,6 @@
 package container
 
 import (
-	"github.com/gophercloud/cli/lib"
 	"github.com/gophercloud/cli/openstack"
 	"github.com/gophercloud/cli/util"
 	"github.com/gophercloud/gophercloud/openstack/objectstorage/v1/containers"
@@ -9,16 +8,15 @@ import (
 	"gopkg.in/urfave/cli.v1"
 )
 
-type commandList struct {
-	openstack.CommandUtil
+type CommandList struct {
 	ContainerV1Command
 	opts     containers.ListOptsBuilder
 	allPages bool
 }
 
 var (
-	cList               = new(commandList)
-	_     lib.Commander = cList
+	cList                     = new(CommandList)
+	_     openstack.Commander = cList
 
 	flagsList = openstack.CommandFlags(cList)
 )
@@ -29,10 +27,10 @@ var list = cli.Command{
 	Description:  "Lists existing containers",
 	Action:       func(ctx *cli.Context) error { return openstack.Action(ctx, cList) },
 	Flags:        flagsList,
-	BashComplete: func(_ *cli.Context) { openstack.BashComplete(flagsList) },
+	BashComplete: func(_ *cli.Context) { util.CompleteFlags(flagsList) },
 }
 
-func (c *commandList) Flags() []cli.Flag {
+func (c *CommandList) Flags() []cli.Flag {
 	return []cli.Flag{
 		cli.BoolFlag{
 			Name:  "all-pages",
@@ -57,11 +55,11 @@ func (c *commandList) Flags() []cli.Flag {
 	}
 }
 
-func (c *commandList) Fields() []string {
+func (c *CommandList) Fields() []string {
 	return []string{"name", "count", "bytes"}
 }
 
-func (c *commandList) HandleFlags() error {
+func (c *CommandList) HandleFlags() error {
 	c.opts = &containers.ListOpts{
 		Prefix:    c.Context.String("prefix"),
 		EndMarker: c.Context.String("end-marker"),
@@ -72,8 +70,7 @@ func (c *commandList) HandleFlags() error {
 	return nil
 }
 
-func (c *commandList) Execute(_, out chan interface{}) {
-	defer close(out)
+func (c *CommandList) Execute(_ interface{}, out chan interface{}) {
 	c.opts.(*containers.ListOpts).Full = true
 	pager := containers.List(c.ServiceClient, c.opts)
 	switch c.allPages {

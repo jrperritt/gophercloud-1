@@ -3,22 +3,21 @@ package object
 import (
 	"fmt"
 
-	"github.com/gophercloud/cli/lib"
 	"github.com/gophercloud/cli/openstack"
+	"github.com/gophercloud/cli/openstack/commands"
 	"github.com/gophercloud/cli/util"
 	"github.com/gophercloud/gophercloud/openstack/objectstorage/v1/objects"
 	"gopkg.in/urfave/cli.v1"
 )
 
 type commandDelete struct {
-	openstack.CommandUtil
 	ObjectV1Command
-	container string
+	commands.WaitCommand
 }
 
 var (
-	cDelete                   = new(commandDelete)
-	_       lib.PipeCommander = cDelete
+	cDelete                         = new(commandDelete)
+	_       openstack.PipeCommander = cDelete
 
 	flagsDelete = openstack.CommandFlags(cDelete)
 )
@@ -29,7 +28,7 @@ var remove = cli.Command{
 	Description:  "Deletes an object",
 	Action:       func(ctx *cli.Context) error { return openstack.Action(ctx, cDelete) },
 	Flags:        flagsDelete,
-	BashComplete: func(_ *cli.Context) { openstack.BashComplete(flagsDelete) },
+	BashComplete: func(_ *cli.Context) { util.CompleteFlags(flagsDelete) },
 }
 
 func (c *commandDelete) Flags() []cli.Flag {
@@ -70,17 +69,14 @@ func (c *commandDelete) HandleSingle() (interface{}, error) {
 	return c.Context.String("name"), c.CheckFlagsSet([]string{"name"})
 }
 
-func (c *commandDelete) Execute(in, out chan interface{}) {
-	defer close(out)
-	for item := range in {
-		var m map[string]interface{}
-		err := objects.Delete(c.ServiceClient, c.container, item.(string), nil).ExtractInto(&m)
-		switch err {
-		case nil:
-			out <- fmt.Sprintf("Successfully deleted object [%s] from container [%s]", item.(string), c.container)
-		default:
-			out <- err
-		}
+func (c *commandDelete) Execute(item interface{}, out chan interface{}) {
+	var m map[string]interface{}
+	err := objects.Delete(c.ServiceClient, c.container, item.(string), nil).ExtractInto(&m)
+	switch err {
+	case nil:
+		out <- fmt.Sprintf("Successfully deleted object [%s] from container [%s]", item.(string), c.container)
+	default:
+		out <- err
 	}
 }
 

@@ -6,30 +6,24 @@ import (
 	"io"
 	"os"
 	"strings"
-	"time"
 
-	"github.com/gophercloud/cli/lib"
 	"github.com/gophercloud/cli/openstack"
+	"github.com/gophercloud/cli/openstack/commands"
 	"github.com/gophercloud/cli/util"
-	"github.com/gophercloud/gophercloud/openstack/compute/v2/servers"
 	"github.com/gophercloud/gophercloud/openstack/objectstorage/v1/objects"
 	"gopkg.in/urfave/cli.v1"
 )
 
 type commandDownload struct {
-	openstack.CommandUtil
 	ObjectV1Command
-	*openstack.Progress
-	container string
-	name      string
-	file      string
+	commands.ProgressCommand
+	file string
 }
 
 var (
-	cDownload                    = new(commandDownload)
-	_         lib.Waiter         = cDownload
-	_         lib.Progresser     = cDownload
-	_         lib.CustomWriterer = cDownload
+	cDownload = new(commandDownload)
+	//	_         openstack.Progresser     = cDownload
+	_ openstack.CustomWriterer = cDownload
 
 	flagsDownload = openstack.CommandFlags(cDownload)
 )
@@ -40,7 +34,7 @@ var download = cli.Command{
 	Description:  "Downloads an object",
 	Action:       func(ctx *cli.Context) error { return openstack.Action(ctx, cDownload) },
 	Flags:        flagsDownload,
-	BashComplete: func(_ *cli.Context) { openstack.BashComplete(flagsDownload) },
+	BashComplete: func(_ *cli.Context) { util.CompleteFlags(flagsDownload) },
 }
 
 func (c *commandDownload) Flags() []cli.Flag {
@@ -80,8 +74,7 @@ func (c *commandDownload) HandleFlags() error {
 	return nil
 }
 
-func (c *commandDownload) Execute(_, out chan interface{}) {
-	defer close(out)
+func (c *commandDownload) Execute(_ interface{}, out chan interface{}) {
 	res := objects.Download(c.ServiceClient, c.container, c.name, nil)
 	switch res.Err {
 	case nil:
@@ -91,63 +84,40 @@ func (c *commandDownload) Execute(_, out chan interface{}) {
 	}
 }
 
-func (c *commandDownload) ExecuteAndWait(in, out chan interface{}) {
-	openstack.ExecuteAndWait(c, in, out)
-}
-
 func (c *commandDownload) InitProgress() {
-	c.Progress = openstack.NewProgress(1)
-	c.ProgressChan = make(chan *openstack.ProgressStatus)
-	go c.Progress.Listen(c.ProgressChan)
-	if !c.Quiet {
-		c.Progress.Start()
-	}
+	c.ProgressInfo = openstack.NewProgressInfo(1)
+	c.ProgressCommand.InitProgress()
 }
 
-func (c *commandDownload) ShowProgress(raw interface{}, out chan interface{}) {
+func (c *commandDownload) ShowProgress(raw interface{}) {
 	orig := raw.(map[string]interface{})
 	id := orig["id"].(string)
 
-	c.ProgressChan <- &openstack.ProgressStatus{
-		Name:      id,
-		TotalSize: 100,
-		StartTime: time.Now(),
-		Type:      "start",
-	}
+	s := new(openstack.ProgressStatusStart)
+	s.Name = id
+	c.StartChan <- s
 
-	err := util.WaitFor(900, func() (bool, error) {
-		var m map[string]map[string]interface{}
-		err := servers.Get(c.ServiceClient, id).ExtractInto(&m)
-		if err != nil {
-			return false, err
+	for {
+		select {
+		case r := <-c.WaitCommand.ErrorChan:
+			s := new(openstack.ProgressStatusError)
+			s.Name = id
+			s.Err = r
+			c.ProgressInfo.ErrorChan <- s
+			openstack.GC.ProgressDoneChan <- r
+			return
+		case r := <-c.WaitCommand.CompleteChan:
+			s := new(openstack.ProgressStatusComplete)
+			s.Name = id
+			c.ProgressInfo.CompleteChan <- s
+			openstack.GC.ProgressDoneChan <- r
+			return
+		case r := <-c.WaitCommand.UpdateChan:
+			s := new(openstack.ProgressStatusUpdate)
+			s.Name = id
+			s.Msg = r.(string)
+			c.ProgressInfo.UpdateChan <- s
 		}
-
-		switch m["server"]["status"].(string) {
-		case "ACTIVE":
-			c.ProgressChan <- &openstack.ProgressStatus{
-				Name: id,
-				Type: "complete",
-			}
-			m["server"]["adminPass"] = orig["adminPass"].(string)
-			out <- m["server"]
-			return true, nil
-		default:
-			c.ProgressChan <- &openstack.ProgressStatus{
-				Name:      id,
-				Increment: int(m["server"]["progress"].(float64)),
-				Type:      "update",
-			}
-			return false, nil
-		}
-	})
-
-	if err != nil {
-		c.ProgressChan <- &openstack.ProgressStatus{
-			Name: id,
-			Err:  err,
-			Type: "error",
-		}
-		out <- err
 	}
 }
 

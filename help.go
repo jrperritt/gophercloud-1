@@ -7,7 +7,6 @@ import (
 	"strings"
 	"text/tabwriter"
 
-	"github.com/gophercloud/cli/lib"
 	"gopkg.in/urfave/cli.v1"
 )
 
@@ -77,9 +76,11 @@ func flag(cliflag cli.Flag) string {
 	return flagString
 }
 
+/*
 func commandInfo(c cli.Command) string {
 	if c, ok := interface{}(c).(lib.CommandInfoer); ok {
 		return c.CommandInfo()
 	}
 	return ""
 }
+*/

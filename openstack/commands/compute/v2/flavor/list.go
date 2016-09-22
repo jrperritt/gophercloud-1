@@ -1,7 +1,6 @@
 package flavor
 
 import (
-	"github.com/gophercloud/cli/lib"
 	"github.com/gophercloud/cli/openstack"
 	"github.com/gophercloud/cli/util"
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/flavors"
@@ -10,15 +9,14 @@ import (
 )
 
 type commandList struct {
-	openstack.CommandUtil
 	FlavorV2Command
 	opts     flavors.ListOptsBuilder
 	allPages bool
 }
 
 var (
-	cList               = new(commandList)
-	_     lib.Commander = cList
+	cList                     = new(commandList)
+	_     openstack.Commander = cList
 
 	flagsList = openstack.CommandFlags(cList)
 )
@@ -29,7 +27,7 @@ var list = cli.Command{
 	Description:  "Lists existing flavors",
 	Action:       func(ctx *cli.Context) error { return openstack.Action(ctx, cList) },
 	Flags:        flagsList,
-	BashComplete: func(_ *cli.Context) { openstack.BashComplete(flagsList) },
+	BashComplete: func(_ *cli.Context) { util.CompleteFlags(flagsList) },
 }
 
 func (c *commandList) Flags() []cli.Flag {
@@ -71,8 +69,7 @@ func (c *commandList) HandleFlags() error {
 	return nil
 }
 
-func (c *commandList) Execute(_, out chan interface{}) {
-	defer close(out)
+func (c *commandList) Execute(_ interface{}, out chan interface{}) {
 	pager := flavors.ListDetail(c.ServiceClient, c.opts)
 	switch c.allPages {
 	case true:

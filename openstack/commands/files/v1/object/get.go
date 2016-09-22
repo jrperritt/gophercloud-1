@@ -1,22 +1,21 @@
 package object
 
 import (
-	"github.com/gophercloud/cli/lib"
 	"github.com/gophercloud/cli/openstack"
+	"github.com/gophercloud/cli/openstack/commands"
 	"github.com/gophercloud/cli/util"
 	"github.com/gophercloud/gophercloud/openstack/objectstorage/v1/objects"
 	"gopkg.in/urfave/cli.v1"
 )
 
 type commandGet struct {
-	openstack.CommandUtil
 	ObjectV1Command
-	container string
+	commands.WaitCommand
 }
 
 var (
-	cGet                   = new(commandGet)
-	_    lib.PipeCommander = cGet
+	cGet                         = new(commandGet)
+	_    openstack.PipeCommander = cGet
 
 	flagsGet = openstack.CommandFlags(cGet)
 )
@@ -27,7 +26,7 @@ var get = cli.Command{
 	Description:  "Gets an object's metadata",
 	Action:       func(ctx *cli.Context) error { return openstack.Action(ctx, cGet) },
 	Flags:        flagsGet,
-	BashComplete: func(_ *cli.Context) { openstack.BashComplete(flagsGet) },
+	BashComplete: func(_ *cli.Context) { util.CompleteFlags(flagsGet) },
 }
 
 func (c *commandGet) Flags() []cli.Flag {
@@ -68,18 +67,15 @@ func (c *commandGet) HandleSingle() (interface{}, error) {
 	return c.Context.String("name"), c.CheckFlagsSet([]string{"name"})
 }
 
-func (c *commandGet) Execute(in, out chan interface{}) {
-	defer close(out)
-	for item := range in {
-		name := item.(string)
-		var m map[string]interface{}
-		err := objects.Get(c.ServiceClient, c.container, name, nil).ExtractInto(&m)
-		switch err {
-		case nil:
-			out <- m
-		default:
-			out <- err
-		}
+func (c *commandGet) Execute(item interface{}, out chan interface{}) {
+	name := item.(string)
+	var m map[string]interface{}
+	err := objects.Get(c.ServiceClient, c.container, name, nil).ExtractInto(&m)
+	switch err {
+	case nil:
+		out <- m
+	default:
+		out <- err
 	}
 }
 

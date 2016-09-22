@@ -1,139 +1,76 @@
 package openstack
 
 import (
-	"bufio"
-	"fmt"
-	"os"
+	"sync"
 
-	"github.com/gophercloud/cli/lib"
-	"github.com/gophercloud/cli/util"
+	"github.com/Sirupsen/logrus"
 	"github.com/gophercloud/gophercloud"
+
 	"gopkg.in/urfave/cli.v1"
 )
 
-// Context satisfies the Provider interface
-type Context struct {
-	outChannel chan interface{}
-	commander  lib.Commander
+type globalContext struct {
+	CommandContext                         *cli.Context
+	ServiceClient                          *gophercloud.ServiceClient
+	GlobalOptions                          *GlobalOptions
+	ExecuteResults, ResultsRunCommand      chan (interface{})
+	Command                                Commander
+	Logger                                 *logrus.Logger
+	DoneChan, ProgressDoneChan, UpdateChan chan (interface{})
+	doneChan                               chan (bool)
+	wgExecute, wgProgress                  *sync.WaitGroup
 }
 
-// NewGlobalOptionser satisfies the Provider.NewGlobalOptionser method
-func (c *Context) NewGlobalOptionser(context lib.Contexter) lib.GlobalOptionser {
-	g := new(GlobalOptions)
-	g.cliContext = context.(*cli.Context)
-	return g
-}
+var GC *globalContext
 
-// NewAuthenticater satisfies the Provider.NewAuthenticater method
-func (c *Context) NewAuthenticater(globalOptionser lib.GlobalOptionser, serviceType string) lib.Authenticater {
-	globalOptions := globalOptionser.(*GlobalOptions)
-
-	return &auth{
-		AuthOptions: &gophercloud.AuthOptions{
-			Username:         globalOptions.username,
-			UserID:           globalOptions.userID,
-			Password:         globalOptions.password,
-			TenantID:         globalOptions.authTenantID,
-			TokenID:          globalOptions.authToken,
-			IdentityEndpoint: globalOptions.authURL,
-		},
-		logger:      globalOptions.logger,
-		noCache:     globalOptions.noCache,
-		serviceType: serviceType,
-		region:      globalOptions.region,
-		profile:     globalOptions.profile,
+func Action(ctx *cli.Context, commander Commander) error {
+	GC = &globalContext{
+		ExecuteResults:    make(chan interface{}),
+		ResultsRunCommand: make(chan interface{}),
+		wgExecute:         new(sync.WaitGroup),
+		wgProgress:        new(sync.WaitGroup),
+		Command:           commander,
+		CommandContext:    ctx,
+		DoneChan:          make(chan interface{}),
+		ProgressDoneChan:  make(chan interface{}),
+		UpdateChan:        make(chan interface{}),
 	}
-}
 
-func (c *Context) InputChannel() chan interface{} {
-	return make(chan interface{})
-}
-
-func (c *Context) FillInputChannel(commander lib.Commander, in chan interface{}) {
-	defer close(in)
-	ctx := commander.Ctx().(*cli.Context)
-	switch t := commander.(type) {
-	case lib.PipeCommander:
-		switch ctx.IsSet("stdin") {
-		case true:
-			stdin := ctx.String("stdin")
-			switch util.Contains(t.PipeFieldOptions(), stdin) {
-			case true:
-				scanner := bufio.NewScanner(os.Stdin)
-				for scanner.Scan() {
-					item, err := t.HandlePipe(scanner.Text())
-					switch err {
-					case nil:
-						in <- item
-					default:
-						c.outChannel <- err
-					}
-				}
-				if scanner.Err() != nil {
-					c.outChannel <- scanner.Err()
-				}
-			default:
-				c.outChannel <- fmt.Errorf("Unknown STDIN field: %s\n", stdin)
-			}
-		default:
-			item, err := t.HandleSingle()
-			switch err {
-			case nil:
-				in <- item
-			default:
-				c.outChannel <- err
-			}
-		}
-	case lib.StreamPipeCommander:
-		switch ctx.IsSet("stdin") {
-		case true:
-			stdin := ctx.String("stdin")
-			switch util.Contains(t.StreamFieldOptions(), stdin) {
-			case true:
-				stream, err := t.HandleStreamPipe(os.Stdin)
-				switch err {
-				case nil:
-					in <- stream
-				default:
-					c.outChannel <- err
-				}
-			default:
-				c.outChannel <- fmt.Errorf("Unknown STDIN field: %s\n", stdin)
-			}
-		default:
-			item, err := t.HandleSingle()
-			switch err {
-			case nil:
-				in <- item
-			default:
-				c.outChannel <- err
-			}
-		}
-	default:
-		in <- 0
+	err := SetGlobalOptions()
+	if err != nil {
+		return ErrExit1{err}
 	}
-}
 
-func (c *Context) ResultsChannel() chan interface{} {
-	c.outChannel = make(chan interface{})
-	return c.outChannel
-}
+	GC.Logger = GC.GlobalOptions.logger
 
-// NewResultOutputter satisfies the Provider.NewResultOutputter method
-func (c *Context) NewResultOutputter(globalOptionser lib.GlobalOptionser, commander lib.Commander) lib.Outputter {
-	globalOptions := globalOptionser.(*GlobalOptions)
-
-	return &output{
-		fields:    globalOptions.fields,
-		noHeader:  globalOptions.noHeader,
-		format:    globalOptions.outputFormat,
-		logger:    globalOptions.logger,
-		commander: commander,
+	err = Authenticate()
+	if err != nil {
+		return ErrExit1{err}
 	}
-}
 
-func (c *Context) ErrExit1(err error) {
-	fmt.Println(err)
-	os.Exit(1)
-	//panic(err)
+	if !GC.GlobalOptions.noCache {
+		defer func() {
+			StoreCredentials()
+		}()
+	}
+
+	GC.Command.SetServiceClient(GC.ServiceClient)
+	GC.Command.SetContext(GC.CommandContext)
+
+	GC.GlobalOptions.logger.Debug("Running HandleFlags...")
+	err = GC.Command.HandleFlags()
+	if err != nil {
+		return ErrExit1{err}
+	}
+
+	GC.GlobalOptions.logger.Debug("Running RunCommand...")
+	go RunCommand()
+
+	GC.GlobalOptions.logger.Debug("Running OutputResults...")
+	err = OutputResults()
+	if err != nil {
+		return ErrExit1{err}
+	}
+
+	return nil
 }

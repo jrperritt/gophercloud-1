@@ -1,21 +1,21 @@
 package flavor
 
 import (
-	"github.com/gophercloud/cli/lib"
 	"github.com/gophercloud/cli/openstack"
+	"github.com/gophercloud/cli/openstack/commands"
 	"github.com/gophercloud/cli/util"
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/flavors"
 	"gopkg.in/urfave/cli.v1"
 )
 
-type commandGet struct {
-	openstack.CommandUtil
+type CommandGet struct {
 	FlavorV2Command
+	commands.WaitCommand
 }
 
 var (
-	cGet                   = new(commandGet)
-	_    lib.PipeCommander = cGet
+	cGet                         = new(CommandGet)
+	_    openstack.PipeCommander = cGet
 
 	flagsGet = openstack.CommandFlags(cGet)
 )
@@ -26,10 +26,10 @@ var get = cli.Command{
 	Description:  "Retreives information about a flavor",
 	Action:       func(ctx *cli.Context) error { return openstack.Action(ctx, cGet) },
 	Flags:        flagsGet,
-	BashComplete: func(_ *cli.Context) { openstack.BashComplete(flagsGet) },
+	BashComplete: func(_ *cli.Context) { util.CompleteFlags(flagsGet) },
 }
 
-func (c *commandGet) Flags() []cli.Flag {
+func (c *CommandGet) Flags() []cli.Flag {
 	return []cli.Flag{
 		cli.StringFlag{
 			Name:  "id",
@@ -46,37 +46,33 @@ func (c *commandGet) Flags() []cli.Flag {
 	}
 }
 
-func (c *commandGet) Fields() []string {
+func (c *CommandGet) Fields() []string {
 	return []string{""}
 }
 
-func (c *commandGet) HandleFlags() error {
+func (c *CommandGet) HandleFlags() error {
 	return nil
 }
 
-func (c *commandGet) HandlePipe(item string) (interface{}, error) {
+func (c *CommandGet) HandlePipe(item string) (interface{}, error) {
 	return item, nil
 }
 
-func (c *commandGet) HandleSingle() (interface{}, error) {
+func (c *CommandGet) HandleSingle() (interface{}, error) {
 	return c.IDOrName(flavors.IDFromName)
 }
 
-func (c *commandGet) Execute(in, out chan interface{}) {
-	defer close(out)
-	for item := range in {
-		item := item
-		var m map[string]map[string]interface{}
-		err := flavors.Get(c.ServiceClient, item.(string)).ExtractInto(&m)
-		switch err {
-		case nil:
-			out <- m["flavor"]
-		default:
-			out <- err
-		}
+func (c *CommandGet) Execute(item interface{}, out chan interface{}) {
+	var m map[string]map[string]interface{}
+	err := flavors.Get(c.ServiceClient, item.(string)).ExtractInto(&m)
+	switch err {
+	case nil:
+		out <- m["flavor"]
+	default:
+		out <- err
 	}
 }
 
-func (c *commandGet) PipeFieldOptions() []string {
+func (c *CommandGet) PipeFieldOptions() []string {
 	return []string{"id"}
 }

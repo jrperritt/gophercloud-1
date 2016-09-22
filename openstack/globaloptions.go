@@ -10,8 +10,8 @@ import (
 	"github.com/Sirupsen/logrus"
 	"github.com/gophercloud/cli/lib"
 	"github.com/gophercloud/cli/util"
+	"github.com/gophercloud/gophercloud"
 
-	"gopkg.in/urfave/cli.v1"
 	"gopkg.in/ini.v1"
 )
 
@@ -22,81 +22,24 @@ type GlobalOption struct {
 	validate func() error
 }
 
-func (p GlobalOption) Name() string {
-	return p.name
-}
-
-func (p GlobalOption) Value() interface{} {
-	return p.value
-}
-
-func (p GlobalOption) From() string {
-	return p.from
-}
-
 type GlobalOptions struct {
-	username     string
-	userID       string
-	password     string
-	authTenantID string
-	authToken    string
-	authURL      string
+	authOptions  *gophercloud.AuthOptions
 	region       string
+	urlType      gophercloud.Availability
 	profile      string
 	outputFormat string
 	noCache      bool
 	noHeader     bool
 	logLevel     string
 	logger       *logrus.Logger
-	cliContext   *cli.Context
 	have         map[string]GlobalOption
 	want         []GlobalOption
 	fields       []string
 }
 
-// ParseGlobalOptions satisfies the Provider.ParseGlobalOptions method
-func (o *GlobalOptions) ParseGlobalOptions() error {
-
-	o.Init()
-
-	// we may get multiple errors while trying to handle the global options
-	// so we'll try to return all of them at once, instead of returning just one,
-	// only return a different one after that one's been rectified.
-	multiErr := make(lib.MultiError, 0)
-
-	// for each source where a user could provide a global option,
-	// parse the options from that source. sources will be parsed in the order
-	// in which they appear in the Sources method
-	for _, source := range o.Sources() {
-		if parseOptions := o.MethodsMap()[source]; parseOptions != nil {
-			err := parseOptions()
-			if err != nil {
-				multiErr = append(multiErr, err)
-			}
-		}
-	}
-
-	// after the global options have been parsed, run each global option's
-	// validation function, if it exists
-	err := o.Validate()
-	if err != nil {
-		multiErr = append(multiErr, err)
-	}
-
-	if len(multiErr) > 0 {
-		return multiErr
-	}
-
-	err = o.Set()
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (o *GlobalOptions) Init() error {
-	o.want = []GlobalOption{
+func SetGlobalOptions() error {
+	GC.GlobalOptions = new(GlobalOptions)
+	GC.GlobalOptions.want = []GlobalOption{
 		{name: "username"},
 		{name: "user-id"},
 		{name: "password"},
@@ -106,50 +49,41 @@ func (o *GlobalOptions) Init() error {
 		{name: "region"},
 		{name: "profile"},
 	}
+	GC.GlobalOptions.have = make(map[string]GlobalOption)
 
-	o.have = make(map[string]GlobalOption, 0)
+	SetGlobalOptionsDefaults()
 
-	for _, d := range o.Defaults() {
-		g := d.(GlobalOption)
-		o.want = append(o.want, g)
-		o.have[g.name] = g
-	}
+	ParseCommandLineOptions()
+	ParseConfigFileOptions()
+	ParseEnvVarOptions()
+
+	setGlobalOptions()
 
 	return nil
 }
 
-func (o *GlobalOptions) Sources() []string {
-	return []string{
-		"commandline",
-		"configfile",
-		"envvar",
-	}
-}
-
-func (o *GlobalOptions) Defaults() []lib.GlobalOptioner {
-	return []lib.GlobalOptioner{
-		GlobalOption{"output", "table", "default", o.ValidateOutputInputParam},
+func GlobalOptionsDefaults() []GlobalOption {
+	return []GlobalOption{
+		GlobalOption{"output", "table", "default", ValidateOutputInputParam},
 		GlobalOption{"no-cache", false, "default", nil},
 		GlobalOption{"no-header", false, "default", nil},
-		GlobalOption{"log", "", "default", o.ValidateLogInputParam},
+		GlobalOption{"log", "", "default", ValidateLogInputParam},
 	}
 }
 
-func (o *GlobalOptions) MethodsMap() map[string]func() error {
-	return map[string]func() error{
-		"commandline": o.ParseCommandLineOptions,
-		"configfile":  o.ParseConfigFileOptions,
-		"envvar":      o.ParseEnvVarOptions,
+func SetGlobalOptionsDefaults() {
+	for _, opt := range GlobalOptionsDefaults() {
+		GC.GlobalOptions.have[opt.name] = opt
+		GC.GlobalOptions.want = append(GC.GlobalOptions.want, opt)
 	}
+	GC.GlobalOptions.urlType = gophercloud.AvailabilityPublic
 }
 
-func (o *GlobalOptions) Validate() error {
+func Validate() error {
 	errs := make(lib.MultiError, 0)
-	ds := o.Defaults()
-	for _, d := range ds {
-		inputParam := d.(GlobalOption)
-		if inputParam.validate != nil {
-			err := inputParam.validate()
+	for _, d := range GlobalOptionsDefaults() {
+		if d.validate != nil {
+			err := d.validate()
 			if err != nil {
 				errs = append(errs, err)
 			}
@@ -157,51 +91,52 @@ func (o *GlobalOptions) Validate() error {
 	}
 
 	// error if the user didn't provide an auth URL
-	if _, ok := o.have["auth-url"]; !ok || o.have["auth-url"].value == "" {
+	if _, ok := GC.GlobalOptions.have["auth-url"]; !ok || GC.GlobalOptions.have["auth-url"].value == "" {
 		return fmt.Errorf("You must provide an authentication endpoint")
 	}
 
 	return nil
 }
 
-func (o *GlobalOptions) Set() error {
+func setGlobalOptions() error {
+	GC.GlobalOptions.authOptions = new(gophercloud.AuthOptions)
 	var err error
-	for name, opt := range o.have {
+	for name, opt := range GC.GlobalOptions.have {
 		switch name {
 		case "username":
-			o.username = opt.value.(string)
+			GC.GlobalOptions.authOptions.Username = opt.value.(string)
 		case "user-id":
-			o.userID = opt.value.(string)
+			GC.GlobalOptions.authOptions.UserID = opt.value.(string)
 		case "password":
-			o.password = opt.value.(string)
+			GC.GlobalOptions.authOptions.Password = opt.value.(string)
 		case "auth-tenant-id":
-			o.authTenantID = opt.value.(string)
+			GC.GlobalOptions.authOptions.TenantID = opt.value.(string)
 		case "auth-token":
-			o.authToken = opt.value.(string)
+			GC.GlobalOptions.authOptions.TokenID = opt.value.(string)
 		case "auth-url":
-			o.authURL = opt.value.(string)
+			GC.GlobalOptions.authOptions.IdentityEndpoint = opt.value.(string)
 		case "region":
-			o.region = opt.value.(string)
+			GC.GlobalOptions.region = opt.value.(string)
 		case "profile":
-			o.profile = opt.value.(string)
+			GC.GlobalOptions.profile = opt.value.(string)
 		case "output":
-			o.outputFormat = opt.value.(string)
+			GC.GlobalOptions.outputFormat = opt.value.(string)
 		case "no-cache":
 			switch t := opt.value.(type) {
 			case string:
-				o.noCache, err = strconv.ParseBool(t)
+				GC.GlobalOptions.noCache, err = strconv.ParseBool(t)
 			case bool:
-				o.noCache = t
+				GC.GlobalOptions.noCache = t
 			}
 		case "no-header":
 			switch t := opt.value.(type) {
 			case string:
-				o.noHeader, err = strconv.ParseBool(t)
+				GC.GlobalOptions.noHeader, err = strconv.ParseBool(t)
 			case bool:
-				o.noHeader = t
+				GC.GlobalOptions.noHeader = t
 			}
 		case "log":
-			o.logLevel = opt.value.(string)
+			GC.GlobalOptions.logLevel = opt.value.(string)
 		}
 	}
 
@@ -210,7 +145,7 @@ func (o *GlobalOptions) Set() error {
 	}
 
 	var level logrus.Level
-	switch strings.ToLower(o.logLevel) {
+	switch strings.ToLower(GC.GlobalOptions.logLevel) {
 	case "debug":
 		level = logrus.DebugLevel
 	case "info":
@@ -218,37 +153,37 @@ func (o *GlobalOptions) Set() error {
 	default:
 		level = 0
 	}
-	o.logger = &logrus.Logger{
-		Out:       o.cliContext.App.Writer,
+	GC.GlobalOptions.logger = &logrus.Logger{
+		Out:       GC.CommandContext.App.Writer,
 		Formatter: &logrus.TextFormatter{},
 		Level:     level,
 	}
 
-	switch o.cliContext.IsSet("fields") {
+	switch GC.CommandContext.IsSet("fields") {
 	case true:
-		o.fields = strings.Split(o.cliContext.String("fields"), ",")
+		GC.GlobalOptions.fields = strings.Split(GC.CommandContext.String("fields"), ",")
 	}
-
-	//o.logger.Debugf("global options: %+v\n", o)
 
 	return nil
 }
 
-func (o *GlobalOptions) ParseCommandLineOptions() error {
+func ParseCommandLineOptions() error {
 	tmp := make([]GlobalOption, 0)
-	for _, opt := range o.want {
-		if o.cliContext.IsSet(opt.name) {
-			o.have[opt.name] = GlobalOption{value: o.cliContext.String(opt.name), from: "commandline"}
+
+	for _, opt := range GC.GlobalOptions.want {
+		if GC.CommandContext.GlobalIsSet(opt.name) {
+			GC.GlobalOptions.have[opt.name] = GlobalOption{value: GC.CommandContext.GlobalString(opt.name), from: "commandline"}
 			continue
 		}
 		tmp = append(tmp, opt)
 	}
-	o.want = tmp
+	GC.GlobalOptions.want = tmp
+
 	return nil
 }
 
-func (o *GlobalOptions) ParseConfigFileOptions() error {
-	profile := o.cliContext.String("profile")
+func ParseConfigFileOptions() error {
+	profile := GC.CommandContext.String("profile")
 	section, err := ProfileSection(profile)
 	if err != nil {
 		return err
@@ -259,18 +194,18 @@ func (o *GlobalOptions) ParseConfigFileOptions() error {
 	}
 
 	tmp := make([]GlobalOption, 0)
-	for _, opt := range o.want {
+	for _, opt := range GC.GlobalOptions.want {
 		if v := section.Key(opt.name).String(); v != "" {
-			o.have[opt.name] = GlobalOption{value: v, from: fmt.Sprintf("config file (profile: %s)", section.Name())}
+			GC.GlobalOptions.have[opt.name] = GlobalOption{value: v, from: fmt.Sprintf("config file (profile: %s)", section.Name())}
 			continue
 		}
 		tmp = append(tmp, opt)
 	}
-	o.want = tmp
+	GC.GlobalOptions.want = tmp
 	return nil
 }
 
-func (o *GlobalOptions) ParseEnvVarOptions() error {
+func ParseEnvVarOptions() error {
 	vars := map[string]string{
 		"username":       "OS_USERNAME",
 		"user-id":        "OS_USERID",
@@ -281,32 +216,32 @@ func (o *GlobalOptions) ParseEnvVarOptions() error {
 	}
 
 	tmp := make([]GlobalOption, 0)
-	for _, opt := range o.want {
+	for _, opt := range GC.GlobalOptions.want {
 		if v := os.Getenv(strings.ToUpper(vars[opt.name])); v != "" {
-			o.have[opt.name] = GlobalOption{value: v, from: "envvar"}
+			GC.GlobalOptions.have[opt.name] = GlobalOption{value: v, from: "envvar"}
 			continue
 		}
 		tmp = append(tmp, opt)
 	}
-	o.want = tmp
+	GC.GlobalOptions.want = tmp
 	return nil
 }
 
-func (o *GlobalOptions) ValidateOutputInputParam() error {
-	switch o.have["output"].value {
+func ValidateOutputInputParam() error {
+	switch GC.GlobalOptions.have["output"].value {
 	case "json", "table", "":
 		return nil
 	default:
-		return fmt.Errorf("Invalid value for `output` flag: '%s'. Options are: json, table.", o.outputFormat)
+		return fmt.Errorf("Invalid value for `output` flag: '%s'. Options are: json, table.", GC.GlobalOptions.outputFormat)
 	}
 }
 
-func (o *GlobalOptions) ValidateLogInputParam() error {
-	switch o.have["log"].value {
+func ValidateLogInputParam() error {
+	switch GC.GlobalOptions.have["log"].value {
 	case "debug", "info", "":
 		return nil
 	default:
-		return fmt.Errorf("Invalid value for `log` flag: %s. Valid options are: debug, info", o.logLevel)
+		return fmt.Errorf("Invalid value for `log` flag: %s. Valid options are: debug, info", GC.GlobalOptions.logLevel)
 	}
 }
 

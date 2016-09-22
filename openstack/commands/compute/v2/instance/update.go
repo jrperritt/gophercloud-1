@@ -1,7 +1,6 @@
 package instance
 
 import (
-	"github.com/gophercloud/cli/lib"
 	"github.com/gophercloud/cli/openstack"
 	"github.com/gophercloud/cli/util"
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/servers"
@@ -9,15 +8,14 @@ import (
 )
 
 type commandUpdate struct {
-	openstack.CommandUtil
-	InstanceV2Command
+	ServerV2Command
 	id   string
 	opts servers.UpdateOptsBuilder
 }
 
 var (
-	cUpdate               = new(commandUpdate)
-	_       lib.Commander = cUpdate
+	cUpdate                     = new(commandUpdate)
+	_       openstack.Commander = cUpdate
 
 	flagsUpdate = openstack.CommandFlags(cUpdate)
 )
@@ -28,7 +26,7 @@ var update = cli.Command{
 	Description:  "Updates a server",
 	Action:       func(ctx *cli.Context) error { return openstack.Action(ctx, cUpdate) },
 	Flags:        flagsUpdate,
-	BashComplete: func(_ *cli.Context) { openstack.BashComplete(flagsUpdate) },
+	BashComplete: func(_ *cli.Context) { util.CompleteFlags(flagsUpdate) },
 }
 
 func (c *commandUpdate) Flags() []cli.Flag {
@@ -66,11 +64,9 @@ func (c *commandUpdate) HandleFlags() (err error) {
 	return
 }
 
-func (c *commandUpdate) Execute(in, out chan interface{}) {
-	defer close(out)
-	id := (<-in).(string)
+func (c *commandUpdate) Execute(id interface{}, out chan interface{}) {
 	var m map[string]interface{}
-	err := servers.Update(c.ServiceClient, id, c.opts).ExtractInto(&m)
+	err := servers.Update(c.ServiceClient, id.(string), c.opts).ExtractInto(&m)
 	switch err {
 	case nil:
 		out <- m["server"]

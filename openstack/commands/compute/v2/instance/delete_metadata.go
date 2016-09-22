@@ -4,23 +4,22 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/gophercloud/cli/lib"
 	"github.com/gophercloud/cli/openstack"
+	"github.com/gophercloud/cli/openstack/commands"
 	"github.com/gophercloud/cli/util"
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/servers"
 	"gopkg.in/urfave/cli.v1"
 )
 
-type commandDeleteMetadata struct {
-	openstack.CommandUtil
-	InstanceV2Command
+type CommandDeleteMetadata struct {
+	ServerV2Command
+	commands.WaitCommand
 	opts []string
 }
 
 var (
-	cDeleteMetadata                   = new(commandDeleteMetadata)
-	_               lib.PipeCommander = cDeleteMetadata
-	_               lib.Waiter        = cDeleteMetadata
+	cDeleteMetadata                         = new(CommandDeleteMetadata)
+	_               openstack.PipeCommander = cDeleteMetadata
 
 	flagsDeleteMetadata = openstack.CommandFlags(cDeleteMetadata)
 )
@@ -31,10 +30,10 @@ var deleteMetadata = cli.Command{
 	Description:  "Deletes metadata associated with a server",
 	Action:       func(ctx *cli.Context) error { return openstack.Action(ctx, cDeleteMetadata) },
 	Flags:        flagsDeleteMetadata,
-	BashComplete: func(_ *cli.Context) { openstack.BashComplete(flagsDeleteMetadata) },
+	BashComplete: func(_ *cli.Context) { util.CompleteFlags(flagsDeleteMetadata) },
 }
 
-func (c *commandDeleteMetadata) Flags() []cli.Flag {
+func (c *CommandDeleteMetadata) Flags() []cli.Flag {
 	return []cli.Flag{
 		cli.StringFlag{
 			Name:  "id",
@@ -55,40 +54,33 @@ func (c *commandDeleteMetadata) Flags() []cli.Flag {
 	}
 }
 
-func (c *commandDeleteMetadata) HandleFlags() error {
+func (c *CommandDeleteMetadata) HandleFlags() error {
 	c.Wait = c.Context.IsSet("wait")
 	c.opts = strings.Split(c.Context.String("metadata-keys"), ",")
 	return nil
 }
 
-func (c *commandDeleteMetadata) HandlePipe(item string) (interface{}, error) {
+func (c *CommandDeleteMetadata) HandlePipe(item string) (interface{}, error) {
 	return item, nil
 }
 
-func (c *commandDeleteMetadata) HandleSingle() (interface{}, error) {
+func (c *CommandDeleteMetadata) HandleSingle() (interface{}, error) {
 	return c.IDOrName(servers.IDFromName)
 }
 
-func (c *commandDeleteMetadata) Execute(in, out chan interface{}) {
-	defer close(out)
-	for item := range in {
-		id := item.(string)
-		for _, key := range c.opts {
-			err := servers.DeleteMetadatum(c.ServiceClient, id, key).ExtractErr()
-			switch err {
-			case nil:
-				out <- fmt.Sprintf("Deleted metadata [%s] from server [%s]", key, id)
-			default:
-				out <- err
-			}
+func (c *CommandDeleteMetadata) Execute(item interface{}, out chan interface{}) {
+	id := item.(string)
+	for _, key := range c.opts {
+		err := servers.DeleteMetadatum(c.ServiceClient, id, key).ExtractErr()
+		switch err {
+		case nil:
+			out <- fmt.Sprintf("Deleted metadata [%s] from server [%s]", key, id)
+		default:
+			out <- err
 		}
 	}
 }
 
-func (c *commandDeleteMetadata) PipeFieldOptions() []string {
+func (c *CommandDeleteMetadata) PipeFieldOptions() []string {
 	return []string{"id"}
-}
-
-func (c *commandDeleteMetadata) ExecuteAndWait(in, out chan interface{}) {
-	openstack.ExecuteAndWait(c, in, out)
 }

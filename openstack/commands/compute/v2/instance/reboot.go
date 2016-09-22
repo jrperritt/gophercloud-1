@@ -2,27 +2,24 @@ package instance
 
 import (
 	"fmt"
-	"time"
 
-	"github.com/gophercloud/cli/lib"
 	"github.com/gophercloud/cli/openstack"
+	"github.com/gophercloud/cli/openstack/commands"
 	"github.com/gophercloud/cli/util"
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/servers"
 	"gopkg.in/urfave/cli.v1"
 )
 
-type commandReboot struct {
-	openstack.CommandUtil
-	InstanceV2Command
+type CommandReboot struct {
+	ServerV2Command
+	commands.TextProgressCommand
 	opts servers.RebootOptsBuilder
-	*openstack.Progress
 }
 
 var (
-	cReboot                   = new(commandReboot)
-	_       lib.PipeCommander = cReboot
-	_       lib.Progresser    = cReboot
-	_       lib.Waiter        = cReboot
+	cReboot                         = new(CommandReboot)
+	_       openstack.PipeCommander = cReboot
+	_       openstack.Progresser    = cReboot
 
 	flagsReboot = openstack.CommandFlags(cReboot)
 )
@@ -33,10 +30,10 @@ var reboot = cli.Command{
 	Description:  "Reboots a server",
 	Action:       func(ctx *cli.Context) error { return openstack.Action(ctx, cReboot) },
 	Flags:        flagsReboot,
-	BashComplete: func(_ *cli.Context) { openstack.BashComplete(flagsReboot) },
+	BashComplete: func(_ *cli.Context) { util.CompleteFlags(flagsReboot) },
 }
 
-func (c *commandReboot) Flags() []cli.Flag {
+func (c *CommandReboot) Flags() []cli.Flag {
 	return []cli.Flag{
 		cli.StringFlag{
 			Name:  "id",
@@ -61,7 +58,7 @@ func (c *commandReboot) Flags() []cli.Flag {
 	}
 }
 
-func (c *commandReboot) HandleFlags() error {
+func (c *CommandReboot) HandleFlags() error {
 	c.Wait = c.Context.IsSet("wait")
 	c.Quiet = c.Context.IsSet("quiet")
 
@@ -85,84 +82,62 @@ func (c *commandReboot) HandleFlags() error {
 	return nil
 }
 
-func (c *commandReboot) HandlePipe(item string) (interface{}, error) {
+func (c *CommandReboot) HandlePipe(item string) (interface{}, error) {
 	return item, nil
 }
 
-func (c *commandReboot) HandleSingle() (interface{}, error) {
+func (c *CommandReboot) HandleSingle() (interface{}, error) {
 	return c.IDOrName(servers.IDFromName)
 }
 
-func (c *commandReboot) Execute(in, out chan interface{}) {
-	defer close(out)
-	for item := range in {
-		id := item.(string)
-		err := servers.Reboot(c.ServiceClient, id, c.opts).ExtractErr()
-		if err != nil {
-			out <- err
-			return
-		}
-		switch c.Wait {
-		case true:
-			out <- id
-		default:
-			out <- fmt.Sprintf("Rebooting server [%s]", id)
-		}
+func (c *CommandReboot) Execute(item interface{}, out chan interface{}) {
+	id := item.(string)
+	err := servers.Reboot(c.ServiceClient, id, c.opts).ExtractErr()
+	if err != nil {
+		out <- err
+		return
+	}
+	switch c.Wait || !c.Quiet {
+	case true:
+		out <- id
+	default:
+		out <- fmt.Sprintf("Rebooting server [%s]", id)
 	}
 }
 
-func (c *commandReboot) PipeFieldOptions() []string {
+func (c *CommandReboot) PipeFieldOptions() []string {
 	return []string{"id"}
 }
 
-func (c *commandReboot) ExecuteAndWait(in, out chan interface{}) {
-	openstack.ExecuteAndWait(c, in, out)
-}
-
-func (c *commandReboot) InitProgress() {
-	c.Progress = openstack.NewProgress(2)
-	c.Progress.RunningMsg = "Rebooting"
-	c.Progress.DoneMsg = "Rebooted"
-	c.ProgressChan = make(chan *openstack.ProgressStatus)
-	go c.Progress.Listen(c.ProgressChan)
-	if !c.Quiet {
-		c.Progress.Start()
-	}
-}
-
-func (c *commandReboot) ShowProgress(raw interface{}, out chan interface{}) {
-	id := (raw).(string)
-
-	c.ProgressChan <- &openstack.ProgressStatus{
-		Name:      id,
-		StartTime: time.Now(),
-		Type:      "start",
-	}
+func (c *CommandReboot) WaitFor(raw interface{}) {
+	id := raw.(string)
 
 	err := util.WaitFor(900, func() (bool, error) {
-		_, err := servers.Get(c.ServiceClient, id).Extract()
+		var m map[string]map[string]interface{}
+		err := servers.Get(c.ServiceClient, id).ExtractInto(&m)
 		if err != nil {
-			c.ProgressChan <- &openstack.ProgressStatus{
-				Name: id,
-				Type: "complete",
-			}
-			out <- fmt.Sprintf("Rebooted server [%s]", id)
+			return false, err
+		}
+		switch m["server"]["status"].(string) {
+		case "ACTIVE":
+			openstack.GC.DoneChan <- fmt.Sprintf("Rebooted server [%s]", id)
 			return true, nil
+		default:
+			if !c.Quiet {
+				openstack.GC.UpdateChan <- m["server"]["status"]
+			}
+			return false, nil
 		}
-
-		c.ProgressChan <- &openstack.ProgressStatus{
-			Name: id,
-			Type: "update",
-		}
-		return false, nil
 	})
 
 	if err != nil {
-		c.ProgressChan <- &openstack.ProgressStatus{
-			Name: id,
-			Err:  err,
-			Type: "error",
-		}
-		out <- err
+		openstack.GC.DoneChan <- err
 	}
+}
+
+func (c *CommandReboot) InitProgress() {
+	c.ProgressInfo = openstack.NewProgressInfo(2)
+	c.RunningMsg = "Rebooting"
+	c.DoneMsg = "Rebooted"
+	c.ProgressCommand.InitProgress()
 }

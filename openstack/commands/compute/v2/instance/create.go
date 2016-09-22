@@ -6,10 +6,9 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
-	"time"
 
-	"github.com/gophercloud/cli/lib"
 	"github.com/gophercloud/cli/openstack"
+	"github.com/gophercloud/cli/openstack/commands"
 	"github.com/gophercloud/cli/util"
 	"github.com/gophercloud/gophercloud"
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/extensions/bootfromvolume"
@@ -18,18 +17,16 @@ import (
 	"gopkg.in/urfave/cli.v1"
 )
 
-type commandCreate struct {
-	openstack.CommandUtil
-	InstanceV2Command
+type CommandCreate struct {
+	ServerV2Command
+	commands.ProgressCommand
 	opts servers.CreateOptsBuilder
-	*openstack.Progress
 }
 
 var (
-	cCreate                   = new(commandCreate)
-	_       lib.PipeCommander = cCreate
-	_       lib.Progresser    = cCreate
-	_       lib.Waiter        = cCreate
+	cCreate                         = new(CommandCreate)
+	_       openstack.PipeCommander = cCreate
+	_       openstack.Progresser    = cCreate
 
 	flagsCreate = openstack.CommandFlags(cCreate)
 )
@@ -40,10 +37,10 @@ var create = cli.Command{
 	Description:  "Creates a server",
 	Action:       func(ctx *cli.Context) error { return openstack.Action(ctx, cCreate) },
 	Flags:        flagsCreate,
-	BashComplete: func(_ *cli.Context) { openstack.BashComplete(flagsCreate) },
+	BashComplete: func(_ *cli.Context) { util.CompleteFlags(flagsCreate) },
 }
 
-func (c *commandCreate) Flags() []cli.Flag {
+func (c *CommandCreate) Flags() []cli.Flag {
 	return []cli.Flag{
 		cli.StringFlag{
 			Name:  "name",
@@ -138,11 +135,11 @@ var flagsCreateExt = []cli.Flag{
 	},
 }
 
-func (c *commandCreate) Fields() []string {
+func (c *CommandCreate) Fields() []string {
 	return []string{""}
 }
 
-func (c *commandCreate) HandleFlags() error {
+func (c *CommandCreate) HandleFlags() error {
 	c.Wait = c.Context.IsSet("wait")
 	c.Quiet = c.Context.IsSet("quiet")
 
@@ -307,59 +304,38 @@ func (c *commandCreate) HandleFlags() error {
 	return nil
 }
 
-func (c *commandCreate) HandlePipe(item string) (interface{}, error) {
+func (c *CommandCreate) HandlePipe(item string) (interface{}, error) {
 	return item, nil
 }
 
-func (c *commandCreate) HandleSingle() (interface{}, error) {
+func (c *CommandCreate) HandleSingle() (interface{}, error) {
 	return c.Context.String("name"), c.CheckFlagsSet([]string{"name"})
 }
 
-func (c *commandCreate) Execute(in, out chan interface{}) {
-	defer close(out)
-	for item := range in {
-		var m map[string]map[string]interface{}
-		c.opts.(*servers.CreateOpts).Name = item.(string)
-		err := servers.Create(c.ServiceClient, c.opts).ExtractInto(&m)
-		switch err {
-		case nil:
-			out <- m["server"]
-		default:
-			out <- err
-		}
+func (c *CommandCreate) Execute(item interface{}, out chan (interface{})) {
+	var m map[string]map[string]interface{}
+	opts := *c.opts.(*servers.CreateOpts)
+	opts.Name = item.(string)
+	err := servers.Create(c.ServiceClient, opts).ExtractInto(&m)
+	switch err {
+	case nil:
+		out <- m["server"]
+	default:
+		out <- err
 	}
 }
 
-func (c *commandCreate) PipeFieldOptions() []string {
+func (c *CommandCreate) PipeFieldOptions() []string {
 	return []string{"name"}
 }
 
-func (c *commandCreate) ExecuteAndWait(in, out chan interface{}) {
-	openstack.ExecuteAndWait(c, in, out)
-}
-
-func (c *commandCreate) InitProgress() {
-	c.Progress = openstack.NewProgress(0)
-	c.ProgressChan = make(chan *openstack.ProgressStatus)
-	go c.Progress.Listen(c.ProgressChan)
-	if !c.Quiet {
-		c.Progress.Start()
-	}
-}
-
-func (c *commandCreate) ShowProgress(raw interface{}, out chan interface{}) {
+func (c *CommandCreate) WaitFor(raw interface{}) {
 	orig := raw.(map[string]interface{})
 	id := orig["id"].(string)
 
-	c.ProgressChan <- &openstack.ProgressStatus{
-		Name:      id,
-		TotalSize: 100,
-		StartTime: time.Now(),
-		Type:      "start",
-	}
-
 	err := util.WaitFor(900, func() (bool, error) {
 		var m map[string]map[string]interface{}
+		openstack.GC.Logger.Infof("running servers.Get for item: %s", id)
 		err := servers.Get(c.ServiceClient, id).ExtractInto(&m)
 		if err != nil {
 			return false, err
@@ -367,29 +343,54 @@ func (c *commandCreate) ShowProgress(raw interface{}, out chan interface{}) {
 
 		switch m["server"]["status"].(string) {
 		case "ACTIVE":
-			c.ProgressChan <- &openstack.ProgressStatus{
-				Name: id,
-				Type: "complete",
-			}
+			openstack.GC.Logger.Infof("server %s is active", id)
 			m["server"]["adminPass"] = orig["adminPass"].(string)
-			out <- m["server"]
+			openstack.GC.Logger.Infof("putting item %s in openstack.GC.DoneChan", id)
+			openstack.GC.DoneChan <- m["server"]
+			openstack.GC.Logger.Infof("returning from WaitFor for item: %s", id)
 			return true, nil
 		default:
-			c.ProgressChan <- &openstack.ProgressStatus{
-				Name:      id,
-				Increment: int(m["server"]["progress"].(float64)),
-				Type:      "update",
+			if !c.Quiet {
+				openstack.GC.Logger.Infof("putting item %s in openstack.GC.UpdateChan", id)
+				openstack.GC.UpdateChan <- m["server"]["progress"].(float64)
 			}
 			return false, nil
 		}
 	})
 
 	if err != nil {
-		c.ProgressChan <- &openstack.ProgressStatus{
-			Name: id,
-			Err:  err,
-			Type: "error",
+		openstack.GC.DoneChan <- err
+	}
+}
+
+func (c *CommandCreate) InitProgress() {
+	c.ProgressInfo = openstack.NewProgressInfo(0)
+	c.ProgressCommand.InitProgress()
+}
+
+func (c *CommandCreate) BarID(raw interface{}) string {
+	orig := raw.(map[string]interface{})
+	return orig["id"].(string)
+}
+
+func (c *CommandCreate) ShowBar(id string) {
+	s := new(openstack.ProgressStatusStart)
+	s.Name = id
+	c.StartChan <- s
+
+	for {
+		select {
+		case r := <-openstack.GC.DoneChan:
+			s := new(openstack.ProgressStatusComplete)
+			s.Name = id
+			c.ProgressInfo.CompleteChan <- s
+			openstack.GC.ProgressDoneChan <- r
+			return
+		case r := <-openstack.GC.UpdateChan:
+			s := new(openstack.ProgressStatusUpdate)
+			s.Name = id
+			s.Increment = int(r.(float64))
+			c.ProgressInfo.UpdateChan <- s
 		}
-		out <- err
 	}
 }

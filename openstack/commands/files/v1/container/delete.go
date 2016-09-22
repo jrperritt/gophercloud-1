@@ -3,21 +3,22 @@ package container
 import (
 	"fmt"
 
-	"github.com/gophercloud/cli/lib"
 	"github.com/gophercloud/cli/openstack"
+	"github.com/gophercloud/cli/openstack/commands"
 	"github.com/gophercloud/cli/util"
 	"github.com/gophercloud/gophercloud/openstack/objectstorage/v1/containers"
 	"gopkg.in/urfave/cli.v1"
 )
 
-type commandDelete struct {
+type CommandDelete struct {
 	ContainerV1Command
+	commands.WaitCommand
 	purge bool
 }
 
 var (
-	cDelete                   = new(commandDelete)
-	_       lib.PipeCommander = cDelete
+	cDelete                         = new(CommandDelete)
+	_       openstack.PipeCommander = cDelete
 
 	flagsDelete = openstack.CommandFlags(cDelete)
 )
@@ -28,10 +29,10 @@ var remove = cli.Command{
 	Description:  "Deletes a container",
 	Action:       func(ctx *cli.Context) error { return openstack.Action(ctx, cDelete) },
 	Flags:        flagsDelete,
-	BashComplete: func(_ *cli.Context) { openstack.BashComplete(flagsDelete) },
+	BashComplete: func(_ *cli.Context) { util.CompleteFlags(flagsDelete) },
 }
 
-func (c *commandDelete) Flags() []cli.Flag {
+func (c *CommandDelete) Flags() []cli.Flag {
 	return []cli.Flag{
 		cli.StringFlag{
 			Name:  "name",
@@ -48,44 +49,40 @@ func (c *commandDelete) Flags() []cli.Flag {
 	}
 }
 
-func (c *commandDelete) Fields() []string {
+func (c *CommandDelete) Fields() []string {
 	return []string{""}
 }
 
-func (c *commandDelete) HandleFlags() error {
+func (c *CommandDelete) HandleFlags() error {
 	c.purge = c.Context.IsSet("purge")
 	return nil
 }
 
-func (c *commandDelete) HandlePipe(item string) (interface{}, error) {
+func (c *CommandDelete) HandlePipe(item string) (interface{}, error) {
 	return item, nil
 }
 
-func (c *commandDelete) HandleSingle() (interface{}, error) {
+func (c *CommandDelete) HandleSingle() (interface{}, error) {
 	return c.Context.String("name"), c.CheckFlagsSet([]string{"name"})
 }
 
-func (c *commandDelete) Execute(in, out chan interface{}) {
-	defer close(out)
-	for item := range in {
-		item := item.(string)
-		if c.purge {
-			err := handleEmpty(cDelete.ContainerV1Command, item)
-			if err != nil {
-				out <- fmt.Errorf("Error purging container [%s]: %s", item, err)
-				continue
-			}
+func (c *CommandDelete) Execute(item interface{}, out chan interface{}) {
+	if c.purge {
+		err := handleEmpty(cDelete.ContainerV1Command, item.(string))
+		if err != nil {
+			out <- fmt.Errorf("Error purging container [%s]: %s", item.(string), err)
+			return
 		}
-		res := containers.Delete(c.ServiceClient, item)
-		switch res.Err {
-		case nil:
-			out <- fmt.Sprintf("Successfully deleted container [%s]", item)
-		default:
-			out <- res.Err
-		}
+	}
+	res := containers.Delete(c.ServiceClient, item.(string))
+	switch res.Err {
+	case nil:
+		out <- fmt.Sprintf("Successfully deleted container [%s]", item.(string))
+	default:
+		out <- res.Err
 	}
 }
 
-func (c *commandDelete) PipeFieldOptions() []string {
+func (c *CommandDelete) PipeFieldOptions() []string {
 	return []string{"name"}
 }

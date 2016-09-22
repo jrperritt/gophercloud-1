@@ -10,10 +10,6 @@ import (
 	"github.com/gophercloud/gophercloud/openstack"
 )
 
-var (
-	_ lib.AuthFromCacher = new(auth)
-)
-
 type auth struct {
 	logger        *logrus.Logger
 	noCache       bool
@@ -25,176 +21,150 @@ type auth struct {
 	profile       string
 }
 
-// Authenticate satisfies the Provider.Authenticate method
-func (a *auth) Authenticate() (*gophercloud.ServiceClient, error) {
-	var client *gophercloud.ServiceClient
-	var err error
+func Authenticate() error {
+	GC.GlobalOptions.authOptions.AllowReauth = true
 
-	a.AuthOptions.AllowReauth = true
-
-	client, err = a.AuthFromCache()
-	if err != nil {
-		return nil, err
-	}
-
-	a.logger.Debugf("provider client after AuthFromCache: %+v", client.ProviderClient)
-
-	if client == nil {
-		client, err = a.AuthFromScratch()
+	if !GC.GlobalOptions.noCache {
+		err := AuthFromCache()
 		if err != nil {
-			return nil, err
+			return err
 		}
 	}
 
-	client.HTTPClient.Transport.(*LogRoundTripper).Logger = a.logger
-	a.serviceClient = client
-	a.logger.Debug("Returning from Authenticate...")
-	return client, nil
+	if GC.ServiceClient == nil {
+		err := AuthFromScratch()
+		if err != nil {
+			return err
+		}
+	}
+
+	GC.ServiceClient.HTTPClient.Transport.(*LogRoundTripper).Logger = GC.GlobalOptions.logger
+	return nil
 }
 
-func (a *auth) AuthFromScratch() (*gophercloud.ServiceClient, error) {
-	a.logger.Info("Authenticating from scratch.\n")
-	a.urlType = gophercloud.AvailabilityPublic
+func AuthFromScratch() error {
+	serviceType := GC.Command.ServiceType()
+	ao := GC.GlobalOptions.authOptions
+	l := GC.GlobalOptions.logger
 
-	a.logger.Debugf("auth options: %+v\n", *a.AuthOptions)
+	l.Info("Authenticating from scratch.\n")
 
-	pc, err := openstack.NewClient(a.AuthOptions.IdentityEndpoint)
+	l.Debugf("auth options: %+v\n", *ao)
+
+	pc, err := openstack.NewClient(ao.IdentityEndpoint)
 	if err != nil {
-		return nil, err
+		return err
 	}
-	pc.HTTPClient = newHTTPClient(a.logger)
+	pc.HTTPClient = newHTTPClient(l)
 
-	err = openstack.Authenticate(pc, *a.AuthOptions)
+	err = openstack.Authenticate(pc, *ao)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	//a.logger.Debugf("provider client: %+v\n", pc)
-	//a.logger.Debugf("a: %+v\n", a)
-
-	var sc *gophercloud.ServiceClient
-	switch a.serviceType {
+	switch serviceType {
 	case "compute":
-		sc, err = openstack.NewComputeV2(pc, gophercloud.EndpointOpts{
-			Region:       a.region,
-			Availability: a.urlType,
+		GC.ServiceClient, err = openstack.NewComputeV2(pc, gophercloud.EndpointOpts{
+			Region:       GC.GlobalOptions.region,
+			Availability: GC.GlobalOptions.urlType,
 		})
 		break
 	case "files":
-		sc, err = openstack.NewObjectStorageV1(pc, gophercloud.EndpointOpts{
-			Region:       a.region,
-			Availability: a.urlType,
+		GC.ServiceClient, err = openstack.NewObjectStorageV1(pc, gophercloud.EndpointOpts{
+			Region:       GC.GlobalOptions.region,
+			Availability: GC.GlobalOptions.urlType,
 		})
 		break
 	case "block-storage":
-		sc, err = openstack.NewBlockStorageV1(pc, gophercloud.EndpointOpts{
-			Region:       a.region,
-			Availability: a.urlType,
+		GC.ServiceClient, err = openstack.NewBlockStorageV1(pc, gophercloud.EndpointOpts{
+			Region:       GC.GlobalOptions.region,
+			Availability: GC.GlobalOptions.urlType,
 		})
 		break
 	case "networking":
-		sc, err = openstack.NewNetworkV2(pc, gophercloud.EndpointOpts{
-			Region:       a.region,
-			Availability: a.urlType,
+		GC.ServiceClient, err = openstack.NewNetworkV2(pc, gophercloud.EndpointOpts{
+			Region:       GC.GlobalOptions.region,
+			Availability: GC.GlobalOptions.urlType,
 		})
 		break
 	case "orchestration":
-		sc, err = openstack.NewOrchestrationV1(pc, gophercloud.EndpointOpts{
-			Region:       a.region,
-			Availability: a.urlType,
+		GC.ServiceClient, err = openstack.NewOrchestrationV1(pc, gophercloud.EndpointOpts{
+			Region:       GC.GlobalOptions.region,
+			Availability: GC.GlobalOptions.urlType,
 		})
 		break
 	}
 	if err != nil {
-		return nil, err
+		return err
 	}
-	if sc == nil {
-		return nil, fmt.Errorf("Unable to create service client: Unknown service type: %s\n", a.serviceType)
+	if GC.ServiceClient == nil {
+		return fmt.Errorf("Unable to create service client: Unknown service type: %s\n", serviceType)
 	}
 
-	a.logger.Debugf("Created %s service client: %+v", a.serviceType, sc)
-	sc.UserAgent.Prepend(util.UserAgent)
-	return sc, nil
+	l.Debugf("Created %s service client: %+v", serviceType, GC.ServiceClient)
+	GC.ServiceClient.UserAgent.Prepend(util.UserAgent)
+	return nil
 }
 
-func (a *auth) AuthFromCache() (*gophercloud.ServiceClient, error) {
-	a.logger.Info("Authenticating from cache")
+func AuthFromCache() error {
+	ao := GC.GlobalOptions.authOptions
+	l := GC.GlobalOptions.logger
 
-	switch a.urlType {
-	case "":
-		a.logger.Info("Using public endpoint")
-		a.urlType = gophercloud.AvailabilityPublic
-	}
+	l.Info("Authenticating from cache")
 
-	if a.noCache {
-		return a.AuthFromScratch()
-	}
-
-	cache := a.GetCache()
-	cacheKey := a.GetCacheKey()
-	a.logger.Infof("Looking in the cache for cache key: %s", cacheKey)
-	// get the value from the cache
+	cache := GetCache()
+	cacheKey := GetCacheKey()
+	l.Infof("Looking in the cache for cache key: %s", cacheKey)
 	credser, err := cache.GetCacheValue(cacheKey)
 
 	if err == nil && credser != nil {
 		creds := credser.(*CacheItem)
-		// we successfully retrieved a value from the cache
-		a.logger.Infof("Using token from cache: %s", creds.TokenID)
-		pc, err := openstack.NewClient(a.AuthOptions.IdentityEndpoint)
+		l.Infof("Using token from cache: %s", creds.TokenID)
+		pc, err := openstack.NewClient(ao.IdentityEndpoint)
 		if err == nil {
 			pc.UserAgent.Prepend(util.UserAgent)
 			pc.TokenID = creds.GetToken()
-			pc.HTTPClient = newHTTPClient(a.logger)
+			pc.HTTPClient = newHTTPClient(l)
 			pc.ReauthFunc = func() error {
-				return openstack.AuthenticateV3(pc, a.AuthOptions, gophercloud.EndpointOpts{}) //, gophercloud.EndpointOpts{Availability: a.urlType})
+				return openstack.AuthenticateV3(pc, ao, gophercloud.EndpointOpts{})
 			}
-			return &gophercloud.ServiceClient{
+			GC.ServiceClient = &gophercloud.ServiceClient{
 				ProviderClient: pc,
 				Endpoint:       creds.ServiceEndpoint,
-			}, nil
+			}
+			return nil
 		}
 	}
-	// if there was an error accessing the cache or there was nothing in the cache,
-	// authenticate from scratch
-	return a.AuthFromScratch()
+	return AuthFromScratch()
 }
 
-func (a *auth) GetCache() lib.Cacher {
+func GetCache() lib.Cacher {
 	return &Cache{items: map[string]CacheItem{}}
 }
 
-// CacheKey returns the cache key formed from the user's authentication credentials.
-func (a *auth) GetCacheKey() string {
+func GetCacheKey() string {
+	serviceType := GC.Command.ServiceType()
+	ao := GC.GlobalOptions.authOptions
+	l := GC.GlobalOptions.logger
+
 	var usernameOrTenantID string
 	switch {
-	case a.AuthOptions.Username != "":
-		usernameOrTenantID = a.AuthOptions.Username
-	case a.AuthOptions.UserID != "":
-		usernameOrTenantID = a.AuthOptions.UserID
+	case ao.Username != "":
+		usernameOrTenantID = ao.Username
+	case ao.UserID != "":
+		usernameOrTenantID = ao.UserID
 	default:
-		a.logger.Debugf("Username nor User ID set in auth: %+v", a.AuthOptions)
+		l.Debugf("Username nor User ID set in auth: %+v", ao)
 	}
-	return fmt.Sprintf("%s,%s,%s,%s,%s", usernameOrTenantID, a.AuthOptions.IdentityEndpoint, a.region, a.serviceType, a.urlType)
+	return fmt.Sprintf("%s,%s,%s,%s,%s", usernameOrTenantID, ao.IdentityEndpoint, GC.GlobalOptions.region, serviceType, GC.GlobalOptions.urlType)
 }
 
-// StoreCredentials caches the users auth credentials if available and the `no-cache`
-// flag was not provided.
-func (a *auth) StoreCredentials() error {
-	// if serviceClient is nil, the HTTP request for the command didn't get sent.
-	// don't set cache if the `no-cache` flag is provided
-	if a.noCache {
-		return nil
-	}
-
+func StoreCredentials() error {
 	newCacheValue := &CacheItem{
-		TokenID:         a.serviceClient.TokenID,
-		ServiceEndpoint: a.serviceClient.Endpoint,
+		TokenID:         GC.ServiceClient.TokenID,
+		ServiceEndpoint: GC.ServiceClient.Endpoint,
 	}
-	// get the cache key
-	cacheKey := a.GetCacheKey()
-
-	a.logger.Debugf("Setting cache key [%s] to: %s", cacheKey, newCacheValue)
-
-	// set the cache value to the current values
-	return a.GetCache().SetCacheValue(cacheKey, newCacheValue)
+	cacheKey := GetCacheKey()
+	GC.GlobalOptions.logger.Debugf("Setting cache key [%s] to: %s", cacheKey, newCacheValue)
+	return GetCache().SetCacheValue(cacheKey, newCacheValue)
 }

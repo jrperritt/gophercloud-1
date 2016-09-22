@@ -3,23 +3,22 @@ package container
 import (
 	"fmt"
 
-	"github.com/gophercloud/cli/lib"
 	"github.com/gophercloud/cli/openstack"
+	"github.com/gophercloud/cli/openstack/commands"
 	"github.com/gophercloud/cli/util"
 	"github.com/gophercloud/gophercloud/openstack/objectstorage/v1/containers"
 	"gopkg.in/urfave/cli.v1"
 )
 
-type commandCreate struct {
-	openstack.CommandUtil
+type CommandCreate struct {
 	ContainerV1Command
+	commands.WaitCommand
 	opts containers.CreateOptsBuilder
 }
 
 var (
-	cCreate                   = new(commandCreate)
-	_       lib.PipeCommander = cCreate
-	_       lib.Waiter        = cCreate
+	cCreate                         = new(CommandCreate)
+	_       openstack.PipeCommander = cCreate
 
 	flagsCreate = openstack.CommandFlags(cCreate)
 )
@@ -30,10 +29,10 @@ var create = cli.Command{
 	Description:  "Creates a container",
 	Action:       func(ctx *cli.Context) error { return openstack.Action(ctx, cCreate) },
 	Flags:        flagsCreate,
-	BashComplete: func(_ *cli.Context) { openstack.BashComplete(flagsCreate) },
+	BashComplete: func(_ *cli.Context) { util.CompleteFlags(flagsCreate) },
 }
 
-func (c *commandCreate) Flags() []cli.Flag {
+func (c *CommandCreate) Flags() []cli.Flag {
 	return []cli.Flag{
 		cli.StringFlag{
 			Name:  "name",
@@ -58,13 +57,12 @@ func (c *commandCreate) Flags() []cli.Flag {
 	}
 }
 
-func (c *commandCreate) Fields() []string {
+func (c *CommandCreate) Fields() []string {
 	return []string{""}
 }
 
-func (c *commandCreate) HandleFlags() error {
+func (c *CommandCreate) HandleFlags() error {
 	c.Wait = c.Context.IsSet("wait")
-	c.Quiet = c.Context.IsSet("quiet")
 
 	opts := &containers.CreateOpts{
 		ContainerRead:  c.Context.String("container-read"),
@@ -84,32 +82,25 @@ func (c *commandCreate) HandleFlags() error {
 	return nil
 }
 
-func (c *commandCreate) HandlePipe(item string) (interface{}, error) {
+func (c *CommandCreate) HandlePipe(item string) (interface{}, error) {
 	return item, nil
 }
 
-func (c *commandCreate) HandleSingle() (interface{}, error) {
+func (c *CommandCreate) HandleSingle() (interface{}, error) {
 	return c.Context.String("name"), c.CheckFlagsSet([]string{"name"})
 }
 
-func (c *commandCreate) Execute(in, out chan interface{}) {
-	defer close(out)
-	for item := range in {
-		var m map[string]interface{}
-		err := containers.Create(c.ServiceClient, item.(string), c.opts).ExtractInto(&m)
-		switch err {
-		case nil:
-			out <- fmt.Sprintf("Successfully created container [%s]", item.(string))
-		default:
-			out <- err
-		}
+func (c *CommandCreate) Execute(item interface{}, out chan interface{}) {
+	var m map[string]interface{}
+	err := containers.Create(c.ServiceClient, item.(string), c.opts).ExtractInto(&m)
+	switch err {
+	case nil:
+		out <- fmt.Sprintf("Successfully created container [%s]", item.(string))
+	default:
+		out <- err
 	}
 }
 
-func (c *commandCreate) PipeFieldOptions() []string {
+func (c *CommandCreate) PipeFieldOptions() []string {
 	return []string{"name"}
-}
-
-func (c *commandCreate) ExecuteAndWait(in, out chan interface{}) {
-	openstack.ExecuteAndWait(c, in, out)
 }
