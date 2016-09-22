@@ -56,6 +56,10 @@ func (c *CommandList) Flags() []cli.Flag {
 }
 
 func (c *CommandList) Fields() []string {
+	return []string{""}
+}
+
+func (c *CommandList) DefaultTableFields() []string {
 	return []string{"name", "count", "bytes"}
 }
 

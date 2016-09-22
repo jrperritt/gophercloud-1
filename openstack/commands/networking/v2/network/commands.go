@@ -19,7 +19,7 @@ func (_ NetworkV2Command) ServiceType() string {
 // Get returns all the commands allowed for a `networking newtork` v2 request.
 func Get() []cli.Command {
 	return []cli.Command{
-		//list,
+		list,
 		//get,
 		//update,
 		create,
