@@ -12,6 +12,10 @@ import (
 	"github.com/gophercloud/cli/util"
 )
 
+/*
+TODO (jrp): investigate cache poisoning
+*/
+
 // Cache represents a place to store user authentication credentials.
 type Cache struct {
 	items map[string]CacheItem

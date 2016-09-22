@@ -5,6 +5,7 @@ import (
 
 	"github.com/gophercloud/cli/openstack/commands/compute"
 	"github.com/gophercloud/cli/openstack/commands/files"
+	"github.com/gophercloud/cli/openstack/commands/networking"
 	"github.com/gophercloud/cli/setup"
 	"gopkg.in/urfave/cli.v1"
 )
@@ -47,5 +48,10 @@ var commands = []cli.Command{
 		Name:        "files",
 		Usage:       "Object storage for files and media.",
 		Subcommands: files.Get(),
+	},
+	{
+		Name:        "networking",
+		Usage:       "Software-defined networks, subnets, LBs, and more.",
+		Subcommands: networking.Get(),
 	},
 }
