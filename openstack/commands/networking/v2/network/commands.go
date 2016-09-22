@@ -23,6 +23,6 @@ func Get() []cli.Command {
 		//get,
 		//update,
 		create,
-		//remove,
+		remove,
 	}
 }

@@ -74,12 +74,12 @@ func (c *CommandCreate) HandleFlags() error {
 	}
 
 	c.opts = opts
+	c.Wait = c.Context.IsSet("wait")
 
 	return nil
 }
 
 func (c *CommandCreate) HandlePipe(item string) (interface{}, error) {
-	c.Wait = c.Context.IsSet("wait")
 	return item, nil
 }
 
