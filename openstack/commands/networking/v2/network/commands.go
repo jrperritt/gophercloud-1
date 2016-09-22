@@ -20,7 +20,7 @@ func (_ NetworkV2Command) ServiceType() string {
 func Get() []cli.Command {
 	return []cli.Command{
 		list,
-		//get,
+		get,
 		//update,
 		create,
 		remove,
