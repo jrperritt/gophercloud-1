@@ -1,6 +1,8 @@
 package network
 
 import (
+	"fmt"
+
 	"github.com/gophercloud/cli/openstack"
 	"github.com/gophercloud/cli/util"
 	"github.com/gophercloud/gophercloud"
@@ -41,17 +43,17 @@ func (c *CommandList) Flags() []cli.Flag {
 			Name:  "name",
 			Usage: "Only list networks with this name.",
 		},
-		cli.BoolFlag{
+		cli.StringFlag{
 			Name:  "up",
-			Usage: "Only list networks that are up or not",
+			Usage: "[optional] If provided, the network will be up. Options are: true, false",
+		},
+		cli.StringFlag{
+			Name:  "shared",
+			Usage: "[optional] If provided, the network is shared among all tenants. Options are: true, false",
 		},
 		cli.StringFlag{
 			Name:  "tenant-id",
 			Usage: "Only list networks that are owned by the tenant with this tenant ID.",
-		},
-		cli.BoolFlag{
-			Name:  "shared",
-			Usage: "Only list networks that are shared or not",
 		},
 		cli.StringFlag{
 			Name:  "status",
@@ -86,11 +88,25 @@ func (c *CommandList) HandleFlags() error {
 	}
 
 	if c.Context.IsSet("up") {
-		opts.AdminStateUp = gophercloud.Enabled
+		switch c.Context.String("up") {
+		case "true":
+			opts.AdminStateUp = gophercloud.Enabled
+		case "false":
+			opts.AdminStateUp = gophercloud.Disabled
+		default:
+			return fmt.Errorf("Invalid value for flag `up`: %s. Options are: true, false", c.Context.String("up"))
+		}
 	}
 
 	if c.Context.IsSet("shared") {
-		opts.Shared = gophercloud.Enabled
+		switch c.Context.String("shared") {
+		case "true":
+			opts.Shared = gophercloud.Enabled
+		case "false":
+			opts.Shared = gophercloud.Disabled
+		default:
+			return fmt.Errorf("Invalid value for flag `shared`: %s. Options are: true, false", c.Context.String("shared"))
+		}
 	}
 
 	c.allPages = c.Context.IsSet("all-pages")

@@ -24,7 +24,7 @@ var (
 
 var remove = cli.Command{
 	Name:         "delete",
-	Usage:        util.Usage(commandPrefix, "delete", "[--id <networkID> | --stdin id]"),
+	Usage:        util.Usage(commandPrefix, "delete", "[--id <ID> | --name <NAME> | --stdin id]"),
 	Description:  "Deletes a network",
 	Action:       func(ctx *cli.Context) error { return openstack.Action(ctx, cDelete) },
 	Flags:        flagsDelete,

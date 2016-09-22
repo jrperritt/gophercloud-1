@@ -22,7 +22,7 @@ var (
 
 var get = cli.Command{
 	Name:         "get",
-	Usage:        util.Usage(commandPrefix, "get", "[--id <networkID> | --stdin id]"),
+	Usage:        util.Usage(commandPrefix, "get", "[--id <ID> | --name <NAME> | --stdin id]"),
 	Description:  "Gets a network",
 	Action:       func(ctx *cli.Context) error { return openstack.Action(ctx, cGet) },
 	Flags:        flagsGet,
