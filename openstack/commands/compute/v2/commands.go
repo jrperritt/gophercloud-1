@@ -2,7 +2,7 @@ package v2
 
 import (
 	"github.com/gophercloud/cli/openstack/commands/compute/v2/flavor"
-	"github.com/gophercloud/cli/openstack/commands/compute/v2/instance"
+	"github.com/gophercloud/cli/openstack/commands/compute/v2/server"
 	"gopkg.in/urfave/cli.v1"
 )
 
@@ -12,7 +12,7 @@ func Get() []cli.Command {
 		{
 			Name:        "server",
 			Usage:       "Virtual and bare metal servers.",
-			Subcommands: instance.Get(),
+			Subcommands: server.Get(),
 		},
 		{
 			Name:        "flavor",

@@ -1,4 +1,4 @@
-package instance
+package server
 
 import (
 	"github.com/gophercloud/cli/openstack"
@@ -22,7 +22,7 @@ var (
 
 var update = cli.Command{
 	Name:         "update",
-	Usage:        util.Usage(commandPrefix, "update", "[--id <serverID> | --name <serverName>]"),
+	Usage:        util.Usage(CommandPrefix, "update", "[--id <serverID> | --name <serverName>]"),
 	Description:  "Updates a server",
 	Action:       func(ctx *cli.Context) error { return openstack.Action(ctx, cUpdate) },
 	Flags:        flagsUpdate,

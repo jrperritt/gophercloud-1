@@ -1,4 +1,4 @@
-package instance
+package server
 
 import (
 	"fmt"
@@ -12,7 +12,9 @@ import (
 
 type CommandDelete struct {
 	ServerV2Command
-	commands.TextProgressCommand
+	commands.Waitable
+	commands.TextProgressable
+	commands.MsgResp
 }
 
 var (
@@ -25,7 +27,7 @@ var (
 
 var remove = cli.Command{
 	Name:         "delete",
-	Usage:        util.Usage(commandPrefix, "delete", "[--id <serverID> | --name <serverName> | --stdin id]"),
+	Usage:        util.Usage(CommandPrefix, "delete", "[--id <serverID> | --name <serverName> | --stdin id]"),
 	Description:  "Deletes a server",
 	Action:       func(ctx *cli.Context) error { return openstack.Action(ctx, cDelete) },
 	Flags:        flagsDelete,
@@ -104,5 +106,5 @@ func (c *CommandDelete) InitProgress() {
 	c.ProgressInfo = openstack.NewProgressInfo(2)
 	c.RunningMsg = "Deleting"
 	c.DoneMsg = "Deleted"
-	c.ProgressCommand.InitProgress()
+	c.Progressable.InitProgress()
 }

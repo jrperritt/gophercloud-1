@@ -1,4 +1,4 @@
-package instance
+package server
 
 import (
 	"github.com/gophercloud/cli/openstack"
@@ -10,7 +10,9 @@ import (
 
 type CommandGet struct {
 	ServerV2Command
-	commands.WaitCommand
+	commands.Pipeable
+	commands.Waitable
+	commands.DataResp
 }
 
 var (
@@ -22,7 +24,7 @@ var (
 
 var get = cli.Command{
 	Name:         "get",
-	Usage:        util.Usage(commandPrefix, "get", "[--id <serverID> | --name <serverName> | --stdin id]"),
+	Usage:        util.Usage(CommandPrefix, "get", "[--id <serverID> | --name <serverName> | --stdin id]"),
 	Description:  "Gets a server",
 	Action:       func(ctx *cli.Context) error { return openstack.Action(ctx, cGet) },
 	Flags:        flagsGet,
@@ -46,18 +48,6 @@ func (c *CommandGet) Flags() []cli.Flag {
 	}
 }
 
-func (c *CommandGet) Fields() []string {
-	return []string{""}
-}
-
-func (c *CommandGet) HandleFlags() error {
-	return nil
-}
-
-func (c *CommandGet) HandlePipe(item string) (interface{}, error) {
-	return item, nil
-}
-
 func (c *CommandGet) HandleSingle() (interface{}, error) {
 	return c.IDOrName(servers.IDFromName)
 }
@@ -72,8 +62,4 @@ func (c *CommandGet) Execute(item interface{}, out chan interface{}) {
 	default:
 		out <- err
 	}
-}
-
-func (c *CommandGet) PipeFieldOptions() []string {
-	return []string{"id"}
 }

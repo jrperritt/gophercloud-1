@@ -10,7 +10,7 @@ import (
 
 type CommandGet struct {
 	FlavorV2Command
-	commands.WaitCommand
+	commands.Waitable
 }
 
 var (

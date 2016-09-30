@@ -1,4 +1,4 @@
-package instance
+package server
 
 import (
 	"fmt"
@@ -13,7 +13,7 @@ import (
 
 type CommandDeleteMetadata struct {
 	ServerV2Command
-	commands.WaitCommand
+	commands.Waitable
 	opts []string
 }
 
@@ -26,7 +26,7 @@ var (
 
 var deleteMetadata = cli.Command{
 	Name:         "delete-metadata",
-	Usage:        util.Usage(commandPrefix, "delete-metadata", "[--id <serverID> | --name <serverName> | --stdin id]"),
+	Usage:        util.Usage(CommandPrefix, "delete-metadata", "[--id <serverID> | --name <serverName> | --stdin id]"),
 	Description:  "Deletes metadata associated with a server",
 	Action:       func(ctx *cli.Context) error { return openstack.Action(ctx, cDeleteMetadata) },
 	Flags:        flagsDeleteMetadata,

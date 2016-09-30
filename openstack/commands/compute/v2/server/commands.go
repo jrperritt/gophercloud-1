@@ -1,4 +1,4 @@
-package instance
+package server
 
 import (
 	"github.com/gophercloud/cli/openstack/commands"
@@ -6,7 +6,7 @@ import (
 )
 
 var (
-	commandPrefix = "compute server"
+	CommandPrefix = "compute server"
 )
 
 type ServerV2Command struct {

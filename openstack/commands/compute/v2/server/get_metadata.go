@@ -1,4 +1,4 @@
-package instance
+package server
 
 import (
 	"github.com/gophercloud/cli/openstack"
@@ -10,7 +10,7 @@ import (
 
 type CommandGetMetadata struct {
 	ServerV2Command
-	commands.WaitCommand
+	commands.Waitable
 	opts []string
 }
 
@@ -23,7 +23,7 @@ var (
 
 var getMetadata = cli.Command{
 	Name:         "get-metadata",
-	Usage:        util.Usage(commandPrefix, "get-metadata", "[--id <serverID> | --name <serverName> | --stdin id]"),
+	Usage:        util.Usage(CommandPrefix, "get-metadata", "[--id <serverID> | --name <serverName> | --stdin id]"),
 	Description:  "Gets metadata associated with a server",
 	Action:       func(ctx *cli.Context) error { return openstack.Action(ctx, cGetMetadata) },
 	Flags:        flagsGetMetadata,

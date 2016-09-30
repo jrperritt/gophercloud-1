@@ -1,4 +1,4 @@
-package instance
+package server
 
 import (
 	"fmt"
@@ -12,7 +12,9 @@ import (
 
 type CommandReboot struct {
 	ServerV2Command
-	commands.TextProgressCommand
+	commands.Waitable
+	commands.TextProgressable
+	commands.MsgResp
 	opts servers.RebootOptsBuilder
 }
 
@@ -26,7 +28,7 @@ var (
 
 var reboot = cli.Command{
 	Name:         "reboot",
-	Usage:        util.Usage(commandPrefix, "reboot", "[--id <serverID> | --name <serverName> | --stdin id] [--soft | --hard]"),
+	Usage:        util.Usage(CommandPrefix, "reboot", "[--id <serverID> | --name <serverName> | --stdin id] [--soft | --hard]"),
 	Description:  "Reboots a server",
 	Action:       func(ctx *cli.Context) error { return openstack.Action(ctx, cReboot) },
 	Flags:        flagsReboot,
@@ -139,5 +141,5 @@ func (c *CommandReboot) InitProgress() {
 	c.ProgressInfo = openstack.NewProgressInfo(2)
 	c.RunningMsg = "Rebooting"
 	c.DoneMsg = "Rebooted"
-	c.ProgressCommand.InitProgress()
+	c.Progressable.InitProgress()
 }

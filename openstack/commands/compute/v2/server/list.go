@@ -1,9 +1,8 @@
-package instance
+package server
 
 import (
-	"reflect"
-
 	"github.com/gophercloud/cli/openstack"
+	"github.com/gophercloud/cli/openstack/commands"
 	"github.com/gophercloud/cli/util"
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/servers"
 	"github.com/gophercloud/gophercloud/pagination"
@@ -12,8 +11,9 @@ import (
 
 type CommandList struct {
 	ServerV2Command
-	opts     servers.ListOptsBuilder
-	allPages bool
+	commands.Waitable
+	commands.DataResp
+	opts servers.ListOptsBuilder
 }
 
 var (
@@ -21,7 +21,7 @@ var (
 	flagsList = openstack.CommandFlags(cList)
 	list      = cli.Command{
 		Name:         "list",
-		Usage:        util.Usage(commandPrefix, "list", ""),
+		Usage:        util.Usage(CommandPrefix, "list", ""),
 		Description:  "Lists existing servers",
 		Action:       func(ctx *cli.Context) error { return openstack.Action(ctx, cList) },
 		Flags:        flagsList,
@@ -31,10 +31,6 @@ var (
 
 func (c *CommandList) Flags() []cli.Flag {
 	return []cli.Flag{
-		cli.BoolFlag{
-			Name:  "all-pages",
-			Usage: "[optional] Return all servers. Default is to paginate.",
-		},
 		cli.StringFlag{
 			Name:  "name",
 			Usage: "[optional] Only list servers with this name.",
@@ -70,10 +66,6 @@ func (c *CommandList) Flags() []cli.Flag {
 	}
 }
 
-func (c *CommandList) Fields() []string {
-	return []string{""}
-}
-
 func (c *CommandList) DefaultTableFields() []string {
 	return []string{"id", "name", "status", "accessIPv4", "image", "flavor"}
 }
@@ -90,40 +82,21 @@ func (c *CommandList) HandleFlags() error {
 		Limit:        c.Context.Int("limit"),
 		AllTenants:   c.Context.IsSet("all-tenants"),
 	}
-	c.allPages = c.Context.IsSet("all-pages")
 	return nil
 }
 
 func (c *CommandList) Execute(_ interface{}, out chan interface{}) {
-	pager := servers.List(c.ServiceClient, c.opts)
-	switch c.allPages {
-	case true:
-		page, err := pager.AllPages()
-		if err != nil {
-			out <- err
-			return
-		}
+	err := servers.List(c.ServiceClient, c.opts).EachPage(func(page pagination.Page) (bool, error) {
 		var tmp map[string][]map[string]interface{}
-		err = (page.(servers.ServerPage)).ExtractInto(&tmp)
-		switch err {
-		case nil:
-			out <- tmp["servers"]
-		default:
-			out <- err
-		}
-	default:
-		err := pager.EachPage(func(page pagination.Page) (bool, error) {
-			var tmp map[string][]map[string]interface{}
-			err := (page.(servers.ServerPage)).ExtractInto(&tmp)
-			if err != nil {
-				return false, err
-			}
-			out <- tmp["servers"]
-			return true, nil
-		})
+		err := (page.(servers.ServerPage)).ExtractInto(&tmp)
 		if err != nil {
-			out <- err
+			return false, err
 		}
+		out <- tmp["servers"]
+		return true, nil
+	})
+	if err != nil {
+		out <- err
 	}
 }
 
@@ -142,10 +115,6 @@ func (c *CommandList) PreTable(rawServers interface{}) error {
 						rawServer["flavor"] = flavorMap["id"]
 						rawServers[i] = rawServer
 					}
-				}
-				switch reflect.ValueOf(v).Kind() {
-				case reflect.Map, reflect.Slice, reflect.Struct:
-					delete(rawServer, k)
 				}
 			}
 		}

@@ -1,4 +1,4 @@
-package instance
+package server
 
 import (
 	"fmt"
@@ -19,7 +19,10 @@ import (
 
 type CommandCreate struct {
 	ServerV2Command
-	commands.ProgressCommand
+	commands.Waitable
+	commands.Pipeable
+	commands.Progressable
+	commands.DataResp
 	opts servers.CreateOptsBuilder
 }
 
@@ -33,7 +36,7 @@ var (
 
 var create = cli.Command{
 	Name:         "create",
-	Usage:        util.Usage(commandPrefix, "create", "[--name <name> | --stdin name] \n\t [--image-id <imageID> | --image-name <imageName>] [--flavor-id <flavorID> | --flavor-name <flavorName]"),
+	Usage:        util.Usage(CommandPrefix, "create", "[--name <name> | --stdin name] \n\t [--image-id <imageID> | --image-name <imageName>] [--flavor-id <flavorID> | --flavor-name <flavorName]"),
 	Description:  "Creates a server",
 	Action:       func(ctx *cli.Context) error { return openstack.Action(ctx, cCreate) },
 	Flags:        flagsCreate,
@@ -133,10 +136,6 @@ var flagsCreateExt = []cli.Flag{
 			"\tExamle: --block-device source-type=image,source-id=bb02b1a3-bc77-4d17-ab5b-421d89850fca,volume-size=100,destination-type=volume,delete-on-termination=false",
 		}, "\n"),
 	},
-}
-
-func (c *CommandCreate) Fields() []string {
-	return []string{""}
 }
 
 func (c *CommandCreate) HandleFlags() error {
@@ -304,10 +303,6 @@ func (c *CommandCreate) HandleFlags() error {
 	return nil
 }
 
-func (c *CommandCreate) HandlePipe(item string) (interface{}, error) {
-	return item, nil
-}
-
 func (c *CommandCreate) HandleSingle() (interface{}, error) {
 	return c.Context.String("name"), c.CheckFlagsSet([]string{"name"})
 }
@@ -365,7 +360,7 @@ func (c *CommandCreate) WaitFor(raw interface{}) {
 
 func (c *CommandCreate) InitProgress() {
 	c.ProgressInfo = openstack.NewProgressInfo(0)
-	c.ProgressCommand.InitProgress()
+	c.Progressable.InitProgress()
 }
 
 func (c *CommandCreate) BarID(raw interface{}) string {

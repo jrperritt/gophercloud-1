@@ -1,4 +1,4 @@
-package instance
+package server
 
 import (
 	"fmt"
@@ -14,7 +14,9 @@ import (
 
 type CommandRebuild struct {
 	ServerV2Command
-	commands.ProgressCommand
+	commands.Waitable
+	commands.Progressable
+	commands.DataResp
 	opts servers.RebuildOptsBuilder
 }
 
@@ -28,7 +30,7 @@ var (
 
 var rebuild = cli.Command{
 	Name:         "rebuild",
-	Usage:        util.Usage(commandPrefix, "rebuild", "[--id <serverID> | --name <serverName> | --stdin id] [--image-id | --image-name]"),
+	Usage:        util.Usage(CommandPrefix, "rebuild", "[--id <serverID> | --name <serverName> | --stdin id] [--image-id | --image-name]"),
 	Description:  "Rebuilds a server",
 	Action:       func(ctx *cli.Context) error { return openstack.Action(ctx, cRebuild) },
 	Flags:        flagsRebuild,
@@ -88,10 +90,6 @@ func (c *CommandRebuild) Flags() []cli.Flag {
 				"\tExample: --personality \"C:\\cloud-automation\\bootstrap.cmd=open_hatch.cmd\"",
 		},
 	}
-}
-
-func (c *CommandRebuild) Fields() []string {
-	return []string{""}
 }
 
 func (c *CommandRebuild) HandleFlags() error {
@@ -233,7 +231,7 @@ func (c *CommandRebuild) InitProgress() {
 	c.ProgressInfo = openstack.NewProgressInfo(2)
 	c.ProgressInfo.RunningMsg = "Rebuilding"
 	c.ProgressInfo.DoneMsg = "Rebuilt"
-	c.ProgressCommand.InitProgress()
+	c.Progressable.InitProgress()
 }
 
 func (c *CommandRebuild) BarID(raw interface{}) string {

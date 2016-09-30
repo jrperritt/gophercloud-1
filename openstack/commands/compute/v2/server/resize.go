@@ -1,4 +1,4 @@
-package instance
+package server
 
 import (
 	"fmt"
@@ -13,7 +13,8 @@ import (
 
 type CommandResize struct {
 	ServerV2Command
-	commands.TextProgressCommand
+	commands.Waitable
+	commands.TextProgressable
 	opts servers.ResizeOptsBuilder
 }
 
@@ -27,7 +28,7 @@ var (
 
 var resize = cli.Command{
 	Name:         "resize",
-	Usage:        util.Usage(commandPrefix, "resize", "[--id <serverID> | --name <serverName> | --stdin id] [--flavor-id | --flavor-name]"),
+	Usage:        util.Usage(CommandPrefix, "resize", "[--id <serverID> | --name <serverName> | --stdin id] [--flavor-id | --flavor-name]"),
 	Description:  "Resizes a server",
 	Action:       func(ctx *cli.Context) error { return openstack.Action(ctx, cResize) },
 	Flags:        flagsResize,
@@ -141,5 +142,5 @@ func (c *CommandResize) InitProgress() {
 	c.ProgressInfo = openstack.NewProgressInfo(2)
 	c.RunningMsg = "Resizing"
 	c.DoneMsg = "Resized"
-	c.ProgressCommand.InitProgress()
+	c.Progressable.InitProgress()
 }
