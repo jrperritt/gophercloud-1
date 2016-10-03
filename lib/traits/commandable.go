@@ -1,4 +1,4 @@
-package commands
+package traits
 
 import (
 	"fmt"
@@ -9,28 +9,28 @@ import (
 	"gopkg.in/urfave/cli.v1"
 )
 
-type Command struct {
+type Commandable struct {
 	Context       *cli.Context
 	ServiceClient *gophercloud.ServiceClient
 }
 
-func (c *Command) SetContext(ctx *cli.Context) error {
+func (c *Commandable) SetContext(ctx *cli.Context) error {
 	c.Context = ctx
 	return nil
 }
 
-func (c *Command) SetServiceClient(sc *gophercloud.ServiceClient) error {
+func (c *Commandable) SetServiceClient(sc *gophercloud.ServiceClient) error {
 	c.ServiceClient = sc
 	return nil
 }
 
-func (c *Command) HandleFlags() error {
+func (c *Commandable) HandleFlags() error {
 	return nil
 }
 
 // IDOrName is a function for retrieving a resource's unique identifier based on
 // whether an `id` or a `name` flag was provided
-func (c *Command) IDOrName(idFromNameFunc func(*gophercloud.ServiceClient, string) (string, error)) (string, error) {
+func (c *Commandable) IDOrName(idFromNameFunc func(*gophercloud.ServiceClient, string) (string, error)) (string, error) {
 	switch c.Context.IsSet("id") {
 	case true:
 		switch c.Context.IsSet("name") {
@@ -51,7 +51,7 @@ func (c *Command) IDOrName(idFromNameFunc func(*gophercloud.ServiceClient, strin
 }
 
 // CheckFlagsSet checks that the given flag names are set for the command.
-func (c *Command) CheckFlagsSet(flagNames []string) error {
+func (c *Commandable) CheckFlagsSet(flagNames []string) error {
 	for _, flagName := range flagNames {
 		if !c.Context.IsSet(flagName) {
 			return lib.ErrMissingFlag{Msg: fmt.Sprintf("--%s is required.", flagName)}
@@ -61,7 +61,7 @@ func (c *Command) CheckFlagsSet(flagNames []string) error {
 }
 
 // CheckKVFlag is a function used for verifying the format of a key-value flag.
-func (c *Command) ValidateKVFlag(flagName string) (map[string]string, error) {
+func (c *Commandable) ValidateKVFlag(flagName string) (map[string]string, error) {
 	kv := make(map[string]string)
 	kvStrings := strings.Split(c.Context.String(flagName), ",")
 	for _, kvString := range kvStrings {
@@ -75,7 +75,7 @@ func (c *Command) ValidateKVFlag(flagName string) (map[string]string, error) {
 }
 
 // CheckStructFlag is a function used for verifying the format of a struct flag.
-func (c *Command) ValidateStructFlag(flagValues []string) ([]map[string]interface{}, error) {
+func (c *Commandable) ValidateStructFlag(flagValues []string) ([]map[string]interface{}, error) {
 	valSliceMap := make([]map[string]interface{}, len(flagValues))
 	for i, flagValue := range flagValues {
 		kvStrings := strings.Split(flagValue, ",")

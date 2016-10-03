@@ -3,8 +3,8 @@ package container
 import (
 	"fmt"
 
+	"github.com/gophercloud/cli/lib/traits"
 	"github.com/gophercloud/cli/openstack"
-	"github.com/gophercloud/cli/openstack/commands"
 	"github.com/gophercloud/cli/util"
 	"github.com/gophercloud/gophercloud/openstack/objectstorage/v1/containers"
 	"gopkg.in/urfave/cli.v1"
@@ -12,7 +12,7 @@ import (
 
 type CommandUpdate struct {
 	ContainerV1Command
-	commands.Waitable
+	traits.Waitable
 	name string
 	opts containers.UpdateOptsBuilder
 }

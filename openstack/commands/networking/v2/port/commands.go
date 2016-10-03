@@ -1,19 +1,16 @@
 package port
 
 import (
-	"github.com/gophercloud/cli/openstack/commands"
+	"github.com/gophercloud/cli/lib/traits"
 	"gopkg.in/urfave/cli.v1"
 )
 
 var CommandPrefix = "networking port"
 
 type PortV2Command struct {
-	commands.Command
+	traits.Commandable
+	traits.Networkingable
 	name string
-}
-
-func (_ PortV2Command) ServiceType() string {
-	return "networking"
 }
 
 // Get returns all the commands allowed for a `networking port` v2 request.

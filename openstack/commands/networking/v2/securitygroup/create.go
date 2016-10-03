@@ -1,8 +1,8 @@
 package securitygroup
 
 import (
+	"github.com/gophercloud/cli/lib/traits"
 	"github.com/gophercloud/cli/openstack"
-	"github.com/gophercloud/cli/openstack/commands"
 	"github.com/gophercloud/cli/util"
 	"github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/security/groups"
 	"gopkg.in/urfave/cli.v1"
@@ -10,9 +10,9 @@ import (
 
 type CommandCreate struct {
 	SecurityGroupV2Command
-	commands.Pipeable
-	commands.Waitable
-	commands.DataResp
+	traits.Pipeable
+	traits.Waitable
+	traits.DataResp
 	opts groups.CreateOptsBuilder
 }
 

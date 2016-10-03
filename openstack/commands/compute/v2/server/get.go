@@ -1,8 +1,8 @@
 package server
 
 import (
+	"github.com/gophercloud/cli/lib/traits"
 	"github.com/gophercloud/cli/openstack"
-	"github.com/gophercloud/cli/openstack/commands"
 	"github.com/gophercloud/cli/util"
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/servers"
 	"gopkg.in/urfave/cli.v1"
@@ -10,9 +10,9 @@ import (
 
 type CommandGet struct {
 	ServerV2Command
-	commands.Pipeable
-	commands.Waitable
-	commands.DataResp
+	traits.Pipeable
+	traits.Waitable
+	traits.DataResp
 }
 
 var (

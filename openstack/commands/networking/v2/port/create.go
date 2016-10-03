@@ -1,8 +1,8 @@
 package port
 
 import (
+	"github.com/gophercloud/cli/lib/traits"
 	"github.com/gophercloud/cli/openstack"
-	"github.com/gophercloud/cli/openstack/commands"
 	"github.com/gophercloud/cli/util"
 	"github.com/gophercloud/gophercloud"
 	"github.com/gophercloud/gophercloud/openstack/networking/v2/ports"
@@ -11,8 +11,8 @@ import (
 
 type CommandCreate struct {
 	PortV2Command
-	commands.Waitable
-	commands.DataResp
+	traits.Waitable
+	traits.DataResp
 	opts ports.CreateOptsBuilder
 }
 

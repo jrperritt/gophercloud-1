@@ -2,6 +2,7 @@ package v2
 
 import (
 	"github.com/gophercloud/cli/openstack/commands/compute/v2/flavor"
+	"github.com/gophercloud/cli/openstack/commands/compute/v2/keypair"
 	"github.com/gophercloud/cli/openstack/commands/compute/v2/server"
 	"gopkg.in/urfave/cli.v1"
 )
@@ -18,6 +19,11 @@ func Get() []cli.Command {
 			Name:        "flavor",
 			Usage:       "Server flavors (options for operating system and architecture)",
 			Subcommands: flavor.Get(),
+		},
+		{
+			Name:        "keypair",
+			Usage:       "SSH keypairs for accessing servers.",
+			Subcommands: keypair.Get(),
 		},
 	}
 }

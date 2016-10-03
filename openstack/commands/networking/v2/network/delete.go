@@ -3,8 +3,8 @@ package network
 import (
 	"fmt"
 
+	"github.com/gophercloud/cli/lib/traits"
 	"github.com/gophercloud/cli/openstack"
-	"github.com/gophercloud/cli/openstack/commands"
 	"github.com/gophercloud/cli/util"
 	"github.com/gophercloud/gophercloud/openstack/networking/v2/networks"
 	"gopkg.in/urfave/cli.v1"
@@ -12,8 +12,8 @@ import (
 
 type CommandDelete struct {
 	NetworkV2Command
-	commands.Waitable
-	commands.Pipeable
+	traits.Waitable
+	traits.Pipeable
 }
 
 var (

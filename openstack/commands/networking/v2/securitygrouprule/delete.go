@@ -3,8 +3,8 @@ package securitygrouprule
 import (
 	"fmt"
 
+	"github.com/gophercloud/cli/lib/traits"
 	"github.com/gophercloud/cli/openstack"
-	"github.com/gophercloud/cli/openstack/commands"
 	"github.com/gophercloud/cli/util"
 	"github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/security/rules"
 	"gopkg.in/urfave/cli.v1"
@@ -12,8 +12,8 @@ import (
 
 type CommandDelete struct {
 	SecurityGroupRuleV2Command
-	commands.Pipeable
-	commands.Waitable
+	traits.Pipeable
+	traits.Waitable
 }
 
 var (

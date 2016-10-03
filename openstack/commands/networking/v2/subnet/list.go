@@ -3,8 +3,8 @@ package subnet
 import (
 	"fmt"
 
+	"github.com/gophercloud/cli/lib/traits"
 	"github.com/gophercloud/cli/openstack"
-	"github.com/gophercloud/cli/openstack/commands"
 	"github.com/gophercloud/cli/util"
 	"github.com/gophercloud/gophercloud"
 	"github.com/gophercloud/gophercloud/openstack/networking/v2/networks"
@@ -15,8 +15,8 @@ import (
 
 type CommandList struct {
 	SubnetV2Command
-	commands.Waitable
-	commands.DataResp
+	traits.Waitable
+	traits.DataResp
 	opts subnets.ListOptsBuilder
 }
 

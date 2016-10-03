@@ -1,4 +1,4 @@
-package commands
+package traits
 
 import (
 	"github.com/gophercloud/cli/openstack"

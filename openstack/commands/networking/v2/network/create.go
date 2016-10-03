@@ -1,8 +1,8 @@
 package network
 
 import (
+	"github.com/gophercloud/cli/lib/traits"
 	"github.com/gophercloud/cli/openstack"
-	"github.com/gophercloud/cli/openstack/commands"
 	"github.com/gophercloud/cli/util"
 	"github.com/gophercloud/gophercloud"
 	"github.com/gophercloud/gophercloud/openstack/networking/v2/networks"
@@ -11,8 +11,8 @@ import (
 
 type CommandCreate struct {
 	NetworkV2Command
-	commands.Pipeable
-	commands.Waitable
+	traits.Pipeable
+	traits.Waitable
 	opts networks.CreateOptsBuilder
 }
 

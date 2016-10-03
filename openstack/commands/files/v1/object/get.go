@@ -1,8 +1,8 @@
 package object
 
 import (
+	"github.com/gophercloud/cli/lib/traits"
 	"github.com/gophercloud/cli/openstack"
-	"github.com/gophercloud/cli/openstack/commands"
 	"github.com/gophercloud/cli/util"
 	"github.com/gophercloud/gophercloud/openstack/objectstorage/v1/objects"
 	"gopkg.in/urfave/cli.v1"
@@ -10,7 +10,7 @@ import (
 
 type commandGet struct {
 	ObjectV1Command
-	commands.Waitable
+	traits.Waitable
 }
 
 var (

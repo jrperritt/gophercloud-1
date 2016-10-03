@@ -3,8 +3,8 @@ package network
 import (
 	"fmt"
 
+	"github.com/gophercloud/cli/lib/traits"
 	"github.com/gophercloud/cli/openstack"
-	"github.com/gophercloud/cli/openstack/commands"
 	"github.com/gophercloud/cli/util"
 	"github.com/gophercloud/gophercloud"
 	"github.com/gophercloud/gophercloud/openstack/networking/v2/networks"
@@ -13,7 +13,7 @@ import (
 
 type CommandUpdate struct {
 	NetworkV2Command
-	commands.Waitable
+	traits.Waitable
 	opts networks.UpdateOptsBuilder
 }
 

@@ -1,8 +1,8 @@
 package subnet
 
 import (
+	"github.com/gophercloud/cli/lib/traits"
 	"github.com/gophercloud/cli/openstack"
-	"github.com/gophercloud/cli/openstack/commands"
 	"github.com/gophercloud/cli/util"
 	"github.com/gophercloud/gophercloud/openstack/networking/v2/networks"
 	"gopkg.in/urfave/cli.v1"
@@ -10,7 +10,7 @@ import (
 
 type CommandGet struct {
 	SubnetV2Command
-	commands.Waitable
+	traits.Waitable
 }
 
 var (

@@ -1,7 +1,7 @@
 package server
 
 import (
-	"github.com/gophercloud/cli/openstack/commands"
+	"github.com/gophercloud/cli/lib/traits"
 	"gopkg.in/urfave/cli.v1"
 )
 
@@ -10,11 +10,8 @@ var (
 )
 
 type ServerV2Command struct {
-	commands.Command
-}
-
-func (c *ServerV2Command) ServiceType() string {
-	return "compute"
+	traits.Commandable
+	traits.Computeable
 }
 
 // Get returns all the commands allowed for a `compute server` v2 request.

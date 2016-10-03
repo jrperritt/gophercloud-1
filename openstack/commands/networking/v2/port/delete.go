@@ -3,8 +3,8 @@ package port
 import (
 	"fmt"
 
+	"github.com/gophercloud/cli/lib/traits"
 	"github.com/gophercloud/cli/openstack"
-	"github.com/gophercloud/cli/openstack/commands"
 	"github.com/gophercloud/cli/util"
 	"github.com/gophercloud/gophercloud/openstack/networking/v2/ports"
 	"gopkg.in/urfave/cli.v1"
@@ -12,7 +12,7 @@ import (
 
 type CommandDelete struct {
 	PortV2Command
-	commands.Waitable
+	traits.Waitable
 }
 
 var (

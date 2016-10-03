@@ -1,8 +1,8 @@
 package object
 
 import (
+	"github.com/gophercloud/cli/lib/traits"
 	"github.com/gophercloud/cli/openstack"
-	"github.com/gophercloud/cli/openstack/commands"
 	"github.com/gophercloud/cli/util"
 	"github.com/gophercloud/gophercloud/openstack/objectstorage/v1/objects"
 	"github.com/gophercloud/gophercloud/pagination"
@@ -11,9 +11,9 @@ import (
 
 type commandList struct {
 	ObjectV1Command
-	commands.Pipeable
-	commands.Waitable
-	commands.DataResp
+	traits.Pipeable
+	traits.Waitable
+	traits.DataResp
 	opts objects.ListOptsBuilder
 }
 

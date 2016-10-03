@@ -1,19 +1,16 @@
 package securitygroup
 
 import (
-	"github.com/gophercloud/cli/openstack/commands"
+	"github.com/gophercloud/cli/lib/traits"
 	"gopkg.in/urfave/cli.v1"
 )
 
 var commandPrefix = "networking security-group"
 
 type SecurityGroupV2Command struct {
-	commands.Command
+	traits.Commandable
+	traits.Networkingable
 	name string
-}
-
-func (_ SecurityGroupV2Command) ServiceType() string {
-	return "networking"
 }
 
 // Get returns all the commands allowed for a `networking security-group` v2 request.

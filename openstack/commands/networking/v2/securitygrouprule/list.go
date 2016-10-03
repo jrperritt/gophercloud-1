@@ -3,8 +3,8 @@ package securitygrouprule
 import (
 	"fmt"
 
+	"github.com/gophercloud/cli/lib/traits"
 	"github.com/gophercloud/cli/openstack"
-	"github.com/gophercloud/cli/openstack/commands"
 	"github.com/gophercloud/cli/util"
 	"github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/security/rules"
 	"github.com/gophercloud/gophercloud/pagination"
@@ -13,8 +13,8 @@ import (
 
 type CommandList struct {
 	SecurityGroupRuleV2Command
-	commands.Waitable
-	commands.DataResp
+	traits.Waitable
+	traits.DataResp
 	opts rules.ListOpts
 }
 

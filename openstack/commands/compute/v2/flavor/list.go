@@ -1,8 +1,8 @@
 package flavor
 
 import (
+	"github.com/gophercloud/cli/lib/traits"
 	"github.com/gophercloud/cli/openstack"
-	"github.com/gophercloud/cli/openstack/commands"
 	"github.com/gophercloud/cli/util"
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/flavors"
 	"github.com/gophercloud/gophercloud/pagination"
@@ -11,8 +11,8 @@ import (
 
 type commandList struct {
 	FlavorV2Command
-	commands.Waitable
-	commands.DataResp
+	traits.Waitable
+	traits.DataResp
 	opts flavors.ListOptsBuilder
 }
 

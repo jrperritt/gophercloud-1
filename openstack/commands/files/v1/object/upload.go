@@ -7,8 +7,8 @@ import (
 	"reflect"
 	"strings"
 
+	"github.com/gophercloud/cli/lib/traits"
 	"github.com/gophercloud/cli/openstack"
-	"github.com/gophercloud/cli/openstack/commands"
 	"github.com/gophercloud/cli/util"
 	"github.com/gophercloud/gophercloud/openstack/objectstorage/v1/objects"
 	"gopkg.in/urfave/cli.v1"
@@ -16,8 +16,8 @@ import (
 
 type commandUpload struct {
 	ObjectV1Command
-	commands.Waitable
-	commands.Progressable
+	traits.Waitable
+	traits.Progressable
 	opts       objects.CreateOptsBuilder
 	pipedField string
 }

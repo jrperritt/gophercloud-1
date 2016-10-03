@@ -1,8 +1,8 @@
 package container
 
 import (
+	"github.com/gophercloud/cli/lib/traits"
 	"github.com/gophercloud/cli/openstack"
-	"github.com/gophercloud/cli/openstack/commands"
 	"github.com/gophercloud/cli/util"
 	"github.com/gophercloud/gophercloud/openstack/objectstorage/v1/containers"
 	"github.com/gophercloud/gophercloud/pagination"
@@ -11,8 +11,8 @@ import (
 
 type CommandList struct {
 	ContainerV1Command
-	commands.Waitable
-	commands.DataResp
+	traits.Waitable
+	traits.DataResp
 	opts containers.ListOptsBuilder
 }
 

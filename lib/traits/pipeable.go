@@ -1,4 +1,4 @@
-package commands
+package traits
 
 type Pipeable struct{}
 

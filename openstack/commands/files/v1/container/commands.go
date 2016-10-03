@@ -1,19 +1,16 @@
 package container
 
 import (
-	"github.com/gophercloud/cli/openstack/commands"
+	"github.com/gophercloud/cli/lib/traits"
 	"gopkg.in/urfave/cli.v1"
 )
 
 var commandPrefix = "files container"
 
 type ContainerV1Command struct {
-	commands.Command
+	traits.Commandable
+	traits.Filesable
 	name string
-}
-
-func (_ ContainerV1Command) ServiceType() string {
-	return "files"
 }
 
 // Get returns all the commands allowed for a `files container` v1 request.

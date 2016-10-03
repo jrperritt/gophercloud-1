@@ -1,8 +1,8 @@
 package flavor
 
 import (
+	"github.com/gophercloud/cli/lib/traits"
 	"github.com/gophercloud/cli/openstack"
-	"github.com/gophercloud/cli/openstack/commands"
 	"github.com/gophercloud/cli/util"
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/flavors"
 	"gopkg.in/urfave/cli.v1"
@@ -10,7 +10,9 @@ import (
 
 type CommandGet struct {
 	FlavorV2Command
-	commands.Waitable
+	traits.Waitable
+	traits.Pipeable
+	traits.DataResp
 }
 
 var (
@@ -46,18 +48,6 @@ func (c *CommandGet) Flags() []cli.Flag {
 	}
 }
 
-func (c *CommandGet) Fields() []string {
-	return []string{""}
-}
-
-func (c *CommandGet) HandleFlags() error {
-	return nil
-}
-
-func (c *CommandGet) HandlePipe(item string) (interface{}, error) {
-	return item, nil
-}
-
 func (c *CommandGet) HandleSingle() (interface{}, error) {
 	return c.IDOrName(flavors.IDFromName)
 }
@@ -71,8 +61,4 @@ func (c *CommandGet) Execute(item interface{}, out chan interface{}) {
 	default:
 		out <- err
 	}
-}
-
-func (c *CommandGet) PipeFieldOptions() []string {
-	return []string{"id"}
 }

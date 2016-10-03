@@ -13,7 +13,7 @@ import (
 )
 
 /*
-TODO (jrp): investigate cache poisoning
+TODO (jrp): add service version to cache key
 */
 
 // Cache represents a place to store user authentication credentials.

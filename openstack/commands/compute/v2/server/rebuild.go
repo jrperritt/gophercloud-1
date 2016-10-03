@@ -5,8 +5,8 @@ import (
 	"io/ioutil"
 	"path/filepath"
 
+	"github.com/gophercloud/cli/lib/traits"
 	"github.com/gophercloud/cli/openstack"
-	"github.com/gophercloud/cli/openstack/commands"
 	"github.com/gophercloud/cli/util"
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/servers"
 	"gopkg.in/urfave/cli.v1"
@@ -14,9 +14,9 @@ import (
 
 type CommandRebuild struct {
 	ServerV2Command
-	commands.Waitable
-	commands.Progressable
-	commands.DataResp
+	traits.Waitable
+	traits.Progressable
+	traits.DataResp
 	opts servers.RebuildOptsBuilder
 }
 

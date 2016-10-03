@@ -1,19 +1,16 @@
 package network
 
 import (
-	"github.com/gophercloud/cli/openstack/commands"
+	"github.com/gophercloud/cli/lib/traits"
 	"gopkg.in/urfave/cli.v1"
 )
 
 var commandPrefix = "networking newtork"
 
 type NetworkV2Command struct {
-	commands.Command
+	traits.Commandable
+	traits.Networkingable
 	name string
-}
-
-func (_ NetworkV2Command) ServiceType() string {
-	return "networking"
 }
 
 // Get returns all the commands allowed for a `networking network` v2 request.
