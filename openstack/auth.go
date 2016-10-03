@@ -68,35 +68,32 @@ func AuthFromScratch() error {
 			Region:       GC.GlobalOptions.region,
 			Availability: GC.GlobalOptions.urlType,
 		})
-		break
 	case "files":
 		GC.ServiceClient, err = openstack.NewObjectStorageV1(pc, gophercloud.EndpointOpts{
 			Region:       GC.GlobalOptions.region,
 			Availability: GC.GlobalOptions.urlType,
 		})
-		break
 	case "block-storage":
 		GC.ServiceClient, err = openstack.NewBlockStorageV1(pc, gophercloud.EndpointOpts{
 			Region:       GC.GlobalOptions.region,
 			Availability: GC.GlobalOptions.urlType,
 		})
-		break
 	case "networking":
 		GC.ServiceClient, err = openstack.NewNetworkV2(pc, gophercloud.EndpointOpts{
 			Region:       GC.GlobalOptions.region,
 			Availability: GC.GlobalOptions.urlType,
 		})
-		break
 	case "orchestration":
 		GC.ServiceClient, err = openstack.NewOrchestrationV1(pc, gophercloud.EndpointOpts{
 			Region:       GC.GlobalOptions.region,
 			Availability: GC.GlobalOptions.urlType,
 		})
-		break
 	}
+
 	if err != nil {
 		return err
 	}
+
 	if GC.ServiceClient == nil {
 		return fmt.Errorf("Unable to create service client: Unknown service type: %s\n", serviceType)
 	}
@@ -160,9 +157,13 @@ func GetCacheKey() string {
 }
 
 func StoreCredentials() error {
+	ep := GC.ServiceClient.Endpoint
+	if rb := GC.ServiceClient.ResourceBase; rb != "" {
+		ep = rb
+	}
 	newCacheValue := &CacheItem{
 		TokenID:         GC.ServiceClient.TokenID,
-		ServiceEndpoint: GC.ServiceClient.Endpoint,
+		ServiceEndpoint: ep,
 	}
 	cacheKey := GetCacheKey()
 	GC.GlobalOptions.logger.Debugf("Setting cache key [%s] to: %s", cacheKey, newCacheValue)
