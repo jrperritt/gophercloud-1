@@ -29,6 +29,11 @@
 			"Rev": "c5d17b854b473c6e0249874d23574dd5567e864b"
 		},
 		{
+			"ImportPath": "github.com/gophercloud/gophercloud/openstack/compute/v2/extensions/volumeattach",
+			"Comment": "v1.0.0-1055-gc5d17b8",
+			"Rev": "c5d17b854b473c6e0249874d23574dd5567e864b"
+		},
+		{
 			"ImportPath": "github.com/gophercloud/gophercloud/openstack/compute/v2/flavors",
 			"Comment": "v1.0.0-1055-gc5d17b8",
 			"Rev": "c5d17b854b473c6e0249874d23574dd5567e864b"
