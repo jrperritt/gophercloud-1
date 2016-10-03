@@ -10,7 +10,7 @@ import (
 
 type commandGet struct {
 	ObjectV1Command
-	commands.WaitCommand
+	commands.Waitable
 }
 
 var (

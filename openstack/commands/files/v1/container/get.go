@@ -10,7 +10,7 @@ import (
 
 type CommandGet struct {
 	ContainerV1Command
-	commands.WaitCommand
+	commands.Waitable
 }
 
 var (

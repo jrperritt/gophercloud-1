@@ -11,7 +11,7 @@ import (
 
 type CommandEmpty struct {
 	ContainerV1Command
-	commands.WaitCommand
+	commands.Waitable
 }
 
 var (

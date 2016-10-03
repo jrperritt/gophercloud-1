@@ -5,23 +5,21 @@ import (
 	"gopkg.in/urfave/cli.v1"
 )
 
-type ProgressCommand struct {
-	WaitCommand
+type Progressable struct {
 	Quiet bool
 	*openstack.ProgressInfo
-	OutChan chan (interface{})
 }
 
-func (c *ProgressCommand) BarID(raw interface{}) string {
+func (c *Progressable) BarID(raw interface{}) string {
 	return raw.(string)
 }
 
-func (c *ProgressCommand) InitProgress() {
+func (c *Progressable) InitProgress() {
 	go c.Listen()
 	c.ProgressInfo.Start()
 }
 
-func (c *ProgressCommand) ProgressFlags() []cli.Flag {
+func (c *Progressable) ProgressFlags() []cli.Flag {
 	return []cli.Flag{
 		cli.BoolFlag{
 			Name:  "quiet",
@@ -30,20 +28,16 @@ func (c *ProgressCommand) ProgressFlags() []cli.Flag {
 	}
 }
 
-func (c *ProgressCommand) ShouldProgress() bool {
-	if c.Quiet {
-		return false
-	}
-	c.Wait = false
-	return true
+func (c *Progressable) ShouldProgress() bool {
+	return !c.Quiet
 }
 
-type TextProgressCommand struct {
-	ProgressCommand
+type TextProgressable struct {
+	Progressable
 	//RunningMsg, DoneMsg string
 }
 
-func (c *TextProgressCommand) ShowBar(id string) {
+func (c *TextProgressable) ShowBar(id string) {
 	s := new(openstack.ProgressStatusStart)
 	s.Name = id
 	c.StartChan <- s
@@ -65,10 +59,10 @@ func (c *TextProgressCommand) ShowBar(id string) {
 	}
 }
 
-type PercentageProgressCommand struct {
-	ProgressCommand
+type PercentageProgressable struct {
+	Progressable
 }
 
-type BytesProgressCommand struct {
-	ProgressCommand
+type BytesProgressable struct {
+	Progressable
 }

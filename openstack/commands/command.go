@@ -24,6 +24,10 @@ func (c *Command) SetServiceClient(sc *gophercloud.ServiceClient) error {
 	return nil
 }
 
+func (c *Command) HandleFlags() error {
+	return nil
+}
+
 // IDOrName is a function for retrieving a resource's unique identifier based on
 // whether an `id` or a `name` flag was provided
 func (c *Command) IDOrName(idFromNameFunc func(*gophercloud.ServiceClient, string) (string, error)) (string, error) {
@@ -87,3 +91,11 @@ func (c *Command) ValidateStructFlag(flagValues []string) ([]map[string]interfac
 	}
 	return valSliceMap, nil
 }
+
+type DataResp struct{}
+
+func (c *DataResp) Fields() []string {
+	return []string{""}
+}
+
+type MsgResp struct{}

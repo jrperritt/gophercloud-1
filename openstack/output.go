@@ -6,6 +6,7 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
+	"reflect"
 	"sort"
 	"strings"
 	"text/tabwriter"
@@ -154,34 +155,43 @@ func outputReader(r io.Reader) {
 }
 
 func LimitFields(r interface{}) {
-	switch len(GC.GlobalOptions.fields) {
-	case 0:
-		switch r.(type) {
-		case []map[string]interface{}:
-			fieldser, ok := GC.Command.(Fieldser)
-			switch ok {
-			case false:
-				GC.GlobalOptions.logger.Infof("List command has no default fields")
-				return
-			default:
-				GC.GlobalOptions.fields = fieldser.Fields()
+	if len(GC.GlobalOptions.fields) == 0 {
+		if fieldser, ok := GC.Command.(DefaultTableFieldser); ok {
+			GC.GlobalOptions.fields = fieldser.DefaultTableFields()
+		} else {
+			switch t := r.(type) {
+			case map[string]interface{}:
+				for k, v := range t {
+					switch reflect.ValueOf(v).Kind() {
+					case reflect.Map, reflect.Slice, reflect.Struct:
+						delete(t, k)
+					}
+				}
+			case []map[string]interface{}:
+				for _, i := range t {
+					for k, v := range i {
+						switch reflect.ValueOf(v).Kind() {
+						case reflect.Map, reflect.Slice, reflect.Struct:
+							delete(i, k)
+						}
+					}
+				}
 			}
-		default:
-			return
 		}
-	}
-	switch t := r.(type) {
-	case map[string]interface{}:
-		for k, _ := range t {
-			if !util.Contains(GC.GlobalOptions.fields, k) {
-				delete(t, k)
-			}
-		}
-	case []map[string]interface{}:
-		for _, i := range t {
-			for k, _ := range i {
+	} else {
+		switch t := r.(type) {
+		case map[string]interface{}:
+			for k, _ := range t {
 				if !util.Contains(GC.GlobalOptions.fields, k) {
-					delete(i, k)
+					delete(t, k)
+				}
+			}
+		case []map[string]interface{}:
+			for _, i := range t {
+				for k, _ := range i {
+					if !util.Contains(GC.GlobalOptions.fields, k) {
+						delete(i, k)
+					}
 				}
 			}
 		}

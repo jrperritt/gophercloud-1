@@ -44,6 +44,10 @@ type Fieldser interface {
 	Fields() []string
 }
 
+type DefaultTableFieldser interface {
+	DefaultTableFields() []string
+}
+
 func runPipeCommand() {
 	switch GC.Command.(type) {
 	case StreamPipeCommander:
@@ -220,9 +224,9 @@ func RunCommand() {
 		close(GC.ExecuteResults)
 	}()
 
-	if progresser, ok := GC.Command.(Progresser); ok && progresser.ShouldProgress() {
+	if _, ok := GC.Command.(Progresser); ok && !GC.CommandContext.IsSet("quiet") {
 		handleProgress()
-	} else if waiter, ok := GC.Command.(Waiter); ok && waiter.ShouldWait() {
+	} else if GC.CommandContext.IsSet("wait") {
 		handleWait()
 	} else {
 		handleQuietNoWait()

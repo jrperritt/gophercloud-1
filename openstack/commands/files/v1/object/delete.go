@@ -12,11 +12,13 @@ import (
 
 type commandDelete struct {
 	ObjectV1Command
-	commands.WaitCommand
+	commands.Waitable
+	commands.Pipeable
 }
 
 var (
 	cDelete                         = new(commandDelete)
+	_       openstack.Waiter        = cDelete
 	_       openstack.PipeCommander = cDelete
 
 	flagsDelete = openstack.CommandFlags(cDelete)
@@ -48,10 +50,6 @@ func (c *commandDelete) Flags() []cli.Flag {
 	}
 }
 
-func (c *commandDelete) Fields() []string {
-	return []string{""}
-}
-
 func (c *commandDelete) HandleFlags() error {
 	err := c.CheckFlagsSet([]string{"container"})
 	if err != nil {
@@ -59,10 +57,6 @@ func (c *commandDelete) HandleFlags() error {
 	}
 	c.container = c.Context.String("container")
 	return nil
-}
-
-func (c *commandDelete) HandlePipe(item string) (interface{}, error) {
-	return item, nil
 }
 
 func (c *commandDelete) HandleSingle() (interface{}, error) {

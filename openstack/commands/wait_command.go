@@ -5,18 +5,15 @@ import (
 	"gopkg.in/urfave/cli.v1"
 )
 
-type WaitCommand struct {
-	UpdateChan, CompleteChan chan (interface{})
-	ErrorChan                chan (error)
-	OutChan                  chan (interface{})
-	Wait                     bool
+type Waitable struct {
+	Wait bool
 }
 
-func (c *WaitCommand) WaitFor(raw interface{}) {
+func (c *Waitable) WaitFor(raw interface{}) {
 	openstack.GC.DoneChan <- raw
 }
 
-func (c *WaitCommand) WaitFlags() []cli.Flag {
+func (c *Waitable) WaitFlags() []cli.Flag {
 	return []cli.Flag{
 		cli.BoolFlag{
 			Name:  "wait",
@@ -25,6 +22,6 @@ func (c *WaitCommand) WaitFlags() []cli.Flag {
 	}
 }
 
-func (c *WaitCommand) ShouldWait() bool {
+func (c *Waitable) ShouldWait() bool {
 	return c.Wait
 }

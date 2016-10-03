@@ -5,7 +5,6 @@ import (
 
 	"github.com/Sirupsen/logrus"
 	"github.com/gophercloud/gophercloud"
-
 	"gopkg.in/urfave/cli.v1"
 )
 

@@ -11,9 +11,10 @@ import (
 
 type commandList struct {
 	ObjectV1Command
-	commands.WaitCommand
-	opts     objects.ListOptsBuilder
-	allPages bool
+	commands.Pipeable
+	commands.Waitable
+	commands.DataResp
+	opts objects.ListOptsBuilder
 }
 
 var (
@@ -42,10 +43,6 @@ func (c *commandList) Flags() []cli.Flag {
 			Name:  "stdin",
 			Usage: "[optional; required if `container` isn't provided] The field being piped into STDIN. Valid values are: container",
 		},
-		cli.BoolFlag{
-			Name:  "all-pages",
-			Usage: "[optional] Return all objects. Default is to paginate.",
-		},
 		cli.StringFlag{
 			Name:  "prefix",
 			Usage: "[optional] Only return objects with this prefix.",
@@ -65,24 +62,19 @@ func (c *commandList) Flags() []cli.Flag {
 	}
 }
 
-func (c *commandList) Fields() []string {
+func (c *commandList) DefaultTableFields() []string {
 	return []string{"name", "bytes", "hash", "content_type", "last_modified"}
 }
 
 func (c *commandList) HandleFlags() error {
 	c.opts = &objects.ListOpts{
-		Full:      c.Context.Bool("full"),
+		Full:      true,
 		Prefix:    c.Context.String("prefix"),
 		EndMarker: c.Context.String("end-marker"),
 		Marker:    c.Context.String("marker"),
 		Limit:     c.Context.Int("limit"),
 	}
-	c.allPages = c.Context.IsSet("all-pages")
 	return nil
-}
-
-func (c *commandList) HandlePipe(item string) (interface{}, error) {
-	return item, nil
 }
 
 func (c *commandList) HandleSingle() (interface{}, error) {
@@ -90,49 +82,23 @@ func (c *commandList) HandleSingle() (interface{}, error) {
 }
 
 func (c *commandList) Execute(item interface{}, out chan interface{}) {
-	c.opts.(*objects.ListOpts).Full = true
-	pager := objects.List(c.ServiceClient, item.(string), c.opts)
-	switch c.allPages {
-	case true:
-		page, err := pager.AllPages()
-		if err != nil {
-			out <- err
-			return
-		}
+	err := objects.List(c.ServiceClient, item.(string), c.opts).EachPage(func(page pagination.Page) (bool, error) {
 		var tmp []map[string]interface{}
-		err = (page.(objects.ObjectPage)).ExtractInto(&tmp)
+		err := (page.(objects.ObjectPage)).ExtractInto(&tmp)
 		switch err {
 		case nil:
 			if len(tmp) > 0 {
 				out <- tmp
 			}
-		default:
-			out <- err
+			return true, nil
 		}
-	default:
-		err := pager.EachPage(func(page pagination.Page) (bool, error) {
-			var tmp []map[string]interface{}
-			err := (page.(objects.ObjectPage)).ExtractInto(&tmp)
-			switch err {
-			case nil:
-				if len(tmp) > 0 {
-					out <- tmp
-				}
-				return true, nil
-			}
-			return false, err
-		})
-		if err != nil {
-			out <- err
-		}
+		return false, err
+	})
+	if err != nil {
+		out <- err
 	}
 }
 
 func (c *commandList) PipeFieldOptions() []string {
 	return []string{"container"}
-}
-
-func (c *commandList) PreTable(_ interface{}) error {
-
-	return nil
 }

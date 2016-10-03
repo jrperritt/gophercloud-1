@@ -12,7 +12,7 @@ import (
 
 type CommandUpdate struct {
 	ContainerV1Command
-	commands.WaitCommand
+	commands.Waitable
 	name string
 	opts containers.UpdateOptsBuilder
 }

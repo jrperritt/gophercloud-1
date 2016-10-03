@@ -2,6 +2,7 @@ package container
 
 import (
 	"github.com/gophercloud/cli/openstack"
+	"github.com/gophercloud/cli/openstack/commands"
 	"github.com/gophercloud/cli/util"
 	"github.com/gophercloud/gophercloud/openstack/objectstorage/v1/containers"
 	"github.com/gophercloud/gophercloud/pagination"
@@ -10,8 +11,9 @@ import (
 
 type CommandList struct {
 	ContainerV1Command
-	opts     containers.ListOptsBuilder
-	allPages bool
+	commands.Waitable
+	commands.DataResp
+	opts containers.ListOptsBuilder
 }
 
 var (
@@ -32,10 +34,6 @@ var list = cli.Command{
 
 func (c *CommandList) Flags() []cli.Flag {
 	return []cli.Flag{
-		cli.BoolFlag{
-			Name:  "all-pages",
-			Usage: "[optional] Return all containers. Default is to paginate.",
-		},
 		cli.StringFlag{
 			Name:  "prefix",
 			Usage: "[optional] Only return containers with this prefix.",
@@ -55,55 +53,32 @@ func (c *CommandList) Flags() []cli.Flag {
 	}
 }
 
-func (c *CommandList) Fields() []string {
-	return []string{""}
-}
-
 func (c *CommandList) DefaultTableFields() []string {
 	return []string{"name", "count", "bytes"}
 }
 
 func (c *CommandList) HandleFlags() error {
 	c.opts = &containers.ListOpts{
+		Full:      true,
 		Prefix:    c.Context.String("prefix"),
 		EndMarker: c.Context.String("end-marker"),
 		Marker:    c.Context.String("marker"),
 		Limit:     c.Context.Int("limit"),
 	}
-	c.allPages = c.Context.IsSet("all-pages")
 	return nil
 }
 
 func (c *CommandList) Execute(_ interface{}, out chan interface{}) {
-	c.opts.(*containers.ListOpts).Full = true
-	pager := containers.List(c.ServiceClient, c.opts)
-	switch c.allPages {
-	case true:
-		page, err := pager.AllPages()
-		if err != nil {
-			out <- err
-			return
-		}
+	err := containers.List(c.ServiceClient, c.opts).EachPage(func(page pagination.Page) (bool, error) {
 		var tmp []map[string]interface{}
-		err = (page.(containers.ContainerPage)).ExtractInto(&tmp)
-		switch err {
-		case nil:
-			out <- tmp
-		default:
-			out <- err
-		}
-	default:
-		err := pager.EachPage(func(page pagination.Page) (bool, error) {
-			var tmp []map[string]interface{}
-			err := (page.(containers.ContainerPage)).ExtractInto(&tmp)
-			if err != nil {
-				return false, err
-			}
-			out <- tmp
-			return true, nil
-		})
+		err := (page.(containers.ContainerPage)).ExtractInto(&tmp)
 		if err != nil {
-			out <- err
+			return false, err
 		}
+		out <- tmp
+		return true, nil
+	})
+	if err != nil {
+		out <- err
 	}
 }

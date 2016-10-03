@@ -16,7 +16,8 @@ import (
 
 type commandUpload struct {
 	ObjectV1Command
-	commands.ProgressCommand
+	commands.Waitable
+	commands.Progressable
 	opts       objects.CreateOptsBuilder
 	pipedField string
 }

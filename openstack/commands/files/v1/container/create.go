@@ -12,7 +12,7 @@ import (
 
 type CommandCreate struct {
 	ContainerV1Command
-	commands.WaitCommand
+	commands.Waitable
 	opts containers.CreateOptsBuilder
 }
 

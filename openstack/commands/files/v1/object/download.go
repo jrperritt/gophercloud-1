@@ -16,7 +16,7 @@ import (
 
 type commandDownload struct {
 	ObjectV1Command
-	commands.ProgressCommand
+	commands.Progressable
 	file string
 }
 
@@ -86,10 +86,10 @@ func (c *commandDownload) Execute(_ interface{}, out chan interface{}) {
 
 func (c *commandDownload) InitProgress() {
 	c.ProgressInfo = openstack.NewProgressInfo(1)
-	c.ProgressCommand.InitProgress()
+	c.Progressable.InitProgress()
 }
 
-func (c *commandDownload) ShowProgress(raw interface{}) {
+func (c *commandDownload) ShowBar(raw interface{}) {
 	orig := raw.(map[string]interface{})
 	id := orig["id"].(string)
 
@@ -99,20 +99,13 @@ func (c *commandDownload) ShowProgress(raw interface{}) {
 
 	for {
 		select {
-		case r := <-c.WaitCommand.ErrorChan:
-			s := new(openstack.ProgressStatusError)
-			s.Name = id
-			s.Err = r
-			c.ProgressInfo.ErrorChan <- s
-			openstack.GC.ProgressDoneChan <- r
-			return
-		case r := <-c.WaitCommand.CompleteChan:
+		case r := <-openstack.GC.DoneChan:
 			s := new(openstack.ProgressStatusComplete)
 			s.Name = id
 			c.ProgressInfo.CompleteChan <- s
 			openstack.GC.ProgressDoneChan <- r
 			return
-		case r := <-c.WaitCommand.UpdateChan:
+		case r := <-openstack.GC.UpdateChan:
 			s := new(openstack.ProgressStatusUpdate)
 			s.Name = id
 			s.Msg = r.(string)
