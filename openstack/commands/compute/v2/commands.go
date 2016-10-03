@@ -4,6 +4,7 @@ import (
 	"github.com/gophercloud/cli/openstack/commands/compute/v2/flavor"
 	"github.com/gophercloud/cli/openstack/commands/compute/v2/keypair"
 	"github.com/gophercloud/cli/openstack/commands/compute/v2/server"
+	"github.com/gophercloud/cli/openstack/commands/compute/v2/volumeattachment"
 	"gopkg.in/urfave/cli.v1"
 )
 
@@ -24,6 +25,11 @@ func Get() []cli.Command {
 			Name:        "keypair",
 			Usage:       "SSH keypairs for accessing servers.",
 			Subcommands: keypair.Get(),
+		},
+		{
+			Name:        "volume-attachment",
+			Usage:       "Volumes attached to servers.",
+			Subcommands: volumeattachment.Get(),
 		},
 	}
 }
