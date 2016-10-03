@@ -1,4 +1,4 @@
-package network
+package subnet
 
 import (
 	"fmt"
@@ -12,7 +12,7 @@ import (
 )
 
 type CommandUpdate struct {
-	NetworkV2Command
+	SubnetV2Command
 	commands.Waitable
 	opts networks.UpdateOptsBuilder
 }

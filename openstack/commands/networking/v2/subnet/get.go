@@ -1,4 +1,4 @@
-package network
+package subnet
 
 import (
 	"github.com/gophercloud/cli/openstack"
@@ -9,7 +9,7 @@ import (
 )
 
 type CommandGet struct {
-	NetworkV2Command
+	SubnetV2Command
 	commands.Waitable
 }
 

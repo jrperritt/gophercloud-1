@@ -1,4 +1,4 @@
-package network
+package subnet
 
 import (
 	"fmt"
@@ -8,20 +8,20 @@ import (
 	"github.com/gophercloud/cli/util"
 	"github.com/gophercloud/gophercloud"
 	"github.com/gophercloud/gophercloud/openstack/networking/v2/networks"
+	"github.com/gophercloud/gophercloud/openstack/networking/v2/subnets"
 	"github.com/gophercloud/gophercloud/pagination"
 	"gopkg.in/urfave/cli.v1"
 )
 
 type CommandList struct {
-	NetworkV2Command
+	SubnetV2Command
 	commands.Waitable
 	commands.DataResp
-	opts networks.ListOptsBuilder
+	opts subnets.ListOptsBuilder
 }
 
 var (
 	cList                     = new(CommandList)
-	_     openstack.Waiter    = cList
 	_     openstack.Commander = cList
 
 	flagsList = openstack.CommandFlags(cList)
@@ -40,7 +40,7 @@ func (c *CommandList) Flags() []cli.Flag {
 	return []cli.Flag{
 		cli.StringFlag{
 			Name:  "name",
-			Usage: "[optional] Only list networks with this name.",
+			Usage: "Only list networks with this name.",
 		},
 		cli.StringFlag{
 			Name:  "up",
@@ -52,11 +52,11 @@ func (c *CommandList) Flags() []cli.Flag {
 		},
 		cli.StringFlag{
 			Name:  "tenant-id",
-			Usage: "[optional] Only list networks that are owned by the tenant with this tenant ID.",
+			Usage: "Only list networks that are owned by the tenant with this tenant ID.",
 		},
 		cli.StringFlag{
 			Name:  "status",
-			Usage: "[optional] Only list networks that have this status.",
+			Usage: "Only list networks that have this status.",
 		},
 		cli.StringFlag{
 			Name:  "marker",
@@ -108,13 +108,13 @@ func (c *CommandList) HandleFlags() error {
 }
 
 func (c *CommandList) Execute(_ interface{}, out chan interface{}) {
-	err := networks.List(c.ServiceClient, c.opts).EachPage(func(page pagination.Page) (bool, error) {
+	err := subnets.List(c.ServiceClient, c.opts).EachPage(func(page pagination.Page) (bool, error) {
 		var tmp map[string][]map[string]interface{}
-		err := (page.(networks.NetworkPage)).ExtractInto(&tmp)
+		err := (page.(subnets.SubnetPage)).ExtractInto(&tmp)
 		if err != nil {
 			return false, err
 		}
-		out <- tmp["networks"]
+		out <- tmp["subnets"]
 		return true, nil
 	})
 	if err != nil {

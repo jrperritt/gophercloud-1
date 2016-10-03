@@ -1,4 +1,4 @@
-package network
+package subnet
 
 import (
 	"fmt"
@@ -11,14 +11,13 @@ import (
 )
 
 type CommandDelete struct {
-	NetworkV2Command
-	commands.Waitable
+	SubnetV2Command
 	commands.Pipeable
+	commands.Waitable
 }
 
 var (
 	cDelete                         = new(CommandDelete)
-	_       openstack.Waiter        = cDelete
 	_       openstack.PipeCommander = cDelete
 
 	flagsDelete = openstack.CommandFlags(cDelete)
@@ -48,6 +47,15 @@ func (c *CommandDelete) Flags() []cli.Flag {
 			Usage: "[optional; required if `name` or `id` isn't provided] The field being piped into STDIN. Valid values are: id",
 		},
 	}
+}
+
+func (c *CommandDelete) HandleFlags() error {
+	c.Wait = c.Context.IsSet("wait")
+	return nil
+}
+
+func (c *CommandDelete) HandlePipe(item string) (interface{}, error) {
+	return item, nil
 }
 
 func (c *CommandDelete) HandleSingle() (interface{}, error) {

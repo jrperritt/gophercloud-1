@@ -1,20 +1,22 @@
-package network
+package port
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/gophercloud/cli/openstack"
 	"github.com/gophercloud/cli/openstack/commands"
 	"github.com/gophercloud/cli/util"
 	"github.com/gophercloud/gophercloud"
-	"github.com/gophercloud/gophercloud/openstack/networking/v2/networks"
+	"github.com/gophercloud/gophercloud/openstack/networking/v2/ports"
 	"gopkg.in/urfave/cli.v1"
 )
 
 type CommandUpdate struct {
-	NetworkV2Command
+	PortV2Command
 	commands.Waitable
-	opts networks.UpdateOptsBuilder
+	commands.DataResp
+	opts ports.UpdateOptsBuilder
 }
 
 var (
@@ -26,8 +28,8 @@ var (
 
 var update = cli.Command{
 	Name:         "update",
-	Usage:        util.Usage(commandPrefix, "update", "[--id <ID> | --name <NAME> | --stdin id]"),
-	Description:  "Updates a network",
+	Usage:        util.Usage(CommandPrefix, "update", "[--id <ID> | --name <NAME> | --stdin id]"),
+	Description:  "Updates a port",
 	Action:       func(ctx *cli.Context) error { return openstack.Action(ctx, cUpdate) },
 	Flags:        flagsUpdate,
 	BashComplete: func(_ *cli.Context) { util.CompleteFlags(flagsUpdate) },
@@ -37,11 +39,11 @@ func (c *CommandUpdate) Flags() []cli.Flag {
 	return []cli.Flag{
 		cli.StringFlag{
 			Name:  "id",
-			Usage: "[optional; required if `stdin` or `name` isn't provided] The ID of the network to update.",
+			Usage: "[optional; required if `stdin` or `name` isn't provided] The ID of the port to update.",
 		},
 		cli.StringFlag{
 			Name:  "name",
-			Usage: "[optional; required if `stdin` or `id` isn't provided] The name of the network to update.",
+			Usage: "[optional; required if `stdin` or `id` isn't provided] The name of the port to update.",
 		},
 		cli.StringFlag{
 			Name:  "stdin",
@@ -49,26 +51,27 @@ func (c *CommandUpdate) Flags() []cli.Flag {
 		},
 		cli.StringFlag{
 			Name:  "new-name",
-			Usage: "[optional] The name that the network should have.",
+			Usage: "[optional] The name that the port should have.",
 		},
 		cli.StringFlag{
 			Name:  "up",
-			Usage: "[optional] If provided, the network will be up. Options are: true, false",
+			Usage: "[optional] If provided, the port will be up. Options are: true, false",
 		},
 		cli.StringFlag{
-			Name:  "shared",
-			Usage: "[optional] If provided, the network is shared among all tenants. Options are: true, false",
+			Name:  "security-groups",
+			Usage: "[optional] A comma-separated list of security group IDs for this port.",
+		},
+		cli.StringFlag{
+			Name:  "device-id",
+			Usage: "[optional] A device ID to associate with the port.",
 		},
 	}
 }
 
-func (c *CommandUpdate) Fields() []string {
-	return []string{""}
-}
-
 func (c *CommandUpdate) HandleFlags() error {
-	opts := &networks.UpdateOpts{
-		Name: c.Context.String("new-name"),
+	opts := &ports.UpdateOpts{
+		Name:     c.Context.String("new-name"),
+		DeviceID: c.Context.String("device-id"),
 	}
 
 	if c.Context.IsSet("up") {
@@ -82,15 +85,8 @@ func (c *CommandUpdate) HandleFlags() error {
 		}
 	}
 
-	if c.Context.IsSet("shared") {
-		switch c.Context.String("shared") {
-		case "true":
-			opts.Shared = gophercloud.Enabled
-		case "false":
-			opts.Shared = gophercloud.Disabled
-		default:
-			return fmt.Errorf("Invalid value for flag `shared`: %s. Options are: true, false", c.Context.String("shared"))
-		}
+	if c.Context.IsSet("security-groups") {
+		opts.SecurityGroups = strings.Split(c.Context.String("security-groups"), ",")
 	}
 
 	c.opts = opts
@@ -104,15 +100,15 @@ func (c *CommandUpdate) HandlePipe(item string) (interface{}, error) {
 }
 
 func (c *CommandUpdate) HandleSingle() (interface{}, error) {
-	return c.IDOrName(networks.IDFromName)
+	return c.IDOrName(ports.IDFromName)
 }
 
 func (c *CommandUpdate) Execute(item interface{}, out chan interface{}) {
 	var m map[string]interface{}
-	err := networks.Update(c.ServiceClient, item.(string), c.opts).ExtractInto(&m)
+	err := ports.Update(c.ServiceClient, item.(string), c.opts).ExtractInto(&m)
 	switch err {
 	case nil:
-		out <- m["network"]
+		out <- m["port"]
 	default:
 		out <- err
 	}
