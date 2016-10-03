@@ -13,10 +13,10 @@ import (
 )
 
 // Name is the name of the CLI
-var Name = "rack"
+var Name = "stack"
 
 // UserAgent is the user-agent used for each HTTP request
-var UserAgent = fmt.Sprintf("%s-%s/%s", "rackcli", runtime.GOOS, version.Version)
+var UserAgent = fmt.Sprintf("%s-%s/%s", Name, runtime.GOOS, version.Version)
 
 // Usage return a string that specifies how to call a particular command.
 func Usage(commandPrefix, action, mandatoryFlags string) string {
