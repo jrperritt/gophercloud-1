@@ -5,6 +5,7 @@ import (
 
 	"github.com/gophercloud/cli/openstack/commands/compute"
 	"github.com/gophercloud/cli/openstack/commands/files"
+	"github.com/gophercloud/cli/openstack/commands/loadbalancing"
 	"github.com/gophercloud/cli/openstack/commands/networking"
 	"github.com/gophercloud/cli/setup"
 	"gopkg.in/urfave/cli.v1"
@@ -51,7 +52,12 @@ var commands = []cli.Command{
 	},
 	{
 		Name:        "networking",
-		Usage:       "Software-defined networks, subnets, LBs, and more.",
+		Usage:       "Software-defined networks, subnets, ports.",
 		Subcommands: networking.Get(),
+	},
+	{
+		Name:        "load-balancing",
+		Usage:       "Software-defined LBs.",
+		Subcommands: loadbalancing.Get(),
 	},
 }
