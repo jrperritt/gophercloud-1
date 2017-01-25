@@ -4,6 +4,7 @@ import (
 	"sync"
 
 	"github.com/Sirupsen/logrus"
+	"github.com/gophercloud/cli/lib/interfaces"
 	"github.com/gophercloud/gophercloud"
 	"gopkg.in/urfave/cli.v1"
 )
@@ -13,7 +14,7 @@ type globalContext struct {
 	ServiceClient                          *gophercloud.ServiceClient
 	GlobalOptions                          *GlobalOptions
 	ExecuteResults, ResultsRunCommand      chan (interface{})
-	Command                                Commander
+	Command                                interfaces.Commander
 	Logger                                 *logrus.Logger
 	DoneChan, ProgressDoneChan, UpdateChan chan (interface{})
 	doneChan                               chan (bool)
@@ -22,7 +23,7 @@ type globalContext struct {
 
 var GC *globalContext
 
-func Action(ctx *cli.Context, commander Commander) error {
+func Action(ctx *cli.Context, commander interfaces.Commander) error {
 	GC = &globalContext{
 		ExecuteResults:    make(chan interface{}),
 		ResultsRunCommand: make(chan interface{}),
