@@ -9,7 +9,7 @@ var CommandPrefix = "networking port"
 
 type PortV2Command struct {
 	traits.Commandable
-	traits.Networkingable
+	traits.NetworkingV2able
 	name string
 }
 

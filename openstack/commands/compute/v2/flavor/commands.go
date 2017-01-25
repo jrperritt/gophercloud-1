@@ -7,9 +7,9 @@ import (
 
 var commandPrefix = "compute flavor"
 
-type FlavorV2Command struct {
+type FlavorCommand struct {
 	traits.Commandable
-	traits.Computeable
+	traits.ComputeV2able
 }
 
 // Get returns all the commands allowed for a `compute flavor` v2 request.

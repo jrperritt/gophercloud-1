@@ -3,6 +3,7 @@ package network
 import (
 	"fmt"
 
+	"github.com/gophercloud/cli/lib/interfaces"
 	"github.com/gophercloud/cli/lib/traits"
 	"github.com/gophercloud/cli/openstack"
 	"github.com/gophercloud/cli/util"
@@ -18,8 +19,8 @@ type CommandUpdate struct {
 }
 
 var (
-	cUpdate                         = new(CommandUpdate)
-	_       openstack.PipeCommander = cUpdate
+	cUpdate                          = new(CommandUpdate)
+	_       interfaces.PipeCommander = cUpdate
 
 	flagsUpdate = openstack.CommandFlags(cUpdate)
 )

@@ -1,6 +1,7 @@
 package object
 
 import (
+	"github.com/gophercloud/cli/lib/interfaces"
 	"github.com/gophercloud/cli/lib/traits"
 	"github.com/gophercloud/cli/openstack"
 	"github.com/gophercloud/cli/util"
@@ -14,8 +15,8 @@ type commandGet struct {
 }
 
 var (
-	cGet                         = new(commandGet)
-	_    openstack.PipeCommander = cGet
+	cGet                          = new(commandGet)
+	_    interfaces.PipeCommander = cGet
 
 	flagsGet = openstack.CommandFlags(cGet)
 )

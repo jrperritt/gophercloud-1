@@ -9,7 +9,7 @@ var commandPrefix = "compute keypair"
 
 type KeypairV2Command struct {
 	traits.Commandable
-	traits.Computeable
+	traits.ComputeV2able
 }
 
 // Get returns all the commands allowed for a `compute keypair` v2 request.

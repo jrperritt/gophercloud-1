@@ -1,6 +1,7 @@
 package object
 
 import (
+	"github.com/gophercloud/cli/lib/interfaces"
 	"github.com/gophercloud/cli/lib/traits"
 	"github.com/gophercloud/cli/openstack"
 	"github.com/gophercloud/cli/util"
@@ -18,8 +19,8 @@ type commandList struct {
 }
 
 var (
-	cList                         = new(commandList)
-	_     openstack.PipeCommander = cList
+	cList                          = new(commandList)
+	_     interfaces.PipeCommander = cList
 
 	flagsList = openstack.CommandFlags(cList)
 )

@@ -1,6 +1,7 @@
 package securitygroup
 
 import (
+	"github.com/gophercloud/cli/lib/interfaces"
 	"github.com/gophercloud/cli/lib/traits"
 	"github.com/gophercloud/cli/openstack"
 	"github.com/gophercloud/cli/util"
@@ -17,9 +18,9 @@ type CommandCreate struct {
 }
 
 var (
-	cCreate                         = new(CommandCreate)
-	_       openstack.Waiter        = cCreate
-	_       openstack.PipeCommander = cCreate
+	cCreate                          = new(CommandCreate)
+	_       interfaces.Waiter        = cCreate
+	_       interfaces.PipeCommander = cCreate
 
 	flagsCreate = openstack.CommandFlags(cCreate)
 )

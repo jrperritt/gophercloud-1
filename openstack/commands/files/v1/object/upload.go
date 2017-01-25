@@ -7,6 +7,7 @@ import (
 	"reflect"
 	"strings"
 
+	"github.com/gophercloud/cli/lib/interfaces"
 	"github.com/gophercloud/cli/lib/traits"
 	"github.com/gophercloud/cli/openstack"
 	"github.com/gophercloud/cli/util"
@@ -29,9 +30,9 @@ type pipeData struct {
 }
 
 var (
-	cUpload                               = new(commandUpload)
-	_       openstack.StreamPipeCommander = cUpload
-	//_       openstack.Progresser          = cUpload
+	cUpload                                = new(commandUpload)
+	_       interfaces.StreamPipeCommander = cUpload
+	//_       interfaces.Progresser          = cUpload
 
 	flagsUpload = openstack.CommandFlags(cUpload)
 )

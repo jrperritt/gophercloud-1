@@ -3,6 +3,7 @@ package container
 import (
 	"fmt"
 
+	"github.com/gophercloud/cli/lib/interfaces"
 	"github.com/gophercloud/cli/lib/traits"
 	"github.com/gophercloud/cli/openstack"
 	"github.com/gophercloud/cli/util"
@@ -17,8 +18,8 @@ type CommandDelete struct {
 }
 
 var (
-	cDelete                         = new(CommandDelete)
-	_       openstack.PipeCommander = cDelete
+	cDelete                          = new(CommandDelete)
+	_       interfaces.PipeCommander = cDelete
 
 	flagsDelete = openstack.CommandFlags(cDelete)
 )

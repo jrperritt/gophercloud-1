@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/gophercloud/cli/lib/interfaces"
 	"github.com/gophercloud/cli/lib/traits"
 	"github.com/gophercloud/cli/openstack"
 	"github.com/gophercloud/cli/util"
@@ -18,8 +19,8 @@ type CommandDeleteMetadata struct {
 }
 
 var (
-	cDeleteMetadata                         = new(CommandDeleteMetadata)
-	_               openstack.PipeCommander = cDeleteMetadata
+	cDeleteMetadata                          = new(CommandDeleteMetadata)
+	_               interfaces.PipeCommander = cDeleteMetadata
 
 	flagsDeleteMetadata = openstack.CommandFlags(cDeleteMetadata)
 )

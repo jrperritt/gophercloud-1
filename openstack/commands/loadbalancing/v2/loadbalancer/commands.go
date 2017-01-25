@@ -9,7 +9,7 @@ var commandPrefix = "load-balancing load-balancer"
 
 type LoadbalancerV2Command struct {
 	traits.Commandable
-	traits.Networkingable
+	traits.NetworkingV2able
 }
 
 // Get returns all the commands allowed for a `load-balancing load-balancer` v2 request.

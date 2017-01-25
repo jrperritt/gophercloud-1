@@ -1,6 +1,7 @@
 package securitygrouprule
 
 import (
+	"github.com/gophercloud/cli/lib/interfaces"
 	"github.com/gophercloud/cli/lib/traits"
 	"github.com/gophercloud/cli/openstack"
 	"github.com/gophercloud/cli/util"
@@ -16,9 +17,9 @@ type CommandGet struct {
 }
 
 var (
-	cGet                         = new(CommandGet)
-	_    openstack.Waiter        = cGet
-	_    openstack.PipeCommander = cGet
+	cGet                          = new(CommandGet)
+	_    interfaces.Waiter        = cGet
+	_    interfaces.PipeCommander = cGet
 
 	flagsGet = openstack.CommandFlags(cGet)
 )

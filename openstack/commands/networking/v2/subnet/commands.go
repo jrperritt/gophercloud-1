@@ -9,7 +9,7 @@ var commandPrefix = "networking subnet"
 
 type SubnetV2Command struct {
 	traits.Commandable
-	traits.Networkingable
+	traits.NetworkingV2able
 	name string
 }
 

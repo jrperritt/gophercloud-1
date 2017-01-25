@@ -1,6 +1,7 @@
 package server
 
 import (
+	"github.com/gophercloud/cli/lib/interfaces"
 	"github.com/gophercloud/cli/lib/traits"
 	"github.com/gophercloud/cli/openstack"
 	"github.com/gophercloud/cli/util"
@@ -15,8 +16,8 @@ type CommandGetMetadata struct {
 }
 
 var (
-	cGetMetadata                         = new(CommandGetMetadata)
-	_            openstack.PipeCommander = cGetMetadata
+	cGetMetadata                          = new(CommandGetMetadata)
+	_            interfaces.PipeCommander = cGetMetadata
 
 	flagsGetMetadata = openstack.CommandFlags(cGetMetadata)
 )

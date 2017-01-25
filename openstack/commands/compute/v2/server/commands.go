@@ -11,7 +11,7 @@ var (
 
 type ServerV2Command struct {
 	traits.Commandable
-	traits.Computeable
+	traits.ComputeV2able
 }
 
 // Get returns all the commands allowed for a `compute server` v2 request.
@@ -25,6 +25,7 @@ func Get() []cli.Command {
 		resize,
 		rebuild,
 		reboot,
+		getMetadata,
 		deleteMetadata,
 	}
 }

@@ -9,7 +9,7 @@ var commandPrefix = "networking security-group"
 
 type SecurityGroupV2Command struct {
 	traits.Commandable
-	traits.Networkingable
+	traits.NetworkingV2able
 	name string
 }
 

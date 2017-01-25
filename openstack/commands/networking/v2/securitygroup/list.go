@@ -1,6 +1,7 @@
 package securitygroup
 
 import (
+	"github.com/gophercloud/cli/lib/interfaces"
 	"github.com/gophercloud/cli/lib/traits"
 	"github.com/gophercloud/cli/openstack"
 	"github.com/gophercloud/cli/util"
@@ -17,9 +18,9 @@ type CommandList struct {
 }
 
 var (
-	cList                     = new(CommandList)
-	_     openstack.Waiter    = cList
-	_     openstack.Commander = cList
+	cList                      = new(CommandList)
+	_     interfaces.Waiter    = cList
+	_     interfaces.Commander = cList
 
 	flagsList = openstack.CommandFlags(cList)
 )

@@ -1,6 +1,7 @@
 package flavor
 
 import (
+	"github.com/gophercloud/cli/lib/interfaces"
 	"github.com/gophercloud/cli/lib/traits"
 	"github.com/gophercloud/cli/openstack"
 	"github.com/gophercloud/cli/util"
@@ -9,15 +10,15 @@ import (
 )
 
 type CommandGet struct {
-	FlavorV2Command
+	FlavorCommand
 	traits.Waitable
 	traits.Pipeable
 	traits.DataResp
 }
 
 var (
-	cGet                         = new(CommandGet)
-	_    openstack.PipeCommander = cGet
+	cGet                          = new(CommandGet)
+	_    interfaces.PipeCommander = cGet
 
 	flagsGet = openstack.CommandFlags(cGet)
 )

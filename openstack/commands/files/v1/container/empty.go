@@ -3,6 +3,7 @@ package container
 import (
 	"fmt"
 
+	"github.com/gophercloud/cli/lib/interfaces"
 	"github.com/gophercloud/cli/lib/traits"
 	"github.com/gophercloud/cli/openstack"
 	"github.com/gophercloud/cli/util"
@@ -15,8 +16,8 @@ type CommandEmpty struct {
 }
 
 var (
-	cEmpty                         = new(CommandEmpty)
-	_      openstack.PipeCommander = cEmpty
+	cEmpty                          = new(CommandEmpty)
+	_      interfaces.PipeCommander = cEmpty
 
 	flagsEmpty = openstack.CommandFlags(cEmpty)
 )

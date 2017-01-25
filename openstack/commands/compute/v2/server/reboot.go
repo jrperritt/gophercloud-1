@@ -3,6 +3,7 @@ package server
 import (
 	"fmt"
 
+	"github.com/gophercloud/cli/lib/interfaces"
 	"github.com/gophercloud/cli/lib/traits"
 	"github.com/gophercloud/cli/openstack"
 	"github.com/gophercloud/cli/util"
@@ -19,9 +20,9 @@ type CommandReboot struct {
 }
 
 var (
-	cReboot                         = new(CommandReboot)
-	_       openstack.PipeCommander = cReboot
-	_       openstack.Progresser    = cReboot
+	cReboot                          = new(CommandReboot)
+	_       interfaces.PipeCommander = cReboot
+	_       interfaces.Progresser    = cReboot
 
 	flagsReboot = openstack.CommandFlags(cReboot)
 )

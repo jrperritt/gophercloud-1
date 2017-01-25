@@ -9,7 +9,7 @@ var commandPrefix = "networking security-group-rule"
 
 type SecurityGroupRuleV2Command struct {
 	traits.Commandable
-	traits.Networkingable
+	traits.NetworkingV2able
 }
 
 // Get returns all the commands allowed for a `networking security-group-rule` v2 request.

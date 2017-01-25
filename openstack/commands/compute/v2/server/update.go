@@ -1,6 +1,7 @@
 package server
 
 import (
+	"github.com/gophercloud/cli/lib/interfaces"
 	"github.com/gophercloud/cli/openstack"
 	"github.com/gophercloud/cli/util"
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/servers"
@@ -14,8 +15,8 @@ type commandUpdate struct {
 }
 
 var (
-	cUpdate                     = new(commandUpdate)
-	_       openstack.Commander = cUpdate
+	cUpdate                      = new(commandUpdate)
+	_       interfaces.Commander = cUpdate
 
 	flagsUpdate = openstack.CommandFlags(cUpdate)
 )

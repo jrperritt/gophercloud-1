@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"path/filepath"
 
+	"github.com/gophercloud/cli/lib/interfaces"
 	"github.com/gophercloud/cli/lib/traits"
 	"github.com/gophercloud/cli/openstack"
 	"github.com/gophercloud/cli/util"
@@ -21,9 +22,9 @@ type CommandRebuild struct {
 }
 
 var (
-	cRebuild                         = new(CommandRebuild)
-	_        openstack.PipeCommander = cRebuild
-	_        openstack.Progresser    = cRebuild
+	cRebuild                          = new(CommandRebuild)
+	_        interfaces.PipeCommander = cRebuild
+	_        interfaces.Progresser    = cRebuild
 
 	flagsRebuild = openstack.CommandFlags(cRebuild)
 )

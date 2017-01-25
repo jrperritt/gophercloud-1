@@ -3,6 +3,7 @@ package securitygrouprule
 import (
 	"fmt"
 
+	"github.com/gophercloud/cli/lib/interfaces"
 	"github.com/gophercloud/cli/lib/traits"
 	"github.com/gophercloud/cli/openstack"
 	"github.com/gophercloud/cli/util"
@@ -18,8 +19,8 @@ type CommandCreate struct {
 }
 
 var (
-	cCreate                  = new(CommandCreate)
-	_       openstack.Waiter = cCreate
+	cCreate                   = new(CommandCreate)
+	_       interfaces.Waiter = cCreate
 	//	_       openstack.PipeCommander = cCreate
 
 	flagsCreate = openstack.CommandFlags(cCreate)

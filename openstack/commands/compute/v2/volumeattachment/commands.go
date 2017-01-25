@@ -9,7 +9,7 @@ var commandPrefix = "compute volume-attachment"
 
 type VolumeAttachmentV2Command struct {
 	traits.Commandable
-	traits.Computeable
+	traits.ComputeV2able
 }
 
 // Get returns all the commands allowed for a `compute volume-attachment` v2 request.

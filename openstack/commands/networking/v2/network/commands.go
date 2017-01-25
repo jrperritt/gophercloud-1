@@ -9,7 +9,7 @@ var commandPrefix = "networking newtork"
 
 type NetworkV2Command struct {
 	traits.Commandable
-	traits.Networkingable
+	traits.NetworkingV2able
 	name string
 }
 

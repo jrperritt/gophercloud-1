@@ -9,7 +9,7 @@ var commandPrefix = "files object"
 
 type ObjectV1Command struct {
 	traits.Commandable
-	traits.Filesable
+	traits.ComputeV2able
 	container string
 	name      string
 }

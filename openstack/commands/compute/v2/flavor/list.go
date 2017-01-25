@@ -1,6 +1,7 @@
 package flavor
 
 import (
+	"github.com/gophercloud/cli/lib/interfaces"
 	"github.com/gophercloud/cli/lib/traits"
 	"github.com/gophercloud/cli/openstack"
 	"github.com/gophercloud/cli/util"
@@ -10,15 +11,15 @@ import (
 )
 
 type commandList struct {
-	FlavorV2Command
+	FlavorCommand
 	traits.Waitable
 	traits.DataResp
 	opts flavors.ListOptsBuilder
 }
 
 var (
-	cList                     = new(commandList)
-	_     openstack.Commander = cList
+	cList                      = new(commandList)
+	_     interfaces.Commander = cList
 
 	flagsList = openstack.CommandFlags(cList)
 )

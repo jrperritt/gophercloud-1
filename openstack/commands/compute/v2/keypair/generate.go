@@ -1,6 +1,7 @@
 package keypair
 
 import (
+	"github.com/gophercloud/cli/lib/interfaces"
 	"github.com/gophercloud/cli/lib/traits"
 	"github.com/gophercloud/cli/openstack"
 	"github.com/gophercloud/cli/util"
@@ -16,9 +17,9 @@ type CommandGenerate struct {
 }
 
 var (
-	cGenerate                         = new(CommandGenerate)
-	_         openstack.Waiter        = cGenerate
-	_         openstack.PipeCommander = cGenerate
+	cGenerate                          = new(CommandGenerate)
+	_         interfaces.Waiter        = cGenerate
+	_         interfaces.PipeCommander = cGenerate
 
 	flagsGenerate = openstack.CommandFlags(cGenerate)
 )

@@ -3,6 +3,7 @@ package server
 import (
 	"fmt"
 
+	"github.com/gophercloud/cli/lib/interfaces"
 	"github.com/gophercloud/cli/lib/traits"
 	"github.com/gophercloud/cli/openstack"
 	"github.com/gophercloud/cli/util"
@@ -19,9 +20,9 @@ type CommandResize struct {
 }
 
 var (
-	cResize                         = new(CommandResize)
-	_       openstack.PipeCommander = cResize
-	_       openstack.Progresser    = cResize
+	cResize                          = new(CommandResize)
+	_       interfaces.PipeCommander = cResize
+	_       interfaces.Progresser    = cResize
 
 	flagsResize = openstack.CommandFlags(cResize)
 )

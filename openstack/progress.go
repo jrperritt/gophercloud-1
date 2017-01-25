@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/gosuri/uiprogress"
-	"gopkg.in/urfave/cli.v1"
 )
 
 type BarType uint8
@@ -16,15 +15,6 @@ const (
 	BarBytes
 	BarText
 )
-
-type Progresser interface {
-	Waiter
-	InitProgress()
-	BarID(item interface{}) string
-	ShowBar(id string)
-	ShouldProgress() bool
-	ProgressFlags() []cli.Flag
-}
 
 type ProgressStatus struct {
 	Name string
