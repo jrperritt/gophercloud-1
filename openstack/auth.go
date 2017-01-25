@@ -44,6 +44,7 @@ func Authenticate() error {
 
 func AuthFromScratch() error {
 	serviceType := GC.Command.ServiceType()
+	serviceVersion := GC.Command.ServiceVersion()
 	ao := GC.GlobalOptions.authOptions
 	l := GC.GlobalOptions.logger
 
@@ -62,40 +63,17 @@ func AuthFromScratch() error {
 		return err
 	}
 
-	switch serviceType {
-	case "compute":
-		GC.ServiceClient, err = openstack.NewComputeV2(pc, gophercloud.EndpointOpts{
-			Region:       GC.GlobalOptions.region,
-			Availability: GC.GlobalOptions.urlType,
-		})
-	case "files":
-		GC.ServiceClient, err = openstack.NewObjectStorageV1(pc, gophercloud.EndpointOpts{
-			Region:       GC.GlobalOptions.region,
-			Availability: GC.GlobalOptions.urlType,
-		})
-	case "block-storage":
-		GC.ServiceClient, err = openstack.NewBlockStorageV1(pc, gophercloud.EndpointOpts{
-			Region:       GC.GlobalOptions.region,
-			Availability: GC.GlobalOptions.urlType,
-		})
-	case "networking":
-		GC.ServiceClient, err = openstack.NewNetworkV2(pc, gophercloud.EndpointOpts{
-			Region:       GC.GlobalOptions.region,
-			Availability: GC.GlobalOptions.urlType,
-		})
-	case "orchestration":
-		GC.ServiceClient, err = openstack.NewOrchestrationV1(pc, gophercloud.EndpointOpts{
-			Region:       GC.GlobalOptions.region,
-			Availability: GC.GlobalOptions.urlType,
-		})
-	}
+	GC.ServiceClient, err = GC.Command.ServiceClientFunc()(pc, gophercloud.EndpointOpts{
+		Region:       GC.GlobalOptions.region,
+		Availability: GC.GlobalOptions.urlType,
+	})
 
 	if err != nil {
 		return err
 	}
 
 	if GC.ServiceClient == nil {
-		return fmt.Errorf("Unable to create service client: Unknown service type: %s\n", serviceType)
+		return fmt.Errorf("Unable to create service client: Unknown service type and version: %s %s", serviceType, serviceVersion)
 	}
 
 	l.Debugf("Created %s service client: %+v", serviceType, GC.ServiceClient)
