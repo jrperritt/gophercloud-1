@@ -3,56 +3,17 @@ package openstack
 import (
 	"bufio"
 	"fmt"
-	"io"
 	"os"
 
+	"github.com/gophercloud/cli/lib/interfaces"
 	"github.com/gophercloud/cli/util"
-	"github.com/gophercloud/gophercloud"
-	"gopkg.in/urfave/cli.v1"
 )
-
-type Commander interface {
-	HandleFlags() error
-	Execute(item interface{}, out chan interface{})
-	Flags() []cli.Flag
-	SetServiceClient(*gophercloud.ServiceClient) error
-	SetContext(*cli.Context) error
-	ServiceType() string
-}
-
-type PipeCommander interface {
-	Commander
-	Waiter
-	HandleSingle() (interface{}, error)
-	HandlePipe(string) (interface{}, error)
-	PipeFieldOptions() []string
-}
-
-type StreamPipeCommander interface {
-	PipeCommander
-	HandleStreamPipe(io.Reader) (interface{}, error)
-	StreamFieldOptions() []string
-}
-
-type Waiter interface {
-	WaitFor(item interface{})
-	ShouldWait() bool
-	WaitFlags() []cli.Flag
-}
-
-type Fieldser interface {
-	Fields() []string
-}
-
-type DefaultTableFieldser interface {
-	DefaultTableFields() []string
-}
 
 func runPipeCommand() {
 	switch GC.Command.(type) {
-	case StreamPipeCommander:
+	case interfaces.StreamPipeCommander:
 		handleStreamPipeCommand()
-	case PipeCommander:
+	case interfaces.PipeCommander:
 		handlePipeCommands()
 	default:
 	}
@@ -61,7 +22,7 @@ func runPipeCommand() {
 func handlePipeCommand(text string) {
 	defer GC.wgExecute.Done()
 	GC.GlobalOptions.logger.Info("Running HandlePipe...")
-	item, err := GC.Command.(PipeCommander).HandlePipe(text)
+	item, err := GC.Command.(interfaces.PipeCommander).HandlePipe(text)
 	switch err {
 	case nil:
 		GC.GlobalOptions.logger.Info("Running Execute...")
@@ -72,7 +33,7 @@ func handlePipeCommand(text string) {
 }
 
 func handlePipeCommands() {
-	switch util.Contains(GC.Command.(PipeCommander).PipeFieldOptions(), GC.CommandContext.String("stdin")) {
+	switch util.Contains(GC.Command.(interfaces.PipeCommander).PipeFieldOptions(), GC.CommandContext.String("stdin")) {
 	case true:
 		scanner := bufio.NewScanner(os.Stdin)
 		for scanner.Scan() {
@@ -89,10 +50,10 @@ func handlePipeCommands() {
 }
 
 func handleStreamPipeCommand() {
-	switch util.Contains(GC.Command.(StreamPipeCommander).StreamFieldOptions(), GC.CommandContext.String("stdin")) {
+	switch util.Contains(GC.Command.(interfaces.StreamPipeCommander).StreamFieldOptions(), GC.CommandContext.String("stdin")) {
 	case true:
 		GC.GlobalOptions.logger.Info("Running HandleStreamPipe...")
-		stream, err := GC.Command.(StreamPipeCommander).HandleStreamPipe(os.Stdin)
+		stream, err := GC.Command.(interfaces.StreamPipeCommander).HandleStreamPipe(os.Stdin)
 		switch err {
 		case nil:
 			GC.wgExecute.Add(1)
@@ -110,9 +71,9 @@ func handleStreamPipeCommand() {
 
 func runSingleCommand() {
 	switch GC.Command.(type) {
-	case PipeCommander, StreamPipeCommander:
+	case interfaces.PipeCommander, interfaces.StreamPipeCommander:
 		GC.GlobalOptions.logger.Info("Running HandleSingle...")
-		item, err := GC.Command.(PipeCommander).HandleSingle()
+		item, err := GC.Command.(interfaces.PipeCommander).HandleSingle()
 		switch err {
 		case nil:
 			GC.GlobalOptions.logger.Info("Running Execute...")
@@ -126,7 +87,7 @@ func runSingleCommand() {
 }
 
 func handleProgress() {
-	p := GC.Command.(Progresser)
+	p := GC.Command.(interfaces.Progresser)
 	go p.InitProgress()
 	for item := range GC.ExecuteResults {
 		item := item
@@ -175,7 +136,7 @@ func handleWait() {
 				GC.DoneChan <- e
 			default:
 				GC.GlobalOptions.logger.Infof("running WaitFor for item: %v", item)
-				GC.Command.(Waiter).WaitFor(item)
+				GC.Command.(interfaces.Waiter).WaitFor(item)
 			}
 		}()
 	}
@@ -224,7 +185,7 @@ func RunCommand() {
 		close(GC.ExecuteResults)
 	}()
 
-	if _, ok := GC.Command.(Progresser); ok && !GC.CommandContext.IsSet("quiet") {
+	if _, ok := GC.Command.(interfaces.Progresser); ok && !GC.CommandContext.IsSet("quiet") {
 		handleProgress()
 	} else if GC.CommandContext.IsSet("wait") {
 		handleWait()
