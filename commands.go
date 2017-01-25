@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 
+	"github.com/gophercloud/cli/openstack/commands/blockstorage"
 	"github.com/gophercloud/cli/openstack/commands/compute"
 	"github.com/gophercloud/cli/openstack/commands/files"
 	"github.com/gophercloud/cli/openstack/commands/loadbalancing"
@@ -49,6 +50,11 @@ var commands = []cli.Command{
 		Name:        "files",
 		Usage:       "Object storage for files and media.",
 		Subcommands: files.Get(),
+	},
+	{
+		Name:        "block-storage",
+		Usage:       "Block-level storage, exposed as volumes to mount.",
+		Subcommands: blockstorage.Get(),
 	},
 	{
 		Name:        "networking",
