@@ -1,0 +1,26 @@
+#!/bin/bash
+
+# Load our library functions
+SCRIPT_DIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
+source "${SCRIPT_DIR}/lib.sh"
+
+build() {
+  if [ -n "$GOPATH" ]; then
+    echo "Building openstack!"
+
+    RACKBUILD=${1:-${GOPATH}/bin/openstack}
+
+    get_commit
+    get_version
+
+    LDFLAGS="-X github.com/gophercloud/cli/version.Commit=${COMMIT} \
+             -X github.com/gophercloud/cli/version.Version=${VERSION}"
+    CGO_ENABLED=0 go build -a -installsuffix cgo -ldflags "${LDFLAGS}" -o "${RACKBUILD}"
+    return $?
+  else
+    echo "\$GOPATH must be defined. Do you have go setup?"
+    return 1
+  fi
+}
+
+build "$1"
