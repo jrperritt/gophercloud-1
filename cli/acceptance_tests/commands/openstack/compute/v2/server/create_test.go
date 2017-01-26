@@ -6,8 +6,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/gophercloud/cli/openstack/commands/compute/v2/server"
-	"github.com/gophercloud/cli/util"
+	"github.com/gophercloud/gophercloud/cli/openstack/commands/compute/v2/server"
+	"github.com/gophercloud/gophercloud/cli/util"
 )
 
 var base = fmt.Sprintf("%s create", server.CommandPrefix)

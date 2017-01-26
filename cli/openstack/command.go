@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/gophercloud/cli/lib/interfaces"
-	"github.com/gophercloud/cli/util"
+	"github.com/gophercloud/gophercloud/cli/lib/interfaces"
+	"github.com/gophercloud/gophercloud/cli/util"
 )
 
 func runPipeCommand() {

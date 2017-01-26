@@ -1,10 +1,10 @@
 package volume
 
 import (
-	"github.com/gophercloud/cli/lib/interfaces"
-	"github.com/gophercloud/cli/lib/traits"
-	"github.com/gophercloud/cli/openstack"
-	"github.com/gophercloud/cli/util"
+	"github.com/gophercloud/gophercloud/cli/lib/interfaces"
+	"github.com/gophercloud/gophercloud/cli/lib/traits"
+	"github.com/gophercloud/gophercloud/cli/openstack"
+	"github.com/gophercloud/gophercloud/cli/util"
 	"github.com/gophercloud/gophercloud/openstack/blockstorage/v2/volumes"
 	"gopkg.in/urfave/cli.v1"
 )

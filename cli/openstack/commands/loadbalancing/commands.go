@@ -1,8 +1,8 @@
 package loadbalancing
 
 import (
-	"github.com/gophercloud/cli/openstack/commands/loadbalancing/v2"
-	"github.com/gophercloud/cli/util"
+	"github.com/gophercloud/gophercloud/cli/openstack/commands/loadbalancing/v2"
+	"github.com/gophercloud/gophercloud/cli/util"
 	"gopkg.in/urfave/cli.v1"
 )
 

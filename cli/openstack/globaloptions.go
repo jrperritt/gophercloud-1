@@ -8,9 +8,9 @@ import (
 	"strings"
 
 	"github.com/Sirupsen/logrus"
-	"github.com/gophercloud/cli/lib"
-	"github.com/gophercloud/cli/util"
 	"github.com/gophercloud/gophercloud"
+	"github.com/gophercloud/gophercloud/cli/lib"
+	"github.com/gophercloud/gophercloud/cli/util"
 
 	"gopkg.in/ini.v1"
 )

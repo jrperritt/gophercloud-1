@@ -7,11 +7,11 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/gophercloud/cli/lib/interfaces"
-	"github.com/gophercloud/cli/lib/traits"
-	"github.com/gophercloud/cli/openstack"
-	"github.com/gophercloud/cli/util"
 	"github.com/gophercloud/gophercloud"
+	"github.com/gophercloud/gophercloud/cli/lib/interfaces"
+	"github.com/gophercloud/gophercloud/cli/lib/traits"
+	"github.com/gophercloud/gophercloud/cli/openstack"
+	"github.com/gophercloud/gophercloud/cli/util"
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/extensions/bootfromvolume"
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/extensions/keypairs"
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/servers"
@@ -194,7 +194,7 @@ func (c *CommandCreate) HandleFlags() error {
 
 			if len(fileData)+len(destinationPath) > 1000 {
 				return fmt.Errorf("The maximum length of a file-path-and-content pair for `personality` is 1000 bytes."+
-					" Current pair size: path (%s): %d, content: %d", len(destinationPath), len(fileData))
+					" Current pair size: path (%s): %d, content: %d", destinationPath, len(destinationPath), len(fileData))
 			}
 
 			filesToInject = append(filesToInject, &servers.File{
@@ -290,7 +290,7 @@ func (c *CommandCreate) HandleFlags() error {
 			if destinationType != "volume" && destinationType != "local" {
 				return fmt.Errorf("Invalid value for destination-type: %s. Options are: volume, local.\n", destinationType)
 			}
-			bd.DestinationType = destinationType
+			bd.DestinationType = bootfromvolume.DestinationType(destinationType)
 		}
 
 		optsExt = bootfromvolume.CreateOptsExt{

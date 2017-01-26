@@ -3,9 +3,9 @@ package volumeattachment
 import (
 	"fmt"
 
-	"github.com/gophercloud/cli/lib/traits"
-	"github.com/gophercloud/cli/openstack"
-	"github.com/gophercloud/cli/util"
+	"github.com/gophercloud/gophercloud/cli/lib/traits"
+	"github.com/gophercloud/gophercloud/cli/openstack"
+	"github.com/gophercloud/gophercloud/cli/util"
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/extensions/volumeattach"
 	"gopkg.in/urfave/cli.v1"
 )

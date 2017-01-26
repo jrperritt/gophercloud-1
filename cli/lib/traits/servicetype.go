@@ -1,7 +1,7 @@
 package traits
 
 import (
-	"github.com/gophercloud/cli/lib/interfaces"
+	"github.com/gophercloud/gophercloud/cli/lib/interfaces"
 	"github.com/gophercloud/gophercloud/openstack"
 )
 

@@ -1,11 +1,11 @@
 package v2
 
 import (
-	"github.com/gophercloud/cli/openstack/commands/networking/v2/network"
-	"github.com/gophercloud/cli/openstack/commands/networking/v2/port"
-	"github.com/gophercloud/cli/openstack/commands/networking/v2/securitygroup"
-	"github.com/gophercloud/cli/openstack/commands/networking/v2/securitygrouprule"
-	"github.com/gophercloud/cli/openstack/commands/networking/v2/subnet"
+	"github.com/gophercloud/gophercloud/cli/openstack/commands/networking/v2/network"
+	"github.com/gophercloud/gophercloud/cli/openstack/commands/networking/v2/port"
+	"github.com/gophercloud/gophercloud/cli/openstack/commands/networking/v2/securitygroup"
+	"github.com/gophercloud/gophercloud/cli/openstack/commands/networking/v2/securitygrouprule"
+	"github.com/gophercloud/gophercloud/cli/openstack/commands/networking/v2/subnet"
 	"gopkg.in/urfave/cli.v1"
 )
 

@@ -1,8 +1,8 @@
 package v1
 
 import (
-	"github.com/gophercloud/cli/openstack/commands/files/v1/container"
-	"github.com/gophercloud/cli/openstack/commands/files/v1/object"
+	"github.com/gophercloud/gophercloud/cli/openstack/commands/files/v1/container"
+	"github.com/gophercloud/gophercloud/cli/openstack/commands/files/v1/object"
 	"gopkg.in/urfave/cli.v1"
 )
 

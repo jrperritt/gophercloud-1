@@ -4,8 +4,8 @@ import (
 	"sync"
 
 	"github.com/Sirupsen/logrus"
-	"github.com/gophercloud/cli/lib/interfaces"
 	"github.com/gophercloud/gophercloud"
+	"github.com/gophercloud/gophercloud/cli/lib/interfaces"
 	"gopkg.in/urfave/cli.v1"
 )
 

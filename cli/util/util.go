@@ -9,7 +9,7 @@ import (
 	"runtime"
 	"time"
 
-	"github.com/gophercloud/cli/version"
+	"github.com/gophercloud/gophercloud/cli/version"
 )
 
 // Name is the name of the CLI

@@ -1,7 +1,7 @@
 package server
 
 import (
-	"github.com/gophercloud/cli/lib/traits"
+	"github.com/gophercloud/gophercloud/cli/lib/traits"
 	"gopkg.in/urfave/cli.v1"
 )
 

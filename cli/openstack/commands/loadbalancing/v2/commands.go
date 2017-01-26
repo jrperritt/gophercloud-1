@@ -1,7 +1,7 @@
 package v2
 
 import (
-	"github.com/gophercloud/cli/openstack/commands/loadbalancing/v2/loadbalancer"
+	"github.com/gophercloud/gophercloud/cli/openstack/commands/loadbalancing/v2/loadbalancer"
 	"gopkg.in/urfave/cli.v1"
 )
 

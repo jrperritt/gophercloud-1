@@ -1,7 +1,7 @@
 package v2
 
 import (
-	"github.com/gophercloud/cli/openstack/commands/blockstorage/v2/volume"
+	"github.com/gophercloud/gophercloud/cli/openstack/commands/blockstorage/v2/volume"
 	"gopkg.in/urfave/cli.v1"
 )
 

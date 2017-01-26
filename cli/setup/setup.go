@@ -9,7 +9,7 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/gophercloud/cli/util"
+	"github.com/gophercloud/gophercloud/cli/util"
 	"gopkg.in/urfave/cli.v1"
 )
 

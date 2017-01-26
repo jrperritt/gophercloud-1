@@ -3,7 +3,7 @@ package volumeattachment
 import (
 	"fmt"
 
-	"github.com/gophercloud/cli/lib"
+	"github.com/gophercloud/gophercloud/cli/lib"
 	"github.com/gophercloud/gophercloud"
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/servers"
 	"gopkg.in/urfave/cli.v1"

@@ -1,7 +1,7 @@
 package traits
 
 import (
-	"github.com/gophercloud/cli/openstack"
+	"github.com/gophercloud/gophercloud/cli/openstack"
 	"gopkg.in/urfave/cli.v1"
 )
 

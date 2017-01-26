@@ -8,8 +8,8 @@ import (
 	"path"
 	"sync"
 
-	"github.com/gophercloud/cli/lib"
-	"github.com/gophercloud/cli/util"
+	"github.com/gophercloud/gophercloud/cli/lib"
+	"github.com/gophercloud/gophercloud/cli/util"
 )
 
 /*

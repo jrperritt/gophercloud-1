@@ -1,10 +1,10 @@
 package v2
 
 import (
-	"github.com/gophercloud/cli/openstack/commands/compute/v2/flavor"
-	"github.com/gophercloud/cli/openstack/commands/compute/v2/keypair"
-	"github.com/gophercloud/cli/openstack/commands/compute/v2/server"
-	"github.com/gophercloud/cli/openstack/commands/compute/v2/volumeattachment"
+	"github.com/gophercloud/gophercloud/cli/openstack/commands/compute/v2/flavor"
+	"github.com/gophercloud/gophercloud/cli/openstack/commands/compute/v2/keypair"
+	"github.com/gophercloud/gophercloud/cli/openstack/commands/compute/v2/server"
+	"github.com/gophercloud/gophercloud/cli/openstack/commands/compute/v2/volumeattachment"
 	"gopkg.in/urfave/cli.v1"
 )
 

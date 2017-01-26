@@ -1,9 +1,9 @@
 package server
 
 import (
-	"github.com/gophercloud/cli/lib/interfaces"
-	"github.com/gophercloud/cli/openstack"
-	"github.com/gophercloud/cli/util"
+	"github.com/gophercloud/gophercloud/cli/lib/interfaces"
+	"github.com/gophercloud/gophercloud/cli/openstack"
+	"github.com/gophercloud/gophercloud/cli/util"
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/servers"
 	"gopkg.in/urfave/cli.v1"
 )

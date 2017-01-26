@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/gophercloud/cli/lib"
 	"github.com/gophercloud/gophercloud"
+	"github.com/gophercloud/gophercloud/cli/lib"
 	"gopkg.in/urfave/cli.v1"
 )
 

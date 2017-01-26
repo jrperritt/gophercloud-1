@@ -1,10 +1,10 @@
 package loadbalancer
 
 import (
-	"github.com/gophercloud/cli/lib/interfaces"
-	"github.com/gophercloud/cli/lib/traits"
-	"github.com/gophercloud/cli/openstack"
-	"github.com/gophercloud/cli/util"
+	"github.com/gophercloud/gophercloud/cli/lib/interfaces"
+	"github.com/gophercloud/gophercloud/cli/lib/traits"
+	"github.com/gophercloud/gophercloud/cli/openstack"
+	"github.com/gophercloud/gophercloud/cli/util"
 	"github.com/gophercloud/gophercloud"
 	"github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/lbaas_v2/loadbalancers"
 	"github.com/gophercloud/gophercloud/pagination"

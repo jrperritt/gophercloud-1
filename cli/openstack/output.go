@@ -11,9 +11,9 @@ import (
 	"strings"
 	"text/tabwriter"
 
-	"github.com/gophercloud/cli/lib"
-	"github.com/gophercloud/cli/lib/interfaces"
-	"github.com/gophercloud/cli/util"
+	"github.com/gophercloud/gophercloud/cli/lib"
+	"github.com/gophercloud/gophercloud/cli/lib/interfaces"
+	"github.com/gophercloud/gophercloud/cli/util"
 )
 
 type CustomWriterer interface {
