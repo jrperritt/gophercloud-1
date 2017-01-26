@@ -331,7 +331,7 @@ func (c *CommandCreate) WaitFor(raw interface{}) {
 
 	err := util.WaitFor(900, func() (bool, error) {
 		var m map[string]map[string]interface{}
-		openstack.GC.Logger.Infof("running servers.Get for item: %s", id)
+		openstack.GC.Logger.Debugf("running servers.Get for item: %s", id)
 		err := servers.Get(c.ServiceClient, id).ExtractInto(&m)
 		if err != nil {
 			return false, err
@@ -339,15 +339,15 @@ func (c *CommandCreate) WaitFor(raw interface{}) {
 
 		switch m["server"]["status"].(string) {
 		case "ACTIVE":
-			openstack.GC.Logger.Infof("server %s is active", id)
+			openstack.GC.Logger.Debugf("server %s is active", id)
 			m["server"]["adminPass"] = orig["adminPass"].(string)
-			openstack.GC.Logger.Infof("putting item %s in openstack.GC.DoneChan", id)
+			openstack.GC.Logger.Debugf("putting item %s in openstack.GC.DoneChan", id)
 			openstack.GC.DoneChan <- m["server"]
-			openstack.GC.Logger.Infof("returning from WaitFor for item: %s", id)
+			openstack.GC.Logger.Debugf("returning from WaitFor for item: %s", id)
 			return true, nil
 		default:
 			if !c.Quiet {
-				openstack.GC.Logger.Infof("putting item %s in openstack.GC.UpdateChan", id)
+				openstack.GC.Logger.Debugf("putting item %s in openstack.GC.UpdateChan", id)
 				openstack.GC.UpdateChan <- m["server"]["progress"].(float64)
 			}
 			return false, nil

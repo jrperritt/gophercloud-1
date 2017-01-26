@@ -3,7 +3,6 @@ package openstack
 import (
 	"fmt"
 
-	"github.com/Sirupsen/logrus"
 	"github.com/gophercloud/gophercloud"
 	"github.com/gophercloud/gophercloud/cli/lib"
 	"github.com/gophercloud/gophercloud/cli/util"
@@ -11,7 +10,7 @@ import (
 )
 
 type auth struct {
-	logger        *logrus.Logger
+	logger        *logger
 	noCache       bool
 	serviceType   string
 	serviceClient *gophercloud.ServiceClient
@@ -48,7 +47,7 @@ func AuthFromScratch() error {
 	ao := GC.GlobalOptions.authOptions
 	l := GC.GlobalOptions.logger
 
-	l.Info("Authenticating from scratch.\n")
+	l.Debugln("Authenticating from scratch.\n")
 
 	l.Debugf("auth options: %+v\n", *ao)
 
@@ -85,16 +84,16 @@ func AuthFromCache() error {
 	ao := GC.GlobalOptions.authOptions
 	l := GC.GlobalOptions.logger
 
-	l.Info("Authenticating from cache")
+	l.Debugln("Authenticating from cache")
 
 	cache := GetCache()
 	cacheKey := GetCacheKey()
-	l.Infof("Looking in the cache for cache key: %s", cacheKey)
+	l.Debugf("Looking in the cache for cache key: %s", cacheKey)
 	credser, err := cache.GetCacheValue(cacheKey)
 
 	if err == nil && credser != nil {
 		creds := credser.(*CacheItem)
-		l.Infof("Using token from cache: %s", creds.TokenID)
+		l.Debugf("Using token from cache: %s", creds.TokenID)
 		pc, err := openstack.NewClient(ao.IdentityEndpoint)
 		if err == nil {
 			pc.UserAgent.Prepend(util.UserAgent)

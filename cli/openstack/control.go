@@ -3,7 +3,6 @@ package openstack
 import (
 	"sync"
 
-	"github.com/Sirupsen/logrus"
 	"github.com/gophercloud/gophercloud"
 	"github.com/gophercloud/gophercloud/cli/lib/interfaces"
 	"gopkg.in/urfave/cli.v1"
@@ -15,7 +14,7 @@ type globalContext struct {
 	GlobalOptions                          *GlobalOptions
 	ExecuteResults, ResultsRunCommand      chan (interface{})
 	Command                                interfaces.Commander
-	Logger                                 *logrus.Logger
+	Logger                                 *logger
 	DoneChan, ProgressDoneChan, UpdateChan chan (interface{})
 	doneChan                               chan (bool)
 	wgExecute, wgProgress                  *sync.WaitGroup
@@ -57,16 +56,16 @@ func Action(ctx *cli.Context, commander interfaces.Commander) error {
 	GC.Command.SetServiceClient(GC.ServiceClient)
 	GC.Command.SetContext(GC.CommandContext)
 
-	GC.GlobalOptions.logger.Debug("Running HandleFlags...")
+	GC.GlobalOptions.logger.Debugln("Running HandleFlags...")
 	err = GC.Command.HandleFlags()
 	if err != nil {
 		return ErrExit1{err}
 	}
 
-	GC.GlobalOptions.logger.Debug("Running RunCommand...")
+	GC.GlobalOptions.logger.Debugln("Running RunCommand...")
 	go RunCommand()
 
-	GC.GlobalOptions.logger.Debug("Running OutputResults...")
+	GC.GlobalOptions.logger.Debugln("Running OutputResults...")
 	err = OutputResults()
 	if err != nil {
 		return ErrExit1{err}

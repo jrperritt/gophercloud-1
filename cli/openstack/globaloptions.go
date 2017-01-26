@@ -2,12 +2,12 @@ package openstack
 
 import (
 	"fmt"
+	"log"
 	"os"
 	"path"
 	"strconv"
 	"strings"
 
-	"github.com/Sirupsen/logrus"
 	"github.com/gophercloud/gophercloud"
 	"github.com/gophercloud/gophercloud/cli/lib"
 	"github.com/gophercloud/gophercloud/cli/util"
@@ -31,7 +31,7 @@ type GlobalOptions struct {
 	noCache      bool
 	noHeader     bool
 	logLevel     string
-	logger       *logrus.Logger
+	logger       *logger
 	have         map[string]GlobalOption
 	want         []GlobalOption
 	fields       []string
@@ -144,20 +144,9 @@ func setGlobalOptions() error {
 		return err
 	}
 
-	var level logrus.Level
-	switch strings.ToLower(GC.GlobalOptions.logLevel) {
-	case "debug":
-		level = logrus.DebugLevel
-	case "info":
-		level = logrus.InfoLevel
-	default:
-		level = 0
-	}
-	GC.GlobalOptions.logger = &logrus.Logger{
-		Out:       GC.CommandContext.App.Writer,
-		Formatter: &logrus.TextFormatter{},
-		Level:     level,
-	}
+	logger := new(logger)
+	logger.Logger = *log.New(GC.CommandContext.App.Writer, "", log.LstdFlags)
+	GC.GlobalOptions.logger = logger
 
 	switch GC.CommandContext.IsSet("fields") {
 	case true:

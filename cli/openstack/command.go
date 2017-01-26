@@ -21,11 +21,11 @@ func runPipeCommand() {
 
 func handlePipeCommand(text string) {
 	defer GC.wgExecute.Done()
-	GC.GlobalOptions.logger.Info("Running HandlePipe...")
+	GC.GlobalOptions.logger.Debugln("Running HandlePipe...")
 	item, err := GC.Command.(interfaces.PipeCommander).HandlePipe(text)
 	switch err {
 	case nil:
-		GC.GlobalOptions.logger.Info("Running Execute...")
+		GC.GlobalOptions.logger.Debugln("Running Execute...")
 		GC.Command.Execute(item, GC.ExecuteResults)
 	default:
 		GC.ExecuteResults <- err
@@ -52,7 +52,7 @@ func handlePipeCommands() {
 func handleStreamPipeCommand() {
 	switch util.Contains(GC.Command.(interfaces.StreamPipeCommander).StreamFieldOptions(), GC.CommandContext.String("stdin")) {
 	case true:
-		GC.GlobalOptions.logger.Info("Running HandleStreamPipe...")
+		GC.GlobalOptions.logger.Debugln("Running HandleStreamPipe...")
 		stream, err := GC.Command.(interfaces.StreamPipeCommander).HandleStreamPipe(os.Stdin)
 		switch err {
 		case nil:
@@ -72,11 +72,11 @@ func handleStreamPipeCommand() {
 func runSingleCommand() {
 	switch GC.Command.(type) {
 	case interfaces.PipeCommander, interfaces.StreamPipeCommander:
-		GC.GlobalOptions.logger.Info("Running HandleSingle...")
+		GC.GlobalOptions.logger.Debugln("Running HandleSingle...")
 		item, err := GC.Command.(interfaces.PipeCommander).HandleSingle()
 		switch err {
 		case nil:
-			GC.GlobalOptions.logger.Info("Running Execute...")
+			GC.GlobalOptions.logger.Debugln("Running Execute...")
 			GC.Command.Execute(item, GC.ExecuteResults)
 		default:
 			GC.ExecuteResults <- err
@@ -98,24 +98,24 @@ func handleProgress() {
 			case error:
 				GC.DoneChan <- e
 			default:
-				GC.GlobalOptions.logger.Infof("running WaitFor for item: %v", item)
+				GC.GlobalOptions.logger.Debugf("running WaitFor for item: %v", item)
 				go p.WaitFor(item)
 				id := p.BarID(item)
 				p.ShowBar(id)
 			}
-			GC.GlobalOptions.logger.Info("done waiting on item: %v", item)
+			GC.GlobalOptions.logger.Debugf("done waiting on item: %v", item)
 		}()
 	}
 
 	go func() {
 		GC.wgProgress.Wait()
-		GC.GlobalOptions.logger.Infoln("closing GC.DoneChan...")
+		GC.GlobalOptions.logger.Debugln("closing GC.DoneChan...")
 		close(GC.ProgressDoneChan)
 	}()
 
 	progressResults := make([]interface{}, 0)
 
-	GC.Logger.Info("Waiting for items on GC.ProgressDoneChan...")
+	GC.Logger.Debugln("Waiting for items on GC.ProgressDoneChan...")
 	for r := range GC.ProgressDoneChan {
 		progressResults = append(progressResults, r)
 	}
@@ -135,7 +135,7 @@ func handleWait() {
 			case error:
 				GC.DoneChan <- e
 			default:
-				GC.GlobalOptions.logger.Infof("running WaitFor for item: %v", item)
+				GC.GlobalOptions.logger.Debugf("running WaitFor for item: %v", item)
 				GC.Command.(interfaces.Waiter).WaitFor(item)
 			}
 		}()
@@ -143,13 +143,13 @@ func handleWait() {
 
 	go func() {
 		GC.wgProgress.Wait()
-		GC.GlobalOptions.logger.Infoln("closing GC.DoneChan...")
+		GC.GlobalOptions.logger.Debugln("closing GC.DoneChan...")
 		close(GC.DoneChan)
 	}()
 
 	waitResults := make([]interface{}, 0)
 
-	GC.Logger.Info("Waiting for items on GC.DoneChan...")
+	GC.Logger.Debugln("Waiting for items on GC.DoneChan...")
 	for r := range GC.DoneChan {
 		waitResults = append(waitResults, r)
 	}
@@ -169,10 +169,10 @@ func RunCommand() {
 	defer close(GC.ResultsRunCommand)
 	switch GC.CommandContext.IsSet("stdin") {
 	case true:
-		GC.GlobalOptions.logger.Info("Running runPipeCommand...")
+		GC.GlobalOptions.logger.Debugln("Running runPipeCommand...")
 		runPipeCommand()
 	default:
-		GC.GlobalOptions.logger.Info("Running runSingleCommand...")
+		GC.GlobalOptions.logger.Debugln("Running runSingleCommand...")
 		GC.wgExecute.Add(1)
 		go func() {
 			defer GC.wgExecute.Done()

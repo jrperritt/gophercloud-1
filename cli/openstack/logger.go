@@ -2,33 +2,57 @@ package openstack
 
 import (
 	"bytes"
+	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"io"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"strings"
-
-	"github.com/Sirupsen/logrus"
 )
+
+type logger struct {
+	log.Logger
+	debug bool
+}
+
+func (l logger) Debugln(v ...interface{}) {
+	if l.debug {
+		l.Println(v...)
+	}
+}
+
+func (l logger) Debugf(format string, v ...interface{}) {
+	if l.debug {
+		l.Printf(format, v...)
+	}
+}
 
 // LogRoundTripper satisfies the http.RoundTripper interface and is used to
 // customize the default Gophercloud RoundTripper to allow for logging.
 type LogRoundTripper struct {
-	Logger            *logrus.Logger
+	Logger            *logger
 	rt                http.RoundTripper
 	numReauthAttempts int
 }
 
 // newHTTPClient return a custom HTTP client that allows for logging relevant
 // information before and after the HTTP request.
-func newHTTPClient(l *logrus.Logger) http.Client {
-	return http.Client{
-		Transport: &LogRoundTripper{
-			Logger: l,
-			rt:     http.DefaultTransport,
-		},
-	}
+func newHTTPClient(l *logger) http.Client {
+	lrt := new(LogRoundTripper)
+	lrt.Logger = l
+	lrt.rt = http.DefaultTransport
+	lrt.rt.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
+	return http.Client{Transport: lrt}
+	/*
+		return http.Client{
+			Transport: &LogRoundTripper{
+				Logger: l,
+				rt:     http.DefaultTransport,
+			},
+		}
+	*/
 }
 
 // RoundTrip performs a round-trip HTTP request and logs relevant information about it.
@@ -41,7 +65,7 @@ func (lrt *LogRoundTripper) RoundTrip(request *http.Request) (*http.Response, er
 
 	var err error
 
-	if lrt.Logger.Level == logrus.DebugLevel && request.Body != nil {
+	if request.Body != nil {
 		lrt.Logger.Debugln("Logging request body...")
 		request.Body, err = lrt.logRequestBody(request.Body, request.Header)
 		if err != nil {
@@ -55,7 +79,7 @@ func (lrt *LogRoundTripper) RoundTrip(request *http.Request) (*http.Response, er
 	}
 	lrt.Logger.Debugf("Request Headers: %+v\n", string(info))
 
-	lrt.Logger.Infof("Request URL: %s\n", request.URL)
+	lrt.Logger.Debugf("Request URL: %s\n", request.URL)
 
 	response, err := lrt.rt.RoundTrip(request)
 	if response == nil {
