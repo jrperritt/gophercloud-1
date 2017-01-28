@@ -6,16 +6,16 @@ source "${SCRIPT_DIR}/lib.sh"
 
 build() {
   if [ -n "$GOPATH" ]; then
-    echo "Building openstack!"
+    echo "Building stack!"
 
-    RACKBUILD=${1:-${GOPATH}/bin/openstack}
+    STACKBUILD=${1:-${GOPATH}/bin/stack}
 
     get_commit
     get_version
 
-    LDFLAGS="-X github.com/gophercloud/cli/version.Commit=${COMMIT} \
-             -X github.com/gophercloud/cli/version.Version=${VERSION}"
-    CGO_ENABLED=0 go build -a -installsuffix cgo -ldflags "${LDFLAGS}" -o "${RACKBUILD}"
+    LDFLAGS="-X github.com/gophercloud/gophercloud/cli/version.Commit=${COMMIT} \
+             -X github.com/gophercloud/gophercloud/cli/version.Version=${VERSION}"
+    CGO_ENABLED=0 go build -a -installsuffix cgo -ldflags "${LDFLAGS}" -o "${STACKBUILD}"
     return $?
   else
     echo "\$GOPATH must be defined. Do you have go setup?"
