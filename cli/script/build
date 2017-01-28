@@ -13,9 +13,11 @@ build() {
     get_commit
     get_version
 
+    cd ${SCRIPT_DIR}/../main
+
     LDFLAGS="-X github.com/gophercloud/gophercloud/cli/version.Commit=${COMMIT} \
              -X github.com/gophercloud/gophercloud/cli/version.Version=${VERSION}"
-    CGO_ENABLED=0 go build -a -installsuffix cgo -ldflags "${LDFLAGS}" -o "${STACKBUILD}"
+    go build -a -ldflags "${LDFLAGS}" -o "${STACKBUILD}"
     return $?
   else
     echo "\$GOPATH must be defined. Do you have go setup?"
