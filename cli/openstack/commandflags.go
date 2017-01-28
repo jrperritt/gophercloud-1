@@ -40,5 +40,9 @@ func CommandFlags(c interfaces.Commander) []cli.Flag {
 		flags = append(flags, progresser.ProgressFlags()...)
 	}
 
+	if tabler, ok := c.(interfaces.Tabler); ok {
+		flags = append(flags, tabler.TableFlags()...)
+	}
+
 	return flags
 }

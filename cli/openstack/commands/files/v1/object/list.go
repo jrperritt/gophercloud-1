@@ -15,12 +15,14 @@ type commandList struct {
 	traits.Pipeable
 	traits.Waitable
 	traits.DataResp
+	traits.Tableable
 	opts objects.ListOptsBuilder
 }
 
 var (
 	cList                          = new(commandList)
 	_     interfaces.PipeCommander = cList
+	_     interfaces.Tabler        = cList
 
 	flagsList = openstack.CommandFlags(cList)
 )
@@ -63,6 +65,8 @@ func (c *commandList) Flags() []cli.Flag {
 	}
 }
 
+// DefaultTableFields returns default fields for tabular output.
+// Partially satisfies interfaces.Tabler interface
 func (c *commandList) DefaultTableFields() []string {
 	return []string{"name", "bytes", "hash", "content_type", "last_modified"}
 }

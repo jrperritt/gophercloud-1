@@ -1,11 +1,11 @@
 package loadbalancer
 
 import (
+	"github.com/gophercloud/gophercloud"
 	"github.com/gophercloud/gophercloud/cli/lib/interfaces"
 	"github.com/gophercloud/gophercloud/cli/lib/traits"
 	"github.com/gophercloud/gophercloud/cli/openstack"
 	"github.com/gophercloud/gophercloud/cli/util"
-	"github.com/gophercloud/gophercloud"
 	"github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/lbaas_v2/loadbalancers"
 	"github.com/gophercloud/gophercloud/pagination"
 	"gopkg.in/urfave/cli.v1"
@@ -15,12 +15,14 @@ type CommandList struct {
 	LoadbalancerV2Command
 	traits.Waitable
 	traits.DataResp
+	traits.Tableable
 	opts loadbalancers.ListOptsBuilder
 }
 
 var (
 	cList                       = new(CommandList)
 	_         interfaces.Waiter = cList
+	_         interfaces.Tabler = cList
 	flagsList                   = openstack.CommandFlags(cList)
 )
 
@@ -72,6 +74,12 @@ func (c *CommandList) Flags() []cli.Flag {
 			Name: "operating-status",
 		},
 	}
+}
+
+// DefaultTableFields returns default fields for tabular output.
+// Partially satisfies interfaces.Tabler interface
+func (c *CommandList) DefaultTableFields() []string {
+	return []string{"id", "name", "vip-address", "vip-port-id"}
 }
 
 func (c *CommandList) HandleFlags() error {

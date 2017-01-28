@@ -1,6 +1,7 @@
 package keypair
 
 import (
+	"github.com/gophercloud/gophercloud/cli/lib/interfaces"
 	"github.com/gophercloud/gophercloud/cli/lib/traits"
 	"github.com/gophercloud/gophercloud/cli/openstack"
 	"github.com/gophercloud/gophercloud/cli/util"
@@ -11,11 +12,13 @@ import (
 type CommandList struct {
 	KeypairV2Command
 	traits.DataResp
+	traits.Tableable
 	opts keypairs.CreateOptsBuilder
 }
 
 var (
-	cList = new(CommandList)
+	cList                   = new(CommandList)
+	_     interfaces.Tabler = cList
 
 	flagsList = openstack.CommandFlags(cList)
 )
@@ -33,6 +36,8 @@ func (c *CommandList) Flags() []cli.Flag {
 	return nil
 }
 
+// DefaultTableFields returns default fields for tabular output.
+// Partially satisfies interfaces.Tabler interface
 func (c *CommandList) DefaultTableFields() []string {
 	return []string{"name", "fingerprint"}
 }

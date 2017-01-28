@@ -14,6 +14,7 @@ type CommandList struct {
 	SecurityGroupV2Command
 	traits.Waitable
 	traits.DataResp
+	traits.Tableable
 	opts groups.ListOpts
 }
 
@@ -21,6 +22,7 @@ var (
 	cList                      = new(CommandList)
 	_     interfaces.Waiter    = cList
 	_     interfaces.Commander = cList
+	_     interfaces.Tabler    = cList
 
 	flagsList = openstack.CommandFlags(cList)
 )
@@ -47,6 +49,8 @@ func (c *CommandList) Flags() []cli.Flag {
 	}
 }
 
+// DefaultTableFields returns default fields for tabular output.
+// Partially satisfies interfaces.Tabler interface
 func (c *CommandList) DefaultTableFields() []string {
 	return []string{"id", "name", "tenant_id"}
 }

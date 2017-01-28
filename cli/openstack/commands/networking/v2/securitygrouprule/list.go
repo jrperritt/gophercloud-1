@@ -16,6 +16,7 @@ type CommandList struct {
 	SecurityGroupRuleV2Command
 	traits.Waitable
 	traits.DataResp
+	traits.Tableable
 	opts rules.ListOpts
 }
 
@@ -23,6 +24,7 @@ var (
 	cList                      = new(CommandList)
 	_     interfaces.Waiter    = cList
 	_     interfaces.Commander = cList
+	_     interfaces.Tabler    = cList
 
 	flagsList = openstack.CommandFlags(cList)
 )
@@ -69,6 +71,8 @@ func (c *CommandList) Flags() []cli.Flag {
 	}
 }
 
+// DefaultTableFields returns default fields for tabular output.
+// Partially satisfies interfaces.Tabler interface
 func (c *CommandList) DefaultTableFields() []string {
 	return []string{"id", "direction", "ethertype", "port_range_min", "port_range_max", "protocol", "security_group_id"}
 }

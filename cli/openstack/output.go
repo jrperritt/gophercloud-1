@@ -157,8 +157,8 @@ func outputReader(r io.Reader) {
 
 func LimitFields(r interface{}) {
 	if len(GC.GlobalOptions.fields) == 0 {
-		if fieldser, ok := GC.Command.(interfaces.DefaultTableFieldser); ok {
-			GC.GlobalOptions.fields = fieldser.DefaultTableFields()
+		if tabler, ok := GC.Command.(interfaces.Tabler); ok {
+			GC.GlobalOptions.fields = tabler.DefaultTableFields()
 		} else {
 			switch t := r.(type) {
 			case map[string]interface{}:

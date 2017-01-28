@@ -3,11 +3,11 @@ package network
 import (
 	"fmt"
 
+	"github.com/gophercloud/gophercloud"
 	"github.com/gophercloud/gophercloud/cli/lib/interfaces"
 	"github.com/gophercloud/gophercloud/cli/lib/traits"
 	"github.com/gophercloud/gophercloud/cli/openstack"
 	"github.com/gophercloud/gophercloud/cli/util"
-	"github.com/gophercloud/gophercloud"
 	"github.com/gophercloud/gophercloud/openstack/networking/v2/networks"
 	"github.com/gophercloud/gophercloud/pagination"
 	"gopkg.in/urfave/cli.v1"
@@ -17,6 +17,7 @@ type CommandList struct {
 	NetworkV2Command
 	traits.Waitable
 	traits.DataResp
+	traits.Tableable
 	opts networks.ListOptsBuilder
 }
 
@@ -24,6 +25,7 @@ var (
 	cList                      = new(CommandList)
 	_     interfaces.Waiter    = cList
 	_     interfaces.Commander = cList
+	_     interfaces.Tabler    = cList
 
 	flagsList = openstack.CommandFlags(cList)
 )
@@ -70,6 +72,8 @@ func (c *CommandList) Flags() []cli.Flag {
 	}
 }
 
+// DefaultTableFields returns default fields for tabular output.
+// Partially satisfies interfaces.Tabler interface
 func (c *CommandList) DefaultTableFields() []string {
 	return []string{"id", "name", "admin_state_up", "status", "shared", "tenant_id"}
 }

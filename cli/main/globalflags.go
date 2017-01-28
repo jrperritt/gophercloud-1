@@ -37,20 +37,12 @@ var globalFlags = []cli.Flag{
 		Name:  "profile",
 		Usage: "The config file profile from which to load flags.",
 	},
-	cli.StringFlag{
-		Name:  "output",
-		Usage: "Format in which to return output. Options: json, table. Default is 'table'.",
-	},
 	cli.BoolFlag{
 		Name:  "no-cache",
 		Usage: "Do not get or set authentication credentials in the cache.",
 	},
-	cli.StringFlag{
-		Name:  "log",
-		Usage: "Print debug information from the command. Options are: debug, info",
-	},
 	cli.BoolFlag{
-		Name:  "no-header",
-		Usage: "Do not return a header for tabular output.",
+		Name:  "debug",
+		Usage: "Print debug information from the command.",
 	},
 }

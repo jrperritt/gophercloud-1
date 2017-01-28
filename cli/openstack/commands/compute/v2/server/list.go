@@ -1,6 +1,7 @@
 package server
 
 import (
+	"github.com/gophercloud/gophercloud/cli/lib/interfaces"
 	"github.com/gophercloud/gophercloud/cli/lib/traits"
 	"github.com/gophercloud/gophercloud/cli/openstack"
 	"github.com/gophercloud/gophercloud/cli/util"
@@ -13,13 +14,15 @@ type CommandList struct {
 	ServerV2Command
 	traits.Waitable
 	traits.DataResp
+	traits.Tableable
 	opts servers.ListOptsBuilder
 }
 
 var (
-	cList     = new(CommandList)
-	flagsList = openstack.CommandFlags(cList)
-	list      = cli.Command{
+	cList                       = new(CommandList)
+	_         interfaces.Tabler = cList
+	flagsList                   = openstack.CommandFlags(cList)
+	list                        = cli.Command{
 		Name:         "list",
 		Usage:        util.Usage(CommandPrefix, "list", ""),
 		Description:  "Lists existing servers",
@@ -66,6 +69,8 @@ func (c *CommandList) Flags() []cli.Flag {
 	}
 }
 
+// DefaultTableFields returns default fields for tabular output.
+// Partially satisfies interfaces.Tabler interface
 func (c *CommandList) DefaultTableFields() []string {
 	return []string{"id", "name", "status", "accessIPv4", "image", "flavor"}
 }
