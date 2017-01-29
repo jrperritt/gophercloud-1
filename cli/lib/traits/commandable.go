@@ -6,6 +6,7 @@ import (
 
 	"github.com/gophercloud/gophercloud"
 	"github.com/gophercloud/gophercloud/cli/lib"
+	"github.com/gophercloud/gophercloud/cli/lib/interfaces"
 	"gopkg.in/urfave/cli.v1"
 )
 
@@ -21,6 +22,21 @@ func (c *Commandable) SetContext(ctx *cli.Context) error {
 
 func (c *Commandable) SetServiceClient(sc *gophercloud.ServiceClient) error {
 	c.ServiceClient = sc
+	return nil
+}
+
+func (c *Commandable) HandleInterfaceFlags() error {
+	if w, ok := interface{}(c).(interfaces.Waiter); ok {
+		w.SetWait(c.Context.IsSet("wait"))
+	}
+	if w, ok := interface{}(c).(interfaces.Progresser); ok {
+		w.SetProgress(c.Context.IsSet("quiet"))
+	}
+	if t, ok := interface{}(c).(interfaces.Tabler); ok {
+		t.SetTable(c.Context.IsSet("table"))
+		t.SetHeader(c.Context.IsSet("no-header"))
+	}
+
 	return nil
 }
 

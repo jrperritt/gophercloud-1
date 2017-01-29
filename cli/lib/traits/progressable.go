@@ -28,6 +28,10 @@ func (c *Progressable) ProgressFlags() []cli.Flag {
 	}
 }
 
+func (c *Progressable) SetProgress(b bool) {
+	c.Quiet = b
+}
+
 func (c *Progressable) ShouldProgress() bool {
 	return !c.Quiet
 }

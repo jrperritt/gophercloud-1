@@ -10,6 +10,7 @@ import (
 type ServiceClientFunc func(*gophercloud.ProviderClient, gophercloud.EndpointOpts) (*gophercloud.ServiceClient, error)
 
 type Commander interface {
+	HandleInterfaceFlags() error
 	HandleFlags() error
 	Execute(item interface{}, out chan interface{})
 	Flags() []cli.Flag
@@ -32,31 +33,4 @@ type StreamPipeCommander interface {
 	PipeCommander
 	HandleStreamPipe(io.Reader) (interface{}, error)
 	StreamFieldOptions() []string
-}
-
-type Waiter interface {
-	WaitFor(item interface{})
-	ShouldWait() bool
-	WaitFlags() []cli.Flag
-}
-
-type Fieldser interface {
-	Fields() []string
-}
-
-type Progresser interface {
-	Waiter
-	InitProgress()
-	BarID(item interface{}) string
-	ShowBar(id string)
-	ShouldProgress() bool
-	ProgressFlags() []cli.Flag
-}
-
-// Tabler is the interface a command implements if it offers tabular output.
-// `TableFlags` is general to all `Tabler`s, so a command need only have `DefaultTableFields`
-// method
-type Tabler interface {
-	TableFlags() []cli.Flag
-	DefaultTableFields() []string
 }

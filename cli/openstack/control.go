@@ -56,6 +56,12 @@ func Action(ctx *cli.Context, commander interfaces.Commander) error {
 	GC.Command.SetServiceClient(GC.ServiceClient)
 	GC.Command.SetContext(GC.CommandContext)
 
+	GC.GlobalOptions.logger.Debugln("Running HandleInterfaceFlags...")
+	err = GC.Command.HandleInterfaceFlags()
+	if err != nil {
+		return ErrExit1{err}
+	}
+
 	GC.GlobalOptions.logger.Debugln("Running HandleFlags...")
 	err = GC.Command.HandleFlags()
 	if err != nil {

@@ -29,8 +29,6 @@ type GlobalOptions struct {
 	profile      string
 	outputFormat string
 	noCache      bool
-	noHeader     bool
-	logLevel     string
 	logger       *logger
 	have         map[string]GlobalOption
 	want         []GlobalOption
@@ -64,10 +62,7 @@ func SetGlobalOptions() error {
 
 func GlobalOptionsDefaults() []GlobalOption {
 	return []GlobalOption{
-		GlobalOption{"output", "table", "default", ValidateOutputInputParam},
 		GlobalOption{"no-cache", false, "default", nil},
-		GlobalOption{"no-header", false, "default", nil},
-		GlobalOption{"log", "", "default", ValidateLogInputParam},
 	}
 }
 
@@ -99,6 +94,10 @@ func Validate() error {
 }
 
 func setGlobalOptions() error {
+	l := new(logger)
+	l.Logger = *log.New(GC.CommandContext.App.Writer, "", log.LstdFlags)
+	GC.GlobalOptions.logger = l
+
 	GC.GlobalOptions.authOptions = new(gophercloud.AuthOptions)
 	var err error
 	for name, opt := range GC.GlobalOptions.have {
@@ -128,25 +127,21 @@ func setGlobalOptions() error {
 			case bool:
 				GC.GlobalOptions.noCache = t
 			}
-		case "no-header":
-			switch t := opt.value.(type) {
-			case string:
-				GC.GlobalOptions.noHeader, err = strconv.ParseBool(t)
-			case bool:
-				GC.GlobalOptions.noHeader = t
-			}
-		case "log":
-			GC.GlobalOptions.logLevel = opt.value.(string)
+		/*case "no-header":
+		switch t := opt.value.(type) {
+		case string:
+			GC.GlobalOptions.noHeader, err = strconv.ParseBool(t)
+		case bool:
+			GC.GlobalOptions.noHeader = t
+		}*/
+		case "debug":
+			GC.GlobalOptions.logger.debug = true
 		}
 	}
 
 	if err != nil {
 		return err
 	}
-
-	logger := new(logger)
-	logger.Logger = *log.New(GC.CommandContext.App.Writer, "", log.LstdFlags)
-	GC.GlobalOptions.logger = logger
 
 	switch GC.CommandContext.IsSet("fields") {
 	case true:
@@ -214,24 +209,6 @@ func ParseEnvVarOptions() error {
 	}
 	GC.GlobalOptions.want = tmp
 	return nil
-}
-
-func ValidateOutputInputParam() error {
-	switch GC.GlobalOptions.have["output"].value {
-	case "json", "table", "":
-		return nil
-	default:
-		return fmt.Errorf("Invalid value for `output` flag: '%s'. Options are: json, table.", GC.GlobalOptions.outputFormat)
-	}
-}
-
-func ValidateLogInputParam() error {
-	switch GC.GlobalOptions.have["log"].value {
-	case "debug", "info", "":
-		return nil
-	default:
-		return fmt.Errorf("Invalid value for `log` flag: %s. Valid options are: debug, info", GC.GlobalOptions.logLevel)
-	}
 }
 
 func ProfileSection(profile string) (*ini.Section, error) {

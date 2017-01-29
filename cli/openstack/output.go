@@ -88,7 +88,7 @@ func outputMapsTable(ms []map[string]interface{}) {
 			return
 		}
 	}
-	if !GC.GlobalOptions.noHeader {
+	if GC.Command.(interfaces.Tabler).ShouldHeader() {
 		fmt.Fprintln(w, strings.Join(GC.GlobalOptions.fields, "\t"))
 	}
 	for _, m := range ms {

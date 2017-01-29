@@ -22,6 +22,10 @@ func (c *Waitable) WaitFlags() []cli.Flag {
 	}
 }
 
+func (c *Waitable) SetWait(b bool) {
+	c.Wait = b
+}
+
 func (c *Waitable) ShouldWait() bool {
 	return c.Wait
 }
