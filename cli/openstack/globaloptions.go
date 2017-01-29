@@ -9,32 +9,30 @@ import (
 	"strings"
 
 	"github.com/gophercloud/gophercloud"
-	"github.com/gophercloud/gophercloud/cli/lib"
 	"github.com/gophercloud/gophercloud/cli/util"
 
 	"gopkg.in/ini.v1"
 )
 
 type GlobalOption struct {
-	name     string
-	value    interface{}
-	from     string
-	validate func() error
+	name  string
+	value interface{}
+	from  string
 }
 
 type GlobalOptions struct {
-	authOptions  *gophercloud.AuthOptions
-	region       string
-	urlType      gophercloud.Availability
-	profile      string
-	outputFormat string
-	noCache      bool
-	logger       *logger
-	have         map[string]GlobalOption
-	want         []GlobalOption
-	fields       []string
+	authOptions *gophercloud.AuthOptions
+	region      string
+	urlType     gophercloud.Availability
+	profile     string
+	noCache     bool
+	logger      *logger
+	have        map[string]GlobalOption
+	want        []GlobalOption
+	fields      []string
 }
 
+// SetGlobalOptions sets the global context's global options
 func SetGlobalOptions() error {
 	GC.GlobalOptions = new(GlobalOptions)
 	GC.GlobalOptions.want = []GlobalOption{
@@ -62,7 +60,7 @@ func SetGlobalOptions() error {
 
 func GlobalOptionsDefaults() []GlobalOption {
 	return []GlobalOption{
-		GlobalOption{"no-cache", false, "default", nil},
+		GlobalOption{"no-cache", false, "default"},
 	}
 }
 
@@ -75,27 +73,16 @@ func SetGlobalOptionsDefaults() {
 }
 
 func Validate() error {
-	errs := make(lib.MultiError, 0)
-	for _, d := range GlobalOptionsDefaults() {
-		if d.validate != nil {
-			err := d.validate()
-			if err != nil {
-				errs = append(errs, err)
-			}
-		}
-	}
-
 	// error if the user didn't provide an auth URL
 	if _, ok := GC.GlobalOptions.have["auth-url"]; !ok || GC.GlobalOptions.have["auth-url"].value == "" {
 		return fmt.Errorf("You must provide an authentication endpoint")
 	}
-
 	return nil
 }
 
 func setGlobalOptions() error {
 	l := new(logger)
-	l.Logger = *log.New(GC.CommandContext.App.Writer, "", log.LstdFlags)
+	l.Logger = log.New(GC.CommandContext.App.Writer, "", log.LstdFlags)
 	GC.GlobalOptions.logger = l
 
 	GC.GlobalOptions.authOptions = new(gophercloud.AuthOptions)
@@ -118,8 +105,6 @@ func setGlobalOptions() error {
 			GC.GlobalOptions.region = opt.value.(string)
 		case "profile":
 			GC.GlobalOptions.profile = opt.value.(string)
-		case "output":
-			GC.GlobalOptions.outputFormat = opt.value.(string)
 		case "no-cache":
 			switch t := opt.value.(type) {
 			case string:
@@ -127,13 +112,6 @@ func setGlobalOptions() error {
 			case bool:
 				GC.GlobalOptions.noCache = t
 			}
-		/*case "no-header":
-		switch t := opt.value.(type) {
-		case string:
-			GC.GlobalOptions.noHeader, err = strconv.ParseBool(t)
-		case bool:
-			GC.GlobalOptions.noHeader = t
-		}*/
 		case "debug":
 			GC.GlobalOptions.logger.debug = true
 		}
@@ -143,14 +121,10 @@ func setGlobalOptions() error {
 		return err
 	}
 
-	switch GC.CommandContext.IsSet("fields") {
-	case true:
-		GC.GlobalOptions.fields = strings.Split(GC.CommandContext.String("fields"), ",")
-	}
-
 	return nil
 }
 
+// ParseCommandLineOptions parses global flags
 func ParseCommandLineOptions() error {
 	tmp := make([]GlobalOption, 0)
 
@@ -166,6 +140,8 @@ func ParseCommandLineOptions() error {
 	return nil
 }
 
+// ParseConfigFileOptions parses and stores options from a profile in a config
+// file
 func ParseConfigFileOptions() error {
 	profile := GC.CommandContext.String("profile")
 	section, err := ProfileSection(profile)
@@ -189,6 +165,7 @@ func ParseConfigFileOptions() error {
 	return nil
 }
 
+// ParseEnvVarOptions parses global options stores in environment variables
 func ParseEnvVarOptions() error {
 	vars := map[string]string{
 		"username":       "OS_USERNAME",

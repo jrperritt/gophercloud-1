@@ -20,6 +20,7 @@ type auth struct {
 	profile       string
 }
 
+// Authenticate authenticates a user against an endpoint
 func Authenticate() error {
 	GC.GlobalOptions.authOptions.AllowReauth = true
 
@@ -112,10 +113,12 @@ func AuthFromCache() error {
 	return AuthFromScratch()
 }
 
+// GetCache retreives the cache
 func GetCache() lib.Cacher {
 	return &Cache{items: map[string]CacheItem{}}
 }
 
+// GetCacheKey retreives a cache key
 func GetCacheKey() string {
 	serviceType := GC.Command.ServiceType()
 	ao := GC.GlobalOptions.authOptions

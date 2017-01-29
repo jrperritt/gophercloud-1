@@ -10,6 +10,7 @@ type Waiter interface {
 }
 
 type Fieldser interface {
+	SetFields([]string)
 	Fields() []string
 }
 

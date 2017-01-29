@@ -20,8 +20,10 @@ type globalContext struct {
 	wgExecute, wgProgress                  *sync.WaitGroup
 }
 
+// GC represents the global context
 var GC *globalContext
 
+// Action is the common method all commands run
 func Action(ctx *cli.Context, commander interfaces.Commander) error {
 	GC = &globalContext{
 		ExecuteResults:    make(chan interface{}),

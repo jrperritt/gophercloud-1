@@ -13,7 +13,7 @@ import (
 )
 
 type logger struct {
-	log.Logger
+	*log.Logger
 	debug bool
 }
 
@@ -45,14 +45,6 @@ func newHTTPClient(l *logger) http.Client {
 	lrt.rt = http.DefaultTransport
 	lrt.rt.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
 	return http.Client{Transport: lrt}
-	/*
-		return http.Client{
-			Transport: &LogRoundTripper{
-				Logger: l,
-				rt:     http.DefaultTransport,
-			},
-		}
-	*/
 }
 
 // RoundTrip performs a round-trip HTTP request and logs relevant information about it.

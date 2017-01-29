@@ -33,10 +33,12 @@ type CacheItem struct {
 	ServiceEndpoint string
 }
 
+// GetToken retreives a token ID
 func (ci CacheItem) GetToken() string {
 	return ci.TokenID
 }
 
+// InitCache initializes the cache
 func InitCache() (lib.Cacher, error) {
 	return &Cache{items: map[string]CacheItem{}}, nil
 }
@@ -58,7 +60,7 @@ func cacheFile() (string, error) {
 }
 
 // all returns all the values in the cache
-func (cache Cache) all() error {
+func (cache *Cache) all() error {
 	filename, err := cacheFile()
 	if err != nil {
 		return err
@@ -83,7 +85,7 @@ func (cache Cache) all() error {
 	return nil
 }
 
-// Value returns the cached value for the given key if it exists.
+// GetCacheValue returns the cached value for the given key if it exists.
 func (cache *Cache) GetCacheValue(cacheKey string) (lib.CacheItemer, error) {
 	err := cache.all()
 	if err != nil {
@@ -98,7 +100,7 @@ func (cache *Cache) GetCacheValue(cacheKey string) (lib.CacheItemer, error) {
 	}
 }
 
-// SetValue writes the user's current provider client to the cache.
+// SetCacheValue writes the user's current provider client to the cache.
 func (cache *Cache) SetCacheValue(cacheKey string, cacheItemer lib.CacheItemer) error {
 	// get cache items
 	err := cache.all()
@@ -119,6 +121,9 @@ func (cache *Cache) SetCacheValue(cacheKey string, cacheItemer lib.CacheItemer) 
 	cache.Lock()
 	defer cache.Unlock()
 	data, err := json.Marshal(cache.items)
+	if err != nil {
+		return fmt.Errorf("Error setting cache value: %s", err)
+	}
 	// write cache to file
 	err = ioutil.WriteFile(filename, data, 0644)
 	if err != nil {

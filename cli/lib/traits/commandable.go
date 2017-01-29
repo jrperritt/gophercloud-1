@@ -36,6 +36,9 @@ func (c *Commandable) HandleInterfaceFlags() error {
 		t.SetTable(c.Context.IsSet("table"))
 		t.SetHeader(c.Context.IsSet("no-header"))
 	}
+	if f, ok := interface{}(c).(interfaces.Fieldser); ok {
+		f.SetFields(strings.Split(c.Context.String("fields"), ","))
+	}
 
 	return nil
 }

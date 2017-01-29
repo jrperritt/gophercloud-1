@@ -7,7 +7,6 @@ import (
 	"io/ioutil"
 	"os"
 	"reflect"
-	"sort"
 	"strings"
 	"text/tabwriter"
 
@@ -16,26 +15,28 @@ import (
 	"github.com/gophercloud/gophercloud/cli/util"
 )
 
+// CustomWriterer is an interface implemented by commands that offer
+// custom output destinations
 type CustomWriterer interface {
 	CustomWriter() io.Writer
 }
 
+// OutputResults prints the results of the command
 func OutputResults() error {
 	for result := range GC.ResultsRunCommand {
 		switch r := result.(type) {
 		case error:
 			outputError(r)
-		case map[string]interface{}, []map[string]interface{}:
+		case map[string]interface{}:
+			outputMap(r)
+		case []map[string]interface{}:
 			outputMap(r)
 		case io.Reader:
 			outputReader(r)
+		case string:
+			fmt.Fprintf(GC.CommandContext.App.Writer, "%v\n", r)
 		default:
-			switch GC.GlobalOptions.outputFormat {
-			case "json":
-				defaultJSON(r)
-			default:
-				fmt.Fprintf(GC.CommandContext.App.Writer, "%v\n", r)
-			}
+			defaultJSON(r)
 		}
 	}
 	return nil
@@ -48,38 +49,16 @@ func outputJSON(i interface{}) {
 
 func outputError(e error) {
 	GC.CommandContext.App.Writer = os.Stderr
-	switch GC.GlobalOptions.outputFormat {
-	case "json":
-		outputJSON(map[string]interface{}{"error": e.Error()})
-	default:
-		fmt.Fprintf(GC.CommandContext.App.Writer, "%v\n", e)
-	}
-}
-func outputMapTable(m map[string]interface{}) {
-	w := tabwriter.NewWriter(GC.CommandContext.App.Writer, 0, 8, 0, '\t', 0)
-	if preTabler, ok := GC.Command.(lib.PreTabler); ok {
-		err := preTabler.PreTable(m)
-		if err != nil {
-			fmt.Fprintln(w, fmt.Sprintf("Error formatting table: %s", err))
-			return
-		}
-	}
-
-	keys := make([]string, len(m))
-	i := 0
-	for k := range m {
-		keys[i] = k
-		i++
-	}
-	sort.Strings(keys)
-
-	for _, k := range keys {
-		fmt.Fprintf(w, "%s\t%s\n", k, strings.Replace(fmt.Sprint(m[k]), "\n", "\n\t", -1))
-	}
-	w.Flush()
+	outputJSON(map[string]interface{}{"error": e.Error()})
 }
 
-func outputMapsTable(ms []map[string]interface{}) {
+func outputTable(i interface{}) {
+	ms, ok := i.([]map[string]interface{})
+	if !ok {
+		fmt.Fprintln(GC.CommandContext.App.Writer, fmt.Sprintf("Don't know how to properly print type (%T)", i))
+		fmt.Fprintln(GC.CommandContext.App.Writer, fmt.Sprintf("%v", i))
+	}
+
 	w := tabwriter.NewWriter(GC.CommandContext.App.Writer, 0, 8, 1, '\t', 0)
 	if preTabler, ok := GC.Command.(lib.PreTabler); ok {
 		err := preTabler.PreTable(ms)
@@ -103,16 +82,10 @@ func outputMapsTable(ms []map[string]interface{}) {
 
 func outputMap(i interface{}) {
 	LimitFields(i)
-	switch GC.GlobalOptions.outputFormat {
-	case "json":
+	if t, ok := GC.Command.(interfaces.Tabler); ok && t.ShouldTable() {
+		outputTable(i)
+	} else {
 		outputJSON(i)
-	default:
-		switch s := i.(type) {
-		case map[string]interface{}:
-			outputMapTable(s)
-		case []map[string]interface{}:
-			outputMapsTable(s)
-		}
 	}
 }
 
@@ -125,11 +98,17 @@ func outputReader(r io.Reader) {
 	switch ok {
 	case true:
 		writer = customWriterer.CustomWriter()
+		toTabler, ok := GC.Command.(lib.ToTabler)
+		switch ok {
+		case true:
+			toTabler.ToTable()
+		case false:
+			_, err := io.Copy(writer, r)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "Error copying (io.Reader) result: %s\n", err)
+			}
+		}
 	case false:
-		writer = GC.CommandContext.App.Writer
-	}
-	switch GC.GlobalOptions.outputFormat {
-	case "json":
 		toJSONer, ok := GC.Command.(lib.ToJSONer)
 		switch ok {
 		case true:
@@ -141,20 +120,10 @@ func outputReader(r io.Reader) {
 			}
 			defaultJSON(string(bytes))
 		}
-	default:
-		toTabler, ok := GC.Command.(lib.ToTabler)
-		switch ok {
-		case true:
-			toTabler.ToTable()
-		case false:
-			_, err := io.Copy(writer, r)
-			if err != nil {
-				fmt.Fprintf(os.Stderr, "Error copying (io.Reader) result: %s\n", err)
-			}
-		}
 	}
 }
 
+// LimitFields reduces the number of fields in the output
 func LimitFields(r interface{}) {
 	if len(GC.GlobalOptions.fields) == 0 {
 		if tabler, ok := GC.Command.(interfaces.Tabler); ok {
@@ -182,14 +151,14 @@ func LimitFields(r interface{}) {
 	} else {
 		switch t := r.(type) {
 		case map[string]interface{}:
-			for k, _ := range t {
+			for k := range t {
 				if !util.Contains(GC.GlobalOptions.fields, k) {
 					delete(t, k)
 				}
 			}
 		case []map[string]interface{}:
 			for _, i := range t {
-				for k, _ := range i {
+				for k := range i {
 					if !util.Contains(GC.GlobalOptions.fields, k) {
 						delete(i, k)
 					}
