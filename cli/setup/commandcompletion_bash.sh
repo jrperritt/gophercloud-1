@@ -5,7 +5,7 @@ _cli_bash_autocomplete() {
   COMPREPLY=()
   cur="${COMP_WORDS[COMP_CWORD]}"
   prev="${COMP_WORDS[COMP_CWORD-1]}"
-	if [[ ${cur} == -* || ${prev} != -* || ${prev} == "--no-header" || ${prev} == "--no-cache" ]]; then
+	if [[ ${cur} == -* || ${prev} != -* || ${prev} == "--debug" || ${prev} == "--no-cache" ]]; then
 		opts=$( ${COMP_WORDS[@]:0:$COMP_CWORD} --generate-bash-completion )
 		COMPREPLY=( $(compgen -W "${opts}" -- ${cur}) )
 	fi
