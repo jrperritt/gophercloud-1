@@ -1,6 +1,11 @@
 package main
 
-import "gopkg.in/urfave/cli.v1"
+import (
+	"fmt"
+
+	"github.com/gophercloud/gophercloud/cli/util"
+	"gopkg.in/urfave/cli.v1"
+)
 
 // GlobalFlags returns the flags that can be in any command, such as
 // output flags and authentication flags.
@@ -45,4 +50,11 @@ var globalFlags = []cli.Flag{
 		Name:  "debug",
 		Usage: "Print debug information from the command.",
 	},
+}
+
+func globalComplete(ctx *cli.Context) {
+	for _, cmd := range ctx.App.Commands {
+		fmt.Println(cmd.Name)
+	}
+	util.CompleteFlags(globalFlags)
 }

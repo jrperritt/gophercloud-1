@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/gophercloud/gophercloud/cli/util"
 	"github.com/gophercloud/gophercloud/cli/version"
 
 	"gopkg.in/urfave/cli.v1"
@@ -27,11 +26,4 @@ func main() {
 	app.BashComplete = globalComplete
 	app.CommandNotFound = commandNotFound
 	app.Run(os.Args)
-}
-
-func globalComplete(ctx *cli.Context) {
-	for _, cmd := range ctx.App.Commands {
-		fmt.Println(cmd.Name)
-	}
-	util.CompleteFlags(globalFlags)
 }
