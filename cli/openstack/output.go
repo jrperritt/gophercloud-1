@@ -10,7 +10,6 @@ import (
 	"strings"
 	"text/tabwriter"
 
-	"github.com/gophercloud/gophercloud/cli/lib"
 	"github.com/gophercloud/gophercloud/cli/lib/interfaces"
 	"github.com/gophercloud/gophercloud/cli/util"
 )
@@ -60,7 +59,7 @@ func outputTable(i interface{}) {
 	}
 
 	w := tabwriter.NewWriter(GC.CommandContext.App.Writer, 0, 8, 1, '\t', 0)
-	if preTabler, ok := GC.Command.(lib.PreTabler); ok {
+	if preTabler, ok := GC.Command.(interfaces.PreTabler); ok {
 		err := preTabler.PreTable(ms)
 		if err != nil {
 			fmt.Fprintln(w, fmt.Sprintf("Error formatting table: %s", err))
@@ -98,7 +97,7 @@ func outputReader(r io.Reader) {
 	switch ok {
 	case true:
 		writer = customWriterer.CustomWriter()
-		toTabler, ok := GC.Command.(lib.ToTabler)
+		toTabler, ok := GC.Command.(interfaces.ToTabler)
 		switch ok {
 		case true:
 			toTabler.ToTable()
@@ -109,7 +108,7 @@ func outputReader(r io.Reader) {
 			}
 		}
 	case false:
-		toJSONer, ok := GC.Command.(lib.ToJSONer)
+		toJSONer, ok := GC.Command.(interfaces.ToJSONer)
 		switch ok {
 		case true:
 			toJSONer.ToJSON()
