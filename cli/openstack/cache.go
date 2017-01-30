@@ -8,7 +8,6 @@ import (
 	"path"
 	"sync"
 
-	"github.com/gophercloud/gophercloud/cli/lib"
 	"github.com/gophercloud/gophercloud/cli/util"
 )
 
@@ -39,7 +38,7 @@ func (ci CacheItem) GetToken() string {
 }
 
 // InitCache initializes the cache
-func InitCache() (lib.Cacher, error) {
+func InitCache() (*Cache, error) {
 	return &Cache{items: map[string]CacheItem{}}, nil
 }
 
@@ -86,7 +85,7 @@ func (cache *Cache) all() error {
 }
 
 // GetCacheValue returns the cached value for the given key if it exists.
-func (cache *Cache) GetCacheValue(cacheKey string) (lib.CacheItemer, error) {
+func (cache *Cache) GetCacheValue(cacheKey string) (*CacheItem, error) {
 	err := cache.all()
 	if err != nil {
 		return nil, fmt.Errorf("Error getting cache value: %s", err)
@@ -101,7 +100,7 @@ func (cache *Cache) GetCacheValue(cacheKey string) (lib.CacheItemer, error) {
 }
 
 // SetCacheValue writes the user's current provider client to the cache.
-func (cache *Cache) SetCacheValue(cacheKey string, cacheItemer lib.CacheItemer) error {
+func (cache *Cache) SetCacheValue(cacheKey string, cacheItemer *CacheItem) error {
 	// get cache items
 	err := cache.all()
 	if err != nil {
@@ -112,7 +111,7 @@ func (cache *Cache) SetCacheValue(cacheKey string, cacheItemer lib.CacheItemer) 
 		delete(cache.items, cacheKey)
 	default:
 		// set cache value for cacheKey
-		cache.items[cacheKey] = *cacheItemer.(*CacheItem)
+		cache.items[cacheKey] = *cacheItemer
 	}
 	filename, err := cacheFile()
 	if err != nil {

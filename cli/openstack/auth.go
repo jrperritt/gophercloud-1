@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"github.com/gophercloud/gophercloud"
-	"github.com/gophercloud/gophercloud/cli/lib"
 	"github.com/gophercloud/gophercloud/cli/util"
 	"github.com/gophercloud/gophercloud/openstack"
 )
@@ -90,10 +89,9 @@ func AuthFromCache() error {
 	cache := GetCache()
 	cacheKey := GetCacheKey()
 	l.Debugf("Looking in the cache for cache key: %s", cacheKey)
-	credser, err := cache.GetCacheValue(cacheKey)
+	creds, err := cache.GetCacheValue(cacheKey)
 
-	if err == nil && credser != nil {
-		creds := credser.(*CacheItem)
+	if err == nil && creds != nil {
 		l.Debugf("Using token from cache: %s", creds.TokenID)
 		pc, err := openstack.NewClient(ao.IdentityEndpoint)
 		if err == nil {
@@ -114,7 +112,7 @@ func AuthFromCache() error {
 }
 
 // GetCache retreives the cache
-func GetCache() lib.Cacher {
+func GetCache() *Cache {
 	return &Cache{items: map[string]CacheItem{}}
 }
 
