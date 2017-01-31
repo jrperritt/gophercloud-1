@@ -23,7 +23,7 @@ type globalContext struct {
 // GC represents the global context
 var GC *globalContext
 
-// Action is the common method all commands run
+// Action is the common function all commands run
 func Action(ctx *cli.Context, commander interfaces.Commander) error {
 	GC = &globalContext{
 		ExecuteResults:    make(chan interface{}),

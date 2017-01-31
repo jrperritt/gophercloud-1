@@ -44,6 +44,7 @@ func SetGlobalOptions() error {
 		{name: "auth-url"},
 		{name: "region"},
 		{name: "profile"},
+		{name: "debug"},
 	}
 	GC.GlobalOptions.have = make(map[string]GlobalOption)
 
@@ -53,26 +54,21 @@ func SetGlobalOptions() error {
 	ParseConfigFileOptions()
 	ParseEnvVarOptions()
 
+	err := validate()
+	if err != nil {
+		return err
+	}
+
 	setGlobalOptions()
 
 	return nil
 }
 
-func GlobalOptionsDefaults() []GlobalOption {
-	return []GlobalOption{
-		GlobalOption{"no-cache", false, "default"},
-	}
-}
-
 func SetGlobalOptionsDefaults() {
-	for _, opt := range GlobalOptionsDefaults() {
-		GC.GlobalOptions.have[opt.name] = opt
-		GC.GlobalOptions.want = append(GC.GlobalOptions.want, opt)
-	}
 	GC.GlobalOptions.urlType = gophercloud.AvailabilityPublic
 }
 
-func Validate() error {
+func validate() error {
 	// error if the user didn't provide an auth URL
 	if _, ok := GC.GlobalOptions.have["auth-url"]; !ok || GC.GlobalOptions.have["auth-url"].value == "" {
 		return fmt.Errorf("You must provide an authentication endpoint")
