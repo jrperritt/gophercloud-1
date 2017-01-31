@@ -16,6 +16,7 @@ type Commander interface {
 	Flags() []cli.Flag
 	SetServiceClient(*gophercloud.ServiceClient) error
 	SetContext(*cli.Context) error
+	Context() *cli.Context
 	ServiceClientFunc() ServiceClientFunc
 	ServiceType() string
 	ServiceVersion() string
@@ -23,7 +24,6 @@ type Commander interface {
 
 type PipeCommander interface {
 	Commander
-	Waiter
 	HandleSingle() (interface{}, error)
 	HandlePipe(string) (interface{}, error)
 	PipeFieldOptions() []string

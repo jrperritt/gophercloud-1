@@ -2,7 +2,6 @@ package openstack
 
 import (
 	"fmt"
-	"log"
 	"os"
 	"path"
 	"strconv"
@@ -12,6 +11,7 @@ import (
 	"github.com/gophercloud/gophercloud/cli/util"
 
 	"gopkg.in/ini.v1"
+	cli "gopkg.in/urfave/cli.v1"
 )
 
 type GlobalOption struct {
@@ -26,16 +26,15 @@ type GlobalOptions struct {
 	urlType     gophercloud.Availability
 	profile     string
 	noCache     bool
-	logger      *logger
+	debug       bool
 	have        map[string]GlobalOption
 	want        []GlobalOption
 	fields      []string
 }
 
-// SetGlobalOptions sets the global context's global options
-func SetGlobalOptions() error {
-	GC.GlobalOptions = new(GlobalOptions)
-	GC.GlobalOptions.want = []GlobalOption{
+// globalopts sets the global context's global options
+func globalopts(ctx *cli.Context) (gopts *GlobalOptions, err error) {
+	gopts.want = []GlobalOption{
 		{name: "username"},
 		{name: "user-id"},
 		{name: "password"},
@@ -46,70 +45,67 @@ func SetGlobalOptions() error {
 		{name: "profile"},
 		{name: "debug"},
 	}
-	GC.GlobalOptions.have = make(map[string]GlobalOption)
+	gopts.have = make(map[string]GlobalOption)
 
-	SetGlobalOptionsDefaults()
+	gopts.setdefaults()
 
-	ParseCommandLineOptions()
-	ParseConfigFileOptions()
-	ParseEnvVarOptions()
+	gopts.parseclopts(ctx)
+	gopts.parseiniopts(ctx)
+	gopts.parsevaropts()
 
-	err := validate()
+	err = gopts.validate()
 	if err != nil {
-		return err
+		return gopts, err
 	}
 
-	setGlobalOptions()
+	gopts.set()
 
-	return nil
+	return gopts, nil
 }
 
-func SetGlobalOptionsDefaults() {
-	GC.GlobalOptions.urlType = gophercloud.AvailabilityPublic
+func (gopts *GlobalOptions) setdefaults() {
+	gopts.urlType = gophercloud.AvailabilityPublic
 }
 
-func validate() error {
+func (gopts *GlobalOptions) validate() error {
 	// error if the user didn't provide an auth URL
-	if _, ok := GC.GlobalOptions.have["auth-url"]; !ok || GC.GlobalOptions.have["auth-url"].value == "" {
+	if _, ok := gopts.have["auth-url"]; !ok || gopts.have["auth-url"].value == "" {
 		return fmt.Errorf("You must provide an authentication endpoint")
 	}
 	return nil
 }
 
-func setGlobalOptions() error {
-	l := new(logger)
-	l.Logger = log.New(GC.CommandContext.App.Writer, "", log.LstdFlags)
-	GC.GlobalOptions.logger = l
+func (gopts *GlobalOptions) set() error {
 
-	GC.GlobalOptions.authOptions = new(gophercloud.AuthOptions)
+	gopts.authOptions = new(gophercloud.AuthOptions)
 	var err error
-	for name, opt := range GC.GlobalOptions.have {
+	for name, opt := range gopts.have {
 		switch name {
 		case "username":
-			GC.GlobalOptions.authOptions.Username = opt.value.(string)
+			gopts.authOptions.Username = opt.value.(string)
 		case "user-id":
-			GC.GlobalOptions.authOptions.UserID = opt.value.(string)
+			gopts.authOptions.UserID = opt.value.(string)
 		case "password":
-			GC.GlobalOptions.authOptions.Password = opt.value.(string)
+			gopts.authOptions.Password = opt.value.(string)
 		case "auth-tenant-id":
-			GC.GlobalOptions.authOptions.TenantID = opt.value.(string)
+			gopts.authOptions.TenantID = opt.value.(string)
 		case "auth-token":
-			GC.GlobalOptions.authOptions.TokenID = opt.value.(string)
+			gopts.authOptions.TokenID = opt.value.(string)
 		case "auth-url":
-			GC.GlobalOptions.authOptions.IdentityEndpoint = opt.value.(string)
+			gopts.authOptions.IdentityEndpoint = opt.value.(string)
 		case "region":
-			GC.GlobalOptions.region = opt.value.(string)
+			gopts.region = opt.value.(string)
 		case "profile":
-			GC.GlobalOptions.profile = opt.value.(string)
+			gopts.profile = opt.value.(string)
 		case "no-cache":
 			switch t := opt.value.(type) {
 			case string:
-				GC.GlobalOptions.noCache, err = strconv.ParseBool(t)
+				gopts.noCache, err = strconv.ParseBool(t)
 			case bool:
-				GC.GlobalOptions.noCache = t
+				gopts.noCache = t
 			}
 		case "debug":
-			GC.GlobalOptions.logger.debug = true
+			gopts.debug = true
 		}
 	}
 
@@ -120,26 +116,26 @@ func setGlobalOptions() error {
 	return nil
 }
 
-// ParseCommandLineOptions parses global flags
-func ParseCommandLineOptions() error {
+// parseclopts parses global flags
+func (gopts *GlobalOptions) parseclopts(ctx *cli.Context) error {
 	tmp := make([]GlobalOption, 0)
 
-	for _, opt := range GC.GlobalOptions.want {
-		if GC.CommandContext.GlobalIsSet(opt.name) {
-			GC.GlobalOptions.have[opt.name] = GlobalOption{value: GC.CommandContext.GlobalString(opt.name), from: "commandline"}
+	for _, opt := range gopts.want {
+		if ctx.GlobalIsSet(opt.name) {
+			gopts.have[opt.name] = GlobalOption{value: ctx.GlobalString(opt.name), from: "commandline"}
 			continue
 		}
 		tmp = append(tmp, opt)
 	}
-	GC.GlobalOptions.want = tmp
+	gopts.want = tmp
 
 	return nil
 }
 
-// ParseConfigFileOptions parses and stores options from a profile in a config
+// parseiniopts parses and stores options from a profile in a config
 // file
-func ParseConfigFileOptions() error {
-	profile := GC.CommandContext.String("profile")
+func (gopts *GlobalOptions) parseiniopts(ctx *cli.Context) error {
+	profile := ctx.String("profile")
 	section, err := ProfileSection(profile)
 	if err != nil {
 		return err
@@ -150,19 +146,19 @@ func ParseConfigFileOptions() error {
 	}
 
 	tmp := make([]GlobalOption, 0)
-	for _, opt := range GC.GlobalOptions.want {
+	for _, opt := range gopts.want {
 		if v := section.Key(opt.name).String(); v != "" {
-			GC.GlobalOptions.have[opt.name] = GlobalOption{value: v, from: fmt.Sprintf("config file (profile: %s)", section.Name())}
+			gopts.have[opt.name] = GlobalOption{value: v, from: fmt.Sprintf("config file (profile: %s)", section.Name())}
 			continue
 		}
 		tmp = append(tmp, opt)
 	}
-	GC.GlobalOptions.want = tmp
+	gopts.want = tmp
 	return nil
 }
 
-// ParseEnvVarOptions parses global options stores in environment variables
-func ParseEnvVarOptions() error {
+// parsevaropts parses global options stores in environment variables
+func (gopts *GlobalOptions) parsevaropts() error {
 	vars := map[string]string{
 		"username":       "OS_USERNAME",
 		"user-id":        "OS_USERID",
@@ -173,14 +169,14 @@ func ParseEnvVarOptions() error {
 	}
 
 	tmp := make([]GlobalOption, 0)
-	for _, opt := range GC.GlobalOptions.want {
+	for _, opt := range gopts.want {
 		if v := os.Getenv(strings.ToUpper(vars[opt.name])); v != "" {
-			GC.GlobalOptions.have[opt.name] = GlobalOption{value: v, from: "envvar"}
+			gopts.have[opt.name] = GlobalOption{value: v, from: "envvar"}
 			continue
 		}
 		tmp = append(tmp, opt)
 	}
-	GC.GlobalOptions.want = tmp
+	gopts.want = tmp
 	return nil
 }
 

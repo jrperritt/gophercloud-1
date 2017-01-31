@@ -11,13 +11,17 @@ import (
 )
 
 type Commandable struct {
-	Context       *cli.Context
+	ctx           *cli.Context
 	ServiceClient *gophercloud.ServiceClient
 }
 
 func (c *Commandable) SetContext(ctx *cli.Context) error {
-	c.Context = ctx
+	c.ctx = ctx
 	return nil
+}
+
+func (c *Commandable) Context() *cli.Context {
+	return c.ctx
 }
 
 func (c *Commandable) SetServiceClient(sc *gophercloud.ServiceClient) error {
@@ -27,17 +31,17 @@ func (c *Commandable) SetServiceClient(sc *gophercloud.ServiceClient) error {
 
 func (c *Commandable) HandleInterfaceFlags() error {
 	if w, ok := interface{}(c).(interfaces.Waiter); ok {
-		w.SetWait(c.Context.IsSet("wait"))
+		w.SetWait(c.ctx.IsSet("wait"))
 	}
-	if w, ok := interface{}(c).(interfaces.Progresser); ok {
-		w.SetProgress(c.Context.IsSet("quiet"))
+	if p, ok := interface{}(c).(interfaces.Progresser); ok {
+		p.SetProgress(c.ctx.IsSet("quiet"))
 	}
 	if t, ok := interface{}(c).(interfaces.Tabler); ok {
-		t.SetTable(c.Context.IsSet("table"))
-		t.SetHeader(c.Context.IsSet("no-header"))
+		t.SetTable(c.ctx.IsSet("table"))
+		t.SetHeader(c.ctx.IsSet("no-header"))
 	}
 	if f, ok := interface{}(c).(interfaces.Fieldser); ok {
-		f.SetFields(strings.Split(c.Context.String("fields"), ","))
+		f.SetFields(strings.Split(c.ctx.String("fields"), ","))
 	}
 
 	return nil
@@ -50,18 +54,18 @@ func (c *Commandable) HandleFlags() error {
 // IDOrName is a function for retrieving a resource's unique identifier based on
 // whether an `id` or a `name` flag was provided
 func (c *Commandable) IDOrName(idFromNameFunc func(*gophercloud.ServiceClient, string) (string, error)) (string, error) {
-	switch c.Context.IsSet("id") {
+	switch c.ctx.IsSet("id") {
 	case true:
-		switch c.Context.IsSet("name") {
+		switch c.ctx.IsSet("name") {
 		case true:
 			return "", fmt.Errorf("Only one of either --id or --name may be provided.")
 		case false:
-			return c.Context.String("id"), nil
+			return c.ctx.String("id"), nil
 		}
 	case false:
-		switch c.Context.IsSet("name") {
+		switch c.ctx.IsSet("name") {
 		case true:
-			name := c.Context.String("name")
+			name := c.ctx.String("name")
 			id, err := idFromNameFunc(c.ServiceClient, name)
 			return id, err
 		}
@@ -72,7 +76,7 @@ func (c *Commandable) IDOrName(idFromNameFunc func(*gophercloud.ServiceClient, s
 // CheckFlagsSet checks that the given flag names are set for the command.
 func (c *Commandable) CheckFlagsSet(flagNames []string) error {
 	for _, flagName := range flagNames {
-		if !c.Context.IsSet(flagName) {
+		if !c.ctx.IsSet(flagName) {
 			return lib.ErrMissingFlag{Msg: fmt.Sprintf("--%s is required.", flagName)}
 		}
 	}
@@ -82,7 +86,7 @@ func (c *Commandable) CheckFlagsSet(flagNames []string) error {
 // CheckKVFlag is a function used for verifying the format of a key-value flag.
 func (c *Commandable) ValidateKVFlag(flagName string) (map[string]string, error) {
 	kv := make(map[string]string)
-	kvStrings := strings.Split(c.Context.String(flagName), ",")
+	kvStrings := strings.Split(c.ctx.String(flagName), ",")
 	for _, kvString := range kvStrings {
 		temp := strings.Split(kvString, "=")
 		if len(temp) != 2 {

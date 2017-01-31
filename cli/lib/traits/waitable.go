@@ -1,16 +1,15 @@
 package traits
 
-import (
-	"github.com/gophercloud/gophercloud/cli/openstack"
-	"gopkg.in/urfave/cli.v1"
-)
+import "gopkg.in/urfave/cli.v1"
 
 type Waitable struct {
-	Wait bool
+	wait      bool
+	donechout chan<- interface{}
 }
 
 func (c *Waitable) WaitFor(raw interface{}) {
-	openstack.GC.DoneChan <- raw
+	//openstack.GC.DoneChan <- raw
+	c.donechout <- raw
 }
 
 func (c *Waitable) WaitFlags() []cli.Flag {
@@ -23,9 +22,9 @@ func (c *Waitable) WaitFlags() []cli.Flag {
 }
 
 func (c *Waitable) SetWait(b bool) {
-	c.Wait = b
+	c.wait = b
 }
 
 func (c *Waitable) ShouldWait() bool {
-	return c.Wait
+	return c.wait
 }

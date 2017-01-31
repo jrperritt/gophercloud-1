@@ -20,20 +20,23 @@ type CustomWriterer interface {
 	CustomWriter() io.Writer
 }
 
-// OutputResults prints the results of the command
-func OutputResults() error {
-	for result := range GC.ResultsRunCommand {
+var outreg = os.Stdout
+var outerr = os.Stderr
+
+// outres prints the results of the command
+func outres(cmd interfaces.Commander) error {
+	for result := range gctx.ResultsRunCommand {
 		switch r := result.(type) {
 		case error:
 			outputError(r)
 		case map[string]interface{}:
-			outputMap(r)
+			outputMap(cmd, r)
 		case []map[string]interface{}:
-			outputMap(r)
+			outputMap(cmd, r)
 		case io.Reader:
-			outputReader(r)
+			outputReader(cmd, r)
 		case string:
-			fmt.Fprintf(GC.CommandContext.App.Writer, "%v\n", r)
+			fmt.Fprintf(outreg, "%v\n", r)
 		default:
 			defaultJSON(r)
 		}
@@ -43,61 +46,62 @@ func OutputResults() error {
 
 func outputJSON(i interface{}) {
 	j, _ := json.MarshalIndent(i, "", "  ")
-	fmt.Fprintln(GC.CommandContext.App.Writer, string(j))
+	fmt.Fprintln(outreg, string(j))
 }
 
 func outputError(e error) {
-	GC.CommandContext.App.Writer = os.Stderr
 	outputJSON(map[string]interface{}{"error": e.Error()})
 }
 
-func outputTable(i interface{}) {
+func outputTable(cmd interfaces.Commander, i interface{}) {
 	ms, ok := i.([]map[string]interface{})
 	if !ok {
-		fmt.Fprintln(GC.CommandContext.App.Writer, fmt.Sprintf("Don't know how to properly print type (%T)", i))
-		fmt.Fprintln(GC.CommandContext.App.Writer, fmt.Sprintf("%v", i))
+		fmt.Fprintln(outreg, fmt.Sprintf("Don't know how to properly print type (%T)", i))
+		fmt.Fprintln(outreg, fmt.Sprintf("%v", i))
 	}
 
-	w := tabwriter.NewWriter(GC.CommandContext.App.Writer, 0, 8, 1, '\t', 0)
-	if preTabler, ok := GC.Command.(interfaces.PreTabler); ok {
+	w := tabwriter.NewWriter(outreg, 0, 8, 1, '\t', 0)
+	if preTabler, ok := cmd.(interfaces.PreTabler); ok {
 		err := preTabler.PreTable(ms)
 		if err != nil {
 			fmt.Fprintln(w, fmt.Sprintf("Error formatting table: %s", err))
 			return
 		}
 	}
-	if GC.Command.(interfaces.Tabler).ShouldHeader() {
-		fmt.Fprintln(w, strings.Join(GC.GlobalOptions.fields, "\t"))
-	}
-	for _, m := range ms {
-		f := []string{}
-		for _, k := range GC.GlobalOptions.fields {
-			f = append(f, fmt.Sprint(m[k]))
+	if f, ok := cmd.(interfaces.Fieldser); ok {
+		if cmd.(interfaces.Tabler).ShouldHeader() {
+			fmt.Fprintln(w, strings.Join(f.Fields(), "\t"))
 		}
-		fmt.Fprintln(w, strings.Join(f, "\t"))
+		for _, m := range ms {
+			s := []string{}
+			for _, k := range f.Fields() {
+				s = append(s, fmt.Sprint(m[k]))
+			}
+			fmt.Fprintln(w, strings.Join(s, "\t"))
+		}
+		w.Flush()
 	}
-	w.Flush()
 }
 
-func outputMap(i interface{}) {
-	LimitFields(i)
-	if t, ok := GC.Command.(interfaces.Tabler); ok && t.ShouldTable() {
-		outputTable(i)
+func outputMap(cmd interfaces.Commander, i interface{}) {
+	LimitFields(cmd, i)
+	if t, ok := cmd.(interfaces.Tabler); ok && t.ShouldTable() {
+		outputTable(cmd, i)
 	} else {
 		outputJSON(i)
 	}
 }
 
-func outputReader(r io.Reader) {
+func outputReader(cmd interfaces.Commander, r io.Reader) {
 	if rc, ok := r.(io.ReadCloser); ok {
 		defer rc.Close()
 	}
 	var writer io.Writer
-	customWriterer, ok := GC.Command.(CustomWriterer)
+	customWriterer, ok := cmd.(CustomWriterer)
 	switch ok {
 	case true:
 		writer = customWriterer.CustomWriter()
-		toTabler, ok := GC.Command.(interfaces.ToTabler)
+		toTabler, ok := cmd.(interfaces.ToTabler)
 		switch ok {
 		case true:
 			toTabler.ToTable()
@@ -108,7 +112,7 @@ func outputReader(r io.Reader) {
 			}
 		}
 	case false:
-		toJSONer, ok := GC.Command.(interfaces.ToJSONer)
+		toJSONer, ok := cmd.(interfaces.ToJSONer)
 		switch ok {
 		case true:
 			toJSONer.ToJSON()
@@ -123,43 +127,45 @@ func outputReader(r io.Reader) {
 }
 
 // LimitFields reduces the number of fields in the output
-func LimitFields(r interface{}) {
-	if len(GC.GlobalOptions.fields) == 0 {
-		if tabler, ok := GC.Command.(interfaces.Tabler); ok {
-			GC.GlobalOptions.fields = tabler.DefaultTableFields()
+func LimitFields(cmd interfaces.Commander, r interface{}) {
+	if f, ok := cmd.(interfaces.Fieldser); ok {
+		if len(f.Fields()) == 0 {
+			if tabler, ok := cmd.(interfaces.Tabler); ok {
+				f.SetFields(tabler.DefaultTableFields())
+			} else {
+				switch t := r.(type) {
+				case map[string]interface{}:
+					for k, v := range t {
+						switch reflect.ValueOf(v).Kind() {
+						case reflect.Map, reflect.Slice, reflect.Struct:
+							delete(t, k)
+						}
+					}
+				case []map[string]interface{}:
+					for _, i := range t {
+						for k, v := range i {
+							switch reflect.ValueOf(v).Kind() {
+							case reflect.Map, reflect.Slice, reflect.Struct:
+								delete(i, k)
+							}
+						}
+					}
+				}
+			}
 		} else {
 			switch t := r.(type) {
 			case map[string]interface{}:
-				for k, v := range t {
-					switch reflect.ValueOf(v).Kind() {
-					case reflect.Map, reflect.Slice, reflect.Struct:
+				for k := range t {
+					if !util.Contains(f.Fields(), k) {
 						delete(t, k)
 					}
 				}
 			case []map[string]interface{}:
 				for _, i := range t {
-					for k, v := range i {
-						switch reflect.ValueOf(v).Kind() {
-						case reflect.Map, reflect.Slice, reflect.Struct:
+					for k := range i {
+						if !util.Contains(f.Fields(), k) {
 							delete(i, k)
 						}
-					}
-				}
-			}
-		}
-	} else {
-		switch t := r.(type) {
-		case map[string]interface{}:
-			for k := range t {
-				if !util.Contains(GC.GlobalOptions.fields, k) {
-					delete(t, k)
-				}
-			}
-		case []map[string]interface{}:
-			for _, i := range t {
-				for k := range i {
-					if !util.Contains(GC.GlobalOptions.fields, k) {
-						delete(i, k)
 					}
 				}
 			}

@@ -1,80 +1,85 @@
 package openstack
 
 import (
+	"log"
 	"sync"
 
-	"github.com/gophercloud/gophercloud"
 	"github.com/gophercloud/gophercloud/cli/lib/interfaces"
 	"gopkg.in/urfave/cli.v1"
 )
 
-type globalContext struct {
-	CommandContext                         *cli.Context
-	ServiceClient                          *gophercloud.ServiceClient
-	GlobalOptions                          *GlobalOptions
+type globalctx struct {
+	*cli.Context
 	ExecuteResults, ResultsRunCommand      chan (interface{})
-	Command                                interfaces.Commander
 	Logger                                 *logger
 	DoneChan, ProgressDoneChan, UpdateChan chan (interface{})
-	doneChan                               chan (bool)
 	wgExecute, wgProgress                  *sync.WaitGroup
 }
 
-// GC represents the global context
-var GC *globalContext
+// gctx represents the global context
+var gctx *globalctx
 
 // Action is the common function all commands run
-func Action(ctx *cli.Context, commander interfaces.Commander) error {
-	GC = &globalContext{
+func Action(ctx *cli.Context, cmd interfaces.Commander) error {
+	cmd.SetContext(ctx)
+
+	gctx = &globalctx{
 		ExecuteResults:    make(chan interface{}),
 		ResultsRunCommand: make(chan interface{}),
-		wgExecute:         new(sync.WaitGroup),
-		wgProgress:        new(sync.WaitGroup),
-		Command:           commander,
-		CommandContext:    ctx,
 		DoneChan:          make(chan interface{}),
 		ProgressDoneChan:  make(chan interface{}),
 		UpdateChan:        make(chan interface{}),
+		wgExecute:         new(sync.WaitGroup),
+		wgProgress:        new(sync.WaitGroup),
 	}
 
-	err := SetGlobalOptions()
+	gopts, err := globalopts(ctx)
 	if err != nil {
 		return ErrExit1{err}
 	}
 
-	GC.Logger = GC.GlobalOptions.logger
+	l := new(logger)
+	l.Logger = log.New(ctx.App.Writer, "", log.LstdFlags)
+	l.debug = gopts.debug
+	gctx.Logger = l
 
-	err = Authenticate()
+	ao := &authopts{
+		cmd:     cmd,
+		region:  gopts.region,
+		gao:     gopts.authOptions,
+		nocache: gopts.noCache,
+		urltype: gopts.urlType,
+	}
+	sc, err := auth(ao)
 	if err != nil {
 		return ErrExit1{err}
 	}
 
-	if !GC.GlobalOptions.noCache {
+	if !gopts.noCache {
 		defer func() {
-			StoreCredentials()
+			cachecreds(ao, sc)
 		}()
 	}
 
-	GC.Command.SetServiceClient(GC.ServiceClient)
-	GC.Command.SetContext(GC.CommandContext)
+	cmd.SetServiceClient(sc)
 
-	GC.GlobalOptions.logger.Debugln("Running HandleInterfaceFlags...")
-	err = GC.Command.HandleInterfaceFlags()
+	gctx.Logger.Debugln("Running HandleInterfaceFlags...")
+	err = cmd.HandleInterfaceFlags()
 	if err != nil {
 		return ErrExit1{err}
 	}
 
-	GC.GlobalOptions.logger.Debugln("Running HandleFlags...")
-	err = GC.Command.HandleFlags()
+	gctx.Logger.Debugln("Running HandleFlags...")
+	err = cmd.HandleFlags()
 	if err != nil {
 		return ErrExit1{err}
 	}
 
-	GC.GlobalOptions.logger.Debugln("Running RunCommand...")
-	go RunCommand()
+	gctx.Logger.Debugln("Running RunCommand...")
+	go runcmd(cmd)
 
-	GC.GlobalOptions.logger.Debugln("Running OutputResults...")
-	err = OutputResults()
+	gctx.Logger.Debugln("Running OutputResults...")
+	err = outres(cmd)
 	if err != nil {
 		return ErrExit1{err}
 	}

@@ -9,187 +9,190 @@ import (
 	"github.com/gophercloud/gophercloud/cli/util"
 )
 
-func runPipeCommand() {
-	switch GC.Command.(type) {
+func runPipeCommand(cmd interfaces.Commander) {
+	switch cmd.(type) {
 	case interfaces.StreamPipeCommander:
-		handleStreamPipeCommand()
+		handleStreamPipeCommand(cmd)
 	case interfaces.PipeCommander:
-		handlePipeCommands()
+		handlePipeCommands(cmd)
 	default:
 	}
 }
 
-func handlePipeCommand(text string) {
-	defer GC.wgExecute.Done()
-	GC.GlobalOptions.logger.Debugln("Running HandlePipe...")
-	item, err := GC.Command.(interfaces.PipeCommander).HandlePipe(text)
+func handlePipeCommand(cmd interfaces.Commander, text string) {
+	defer gctx.wgExecute.Done()
+	gctx.Logger.Debugln("Running HandlePipe...")
+	item, err := cmd.(interfaces.PipeCommander).HandlePipe(text)
 	switch err {
 	case nil:
-		GC.GlobalOptions.logger.Debugln("Running Execute...")
-		GC.Command.Execute(item, GC.ExecuteResults)
+		gctx.Logger.Debugln("Running Execute...")
+		cmd.Execute(item, gctx.ExecuteResults)
 	default:
-		GC.ExecuteResults <- err
+		gctx.ExecuteResults <- err
 	}
 }
 
-func handlePipeCommands() {
-	switch util.Contains(GC.Command.(interfaces.PipeCommander).PipeFieldOptions(), GC.CommandContext.String("stdin")) {
+func handlePipeCommands(cmd interfaces.Commander) {
+	switch util.Contains(cmd.(interfaces.PipeCommander).PipeFieldOptions(), cmd.Context().String("stdin")) {
 	case true:
 		scanner := bufio.NewScanner(os.Stdin)
 		for scanner.Scan() {
-			GC.wgExecute.Add(1)
+			gctx.wgExecute.Add(1)
 			text := scanner.Text()
-			go handlePipeCommand(text)
+			go handlePipeCommand(cmd, text)
 		}
 		if scanner.Err() != nil {
-			GC.ExecuteResults <- scanner.Err()
+			gctx.ExecuteResults <- scanner.Err()
 		}
 	default:
-		GC.ExecuteResults <- fmt.Errorf("Unknown STDIN field: %s\n", GC.CommandContext.String("stdin"))
+		gctx.ExecuteResults <- fmt.Errorf("Unknown STDIN field: %s\n", cmd.Context().String("stdin"))
 	}
 }
 
-func handleStreamPipeCommand() {
-	switch util.Contains(GC.Command.(interfaces.StreamPipeCommander).StreamFieldOptions(), GC.CommandContext.String("stdin")) {
+func handleStreamPipeCommand(cmd interfaces.Commander) {
+	switch util.Contains(cmd.(interfaces.StreamPipeCommander).StreamFieldOptions(), cmd.Context().String("stdin")) {
 	case true:
-		GC.GlobalOptions.logger.Debugln("Running HandleStreamPipe...")
-		stream, err := GC.Command.(interfaces.StreamPipeCommander).HandleStreamPipe(os.Stdin)
+		gctx.Logger.Debugln("Running HandleStreamPipe...")
+		stream, err := cmd.(interfaces.StreamPipeCommander).HandleStreamPipe(os.Stdin)
 		switch err {
 		case nil:
-			GC.wgExecute.Add(1)
+			gctx.wgExecute.Add(1)
 			go func() {
-				defer GC.wgExecute.Done()
-				GC.Command.Execute(stream, GC.ExecuteResults)
+				defer gctx.wgExecute.Done()
+				cmd.Execute(stream, gctx.ExecuteResults)
 			}()
 		default:
-			GC.ExecuteResults <- err
+			gctx.ExecuteResults <- err
 		}
 	default:
-		handlePipeCommands()
+		handlePipeCommands(cmd)
 	}
 }
 
-func runSingleCommand() {
-	switch GC.Command.(type) {
+func runSingleCommand(cmd interfaces.Commander) {
+	switch cmd.(type) {
 	case interfaces.PipeCommander, interfaces.StreamPipeCommander:
-		GC.GlobalOptions.logger.Debugln("Running HandleSingle...")
-		item, err := GC.Command.(interfaces.PipeCommander).HandleSingle()
+		gctx.Logger.Debugln("Running HandleSingle...")
+		item, err := cmd.(interfaces.PipeCommander).HandleSingle()
 		switch err {
 		case nil:
-			GC.GlobalOptions.logger.Debugln("Running Execute...")
-			GC.Command.Execute(item, GC.ExecuteResults)
+			gctx.Logger.Debugln("Running Execute...")
+			cmd.Execute(item, gctx.ExecuteResults)
 		default:
-			GC.ExecuteResults <- err
+			gctx.ExecuteResults <- err
 		}
 	default:
-		GC.Command.Execute(nil, GC.ExecuteResults)
+		cmd.Execute(nil, gctx.ExecuteResults)
 	}
 }
 
-func handleProgress() {
-	p := GC.Command.(interfaces.Progresser)
+func handleProgress(cmd interfaces.Commander) {
+	p := cmd.(interfaces.Progresser)
 	go p.InitProgress()
-	for item := range GC.ExecuteResults {
+	for item := range gctx.ExecuteResults {
 		item := item
-		GC.wgProgress.Add(1)
+		gctx.wgProgress.Add(1)
 		go func() {
-			defer GC.wgProgress.Done()
+			defer gctx.wgProgress.Done()
 			switch e := item.(type) {
 			case error:
-				GC.DoneChan <- e
+				gctx.DoneChan <- e
 			default:
-				GC.GlobalOptions.logger.Debugf("running WaitFor for item: %v", item)
-				go p.WaitFor(item)
+				gctx.Logger.Debugf("running WaitFor for item: %v", item)
+				if w, ok := p.(interfaces.Waiter); ok {
+					go w.WaitFor(item)
+				}
+
 				id := p.BarID(item)
 				p.ShowBar(id)
 			}
-			GC.GlobalOptions.logger.Debugf("done waiting on item: %v", item)
+			gctx.Logger.Debugf("done waiting on item: %v", item)
 		}()
 	}
 
 	go func() {
-		GC.wgProgress.Wait()
-		GC.GlobalOptions.logger.Debugln("closing GC.DoneChan...")
-		close(GC.ProgressDoneChan)
+		gctx.wgProgress.Wait()
+		gctx.Logger.Debugln("closing gctx.DoneChan...")
+		close(gctx.ProgressDoneChan)
 	}()
 
 	progressResults := make([]interface{}, 0)
 
-	GC.Logger.Debugln("Waiting for items on GC.ProgressDoneChan...")
-	for r := range GC.ProgressDoneChan {
+	gctx.Logger.Debugln("Waiting for items on gctx.ProgressDoneChan...")
+	for r := range gctx.ProgressDoneChan {
 		progressResults = append(progressResults, r)
 	}
 
 	for _, r := range progressResults {
-		GC.ResultsRunCommand <- r
+		gctx.ResultsRunCommand <- r
 	}
 }
 
-func handleWait() {
-	for item := range GC.ExecuteResults {
+func handleWait(cmd interfaces.Commander) {
+	for item := range gctx.ExecuteResults {
 		item := item
-		GC.wgProgress.Add(1)
+		gctx.wgProgress.Add(1)
 		go func() {
-			defer GC.wgProgress.Done()
+			defer gctx.wgProgress.Done()
 			switch e := item.(type) {
 			case error:
-				GC.DoneChan <- e
+				gctx.DoneChan <- e
 			default:
-				GC.GlobalOptions.logger.Debugf("running WaitFor for item: %v", item)
-				GC.Command.(interfaces.Waiter).WaitFor(item)
+				gctx.Logger.Debugf("running WaitFor for item: %v", item)
+				cmd.(interfaces.Waiter).WaitFor(item)
 			}
 		}()
 	}
 
 	go func() {
-		GC.wgProgress.Wait()
-		GC.GlobalOptions.logger.Debugln("closing GC.DoneChan...")
-		close(GC.DoneChan)
+		gctx.wgProgress.Wait()
+		gctx.Logger.Debugln("closing gctx.DoneChan...")
+		close(gctx.DoneChan)
 	}()
 
 	waitResults := make([]interface{}, 0)
 
-	GC.Logger.Debugln("Waiting for items on GC.DoneChan...")
-	for r := range GC.DoneChan {
+	gctx.Logger.Debugln("Waiting for items on gctx.DoneChan...")
+	for r := range gctx.DoneChan {
 		waitResults = append(waitResults, r)
 	}
 
 	for _, r := range waitResults {
-		GC.ResultsRunCommand <- r
+		gctx.ResultsRunCommand <- r
 	}
 }
 
-func handleQuietNoWait() {
-	for r := range GC.ExecuteResults {
-		GC.ResultsRunCommand <- r
+func handleQuietNoWait(_ interfaces.Commander) {
+	for r := range gctx.ExecuteResults {
+		gctx.ResultsRunCommand <- r
 	}
 }
 
-func RunCommand() {
-	defer close(GC.ResultsRunCommand)
-	switch GC.CommandContext.IsSet("stdin") {
+func runcmd(cmd interfaces.Commander) {
+	defer close(gctx.ResultsRunCommand)
+	switch cmd.Context().IsSet("stdin") {
 	case true:
-		GC.GlobalOptions.logger.Debugln("Running runPipeCommand...")
-		runPipeCommand()
+		gctx.Logger.Debugln("Running runPipeCommand...")
+		runPipeCommand(cmd)
 	default:
-		GC.GlobalOptions.logger.Debugln("Running runSingleCommand...")
-		GC.wgExecute.Add(1)
+		gctx.Logger.Debugln("Running runSingleCommand...")
+		gctx.wgExecute.Add(1)
 		go func() {
-			defer GC.wgExecute.Done()
-			runSingleCommand()
+			defer gctx.wgExecute.Done()
+			runSingleCommand(cmd)
 		}()
 	}
 
 	go func() {
-		GC.wgExecute.Wait()
-		close(GC.ExecuteResults)
+		gctx.wgExecute.Wait()
+		close(gctx.ExecuteResults)
 	}()
 
-	if _, ok := GC.Command.(interfaces.Progresser); ok && !GC.CommandContext.IsSet("quiet") {
-		handleProgress()
-	} else if GC.CommandContext.IsSet("wait") {
-		handleWait()
+	if p, ok := cmd.(interfaces.Progresser); ok && p.ShouldProgress() {
+		handleProgress(cmd)
+	} else if w, ok := cmd.(interfaces.Waiter); ok && w.ShouldWait() {
+		handleWait(cmd)
 	} else {
-		handleQuietNoWait()
+		handleQuietNoWait(cmd)
 	}
 }

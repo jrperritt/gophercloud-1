@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"reflect"
 	"strings"
 
 	"github.com/gophercloud/gophercloud/cli/lib/interfaces"
@@ -17,7 +16,6 @@ import (
 
 type commandUpload struct {
 	ObjectV1Command
-	traits.Waitable
 	traits.Progressable
 	opts       objects.CreateOptsBuilder
 	pipedField string
@@ -32,7 +30,7 @@ type pipeData struct {
 var (
 	cUpload                                = new(commandUpload)
 	_       interfaces.StreamPipeCommander = cUpload
-	//_       interfaces.Progresser          = cUpload
+	_       interfaces.Progresser          = cUpload
 
 	flagsUpload = openstack.CommandFlags(cUpload)
 )
@@ -84,9 +82,6 @@ func (c *commandUpload) Flags() []cli.Flag {
 }
 
 func (c *commandUpload) HandleFlags() error {
-	c.Wait = c.Context.IsSet("wait")
-	c.Quiet = c.Context.IsSet("quiet")
-
 	opts := &objects.CreateOpts{
 		ContentLength: int64(c.Context.Int("content-length")),
 		ContentType:   c.Context.String("content-type"),
@@ -194,12 +189,26 @@ func (c *commandUpload) HandleSingle() (interface{}, error) {
 	return pd, err
 }
 
+type bytescontent struct {
+	reader        io.Reader
+	bytessentchan chan (int)
+}
+
+func (b *bytescontent) Read(p []byte) (n int, err error) {
+	n, err = b.reader.Read(p)
+	if err != nil {
+		return
+	}
+	b.bytessentchan <- n
+	return
+}
+
 func (c *commandUpload) Execute(item interface{}, out chan interface{}) {
 	pd := item.(*pipeData)
 
 	reader, ok := pd.content.(io.Reader)
 	if !ok {
-		out <- fmt.Errorf("Expected an io.Reader but instead got %v", reflect.TypeOf(item))
+		out <- fmt.Errorf("Expected an io.Reader but instead got %T", item)
 	}
 
 	defer func() {
@@ -208,7 +217,10 @@ func (c *commandUpload) Execute(item interface{}, out chan interface{}) {
 		}
 	}()
 
-	c.opts.(*objects.CreateOpts).Content = reader
+	bc := new(bytescontent)
+	bc.bytessentchan = make(chan int)
+	bc.reader = reader
+	c.opts.(*objects.CreateOpts).Content = bc
 
 	var m map[string]interface{}
 	err := objects.Create(c.ServiceClient, pd.container, pd.object, c.opts).ExtractInto(&m)
@@ -226,4 +238,31 @@ func (c *commandUpload) PipeFieldOptions() []string {
 
 func (c *commandUpload) StreamFieldOptions() []string {
 	return []string{"content"}
+}
+
+func (c *commandUpload) InitProgress() {
+	c.ProgressInfo = openstack.NewProgressInfo(1)
+	c.Progressable.InitProgress()
+}
+
+func (c *commandUpload) ShowBar(id string) {
+	s := new(openstack.ProgressStatusStart)
+	s.Name = id
+	c.StartChan <- s
+
+	for {
+		select {
+		case r := <-openstack.GC.DoneChan:
+			s := new(openstack.ProgressStatusComplete)
+			s.Name = id
+			c.ProgressInfo.CompleteChan <- s
+			openstack.GC.ProgressDoneChan <- r
+			return
+		case r := <-openstack.GC.UpdateChan:
+			s := new(openstack.ProgressStatusUpdate)
+			s.Name = id
+			s.Increment = int(r.(float64))
+			c.ProgressInfo.UpdateChan <- s
+		}
+	}
 }

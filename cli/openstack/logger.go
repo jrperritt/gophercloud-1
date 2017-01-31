@@ -39,9 +39,9 @@ type LogRoundTripper struct {
 
 // newHTTPClient return a custom HTTP client that allows for logging relevant
 // information before and after the HTTP request.
-func newHTTPClient(l *logger) http.Client {
+func newHTTPClient() http.Client {
 	lrt := new(LogRoundTripper)
-	lrt.Logger = l
+	lrt.Logger = gctx.Logger
 	lrt.rt = http.DefaultTransport
 	lrt.rt.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
 	return http.Client{Transport: lrt}

@@ -6,7 +6,11 @@ import (
 )
 
 type Progressable struct {
-	Quiet bool
+	quiet       bool
+	donechin    <-chan interface{}
+	donechout   chan<- interface{}
+	updatechin  <-chan interface{}
+	updatechout chan<- interface{}
 	*openstack.ProgressInfo
 }
 
@@ -29,11 +33,11 @@ func (c *Progressable) ProgressFlags() []cli.Flag {
 }
 
 func (c *Progressable) SetProgress(b bool) {
-	c.Quiet = b
+	c.quiet = b
 }
 
 func (c *Progressable) ShouldProgress() bool {
-	return !c.Quiet
+	return !c.quiet
 }
 
 type TextProgressable struct {
@@ -48,17 +52,20 @@ func (c *TextProgressable) ShowBar(id string) {
 
 	for {
 		select {
-		case r := <-openstack.GC.DoneChan:
+		case r := <-c.donechin:
 			s := new(openstack.ProgressStatusComplete)
 			s.Name = id
 			c.ProgressInfo.CompleteChan <- s
-			openstack.GC.ProgressDoneChan <- r
+			//openstack.GC.ProgressDoneChan <- r
+			c.donechout <- r
 			return
-		case r := <-openstack.GC.UpdateChan:
+		//case r := <-openstack.GC.UpdateChan:
+		case r := <-c.updatechin:
 			s := new(openstack.ProgressStatusUpdate)
 			s.Name = id
 			s.Msg = r.(string)
-			c.ProgressInfo.UpdateChan <- s
+			//c.ProgressInfo.UpdateChan <- s
+			c.updatechout <- s
 		}
 	}
 }

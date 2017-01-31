@@ -7,9 +7,11 @@ import (
 
 var commandPrefix = "files object"
 
+// ObjectV1Command should be embedded by operations that use the
+// Object Storage v1 client
 type ObjectV1Command struct {
 	traits.Commandable
-	traits.ComputeV2able
+	traits.FilesV1able
 	container string
 	name      string
 }

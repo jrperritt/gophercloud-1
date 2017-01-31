@@ -2,6 +2,7 @@ package interfaces
 
 import "gopkg.in/urfave/cli.v1"
 
+// Waiter should be implemented by commands that launch background operations
 type Waiter interface {
 	WaitFor(item interface{})
 	SetWait(bool)
@@ -9,13 +10,15 @@ type Waiter interface {
 	WaitFlags() []cli.Flag
 }
 
+// Fieldser should be implemented by commands that return fields in the output
 type Fieldser interface {
 	SetFields([]string)
 	Fields() []string
 }
 
+// Progresser should be implemented by commands that allow progress updates
+// during execution
 type Progresser interface {
-	Waiter
 	InitProgress()
 	BarID(item interface{}) string
 	ShowBar(id string)
