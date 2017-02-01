@@ -63,10 +63,10 @@ func (c *commandList) DefaultTableFields() []string {
 
 func (c *commandList) HandleFlags() error {
 	c.opts = &flavors.ListOpts{
-		MinDisk: c.Context.Int("min-disk"),
-		MinRAM:  c.Context.Int("min-ram"),
-		Marker:  c.Context.String("marker"),
-		Limit:   c.Context.Int("limit"),
+		MinDisk: c.Context().Int("min-disk"),
+		MinRAM:  c.Context().Int("min-ram"),
+		Marker:  c.Context().String("marker"),
+		Limit:   c.Context().Int("limit"),
 	}
 	return nil
 }

@@ -94,19 +94,16 @@ func (c *CommandRebuild) Flags() []cli.Flag {
 }
 
 func (c *CommandRebuild) HandleFlags() error {
-	c.Wait = c.Context.IsSet("wait")
-	c.Quiet = c.Context.IsSet("quiet")
-
 	opts := &servers.RebuildOpts{
-		ImageID:       c.Context.String("image-id"),
-		ImageName:     c.Context.String("image-name"),
-		Name:          c.Context.String("rename"),
-		AccessIPv4:    c.Context.String("ipv4"),
-		AccessIPv6:    c.Context.String("ipv6"),
+		ImageID:       c.Context().String("image-id"),
+		ImageName:     c.Context().String("image-name"),
+		Name:          c.Context().String("rename"),
+		AccessIPv4:    c.Context().String("ipv4"),
+		AccessIPv6:    c.Context().String("ipv6"),
 		ServiceClient: c.ServiceClient,
 	}
 
-	if c.Context.IsSet("metadata") {
+	if c.Context().IsSet("metadata") {
 		metadata, err := c.ValidateKVFlag("metadata")
 		if err != nil {
 			return err
@@ -114,7 +111,7 @@ func (c *CommandRebuild) HandleFlags() error {
 		opts.Metadata = metadata
 	}
 
-	if c.Context.IsSet("personality") {
+	if c.Context().IsSet("personality") {
 
 		filesToInjectMap, err := c.ValidateKVFlag("personality")
 		if err != nil {
@@ -139,7 +136,7 @@ func (c *CommandRebuild) HandleFlags() error {
 
 			if len(fileData)+len(destinationPath) > 1000 {
 				return fmt.Errorf("The maximum length of a file-path-and-content pair for `personality` is 1000 bytes."+
-					" Current pair size: path (%s): %d, content: %d", len(destinationPath), len(fileData))
+					" Current pair size: path (%s): %d, content: %d", destinationPath, len(destinationPath), len(fileData))
 			}
 
 			filesToInject = append(filesToInject, &servers.File{
@@ -150,17 +147,17 @@ func (c *CommandRebuild) HandleFlags() error {
 		opts.Personality = filesToInject
 	}
 
-	switch c.Context.IsSet("generate-pass") {
+	switch c.Context().IsSet("generate-pass") {
 	case true:
-		switch c.Context.IsSet("admin-pass") {
+		switch c.Context().IsSet("admin-pass") {
 		case true:
 			return fmt.Errorf("Only one of `generate-pass` and `admin-pass` may be provided")
 		case false:
 		}
 	case false:
-		switch c.Context.IsSet("admin-pass") {
+		switch c.Context().IsSet("admin-pass") {
 		case true:
-			opts.AdminPass = c.Context.String("admin-pass")
+			opts.AdminPass = c.Context().String("admin-pass")
 		case false:
 			return fmt.Errorf("One of `generate-pass` and `admin-pass` must be provided")
 		}
@@ -187,7 +184,7 @@ func (c *CommandRebuild) Execute(item interface{}, out chan interface{}) {
 		out <- err
 		return
 	}
-	switch c.Wait || !c.Quiet {
+	switch c.ShouldWait() || c.ShouldProgress() {
 	case true:
 		out <- m
 	default:
@@ -213,18 +210,18 @@ func (c *CommandRebuild) WaitFor(raw interface{}) {
 		switch m["server"]["status"].(string) {
 		case "ACTIVE":
 			m["server"]["adminPass"] = orig["adminPass"].(string)
-			openstack.GC.DoneChan <- m["server"]
+			c.Donechout <- m["server"]
 			return true, nil
 		default:
-			if !c.Quiet {
-				openstack.GC.UpdateChan <- m["server"]["progress"].(float64)
+			if c.ShouldProgress() {
+				c.Updatechout <- m["server"]["progress"].(float64)
 			}
 			return false, nil
 		}
 	})
 
 	if err != nil {
-		openstack.GC.DoneChan <- err
+		c.Donechout <- err
 	}
 }
 
@@ -247,13 +244,13 @@ func (c *CommandRebuild) ShowBar(id string) {
 
 	for {
 		select {
-		case r := <-openstack.GC.DoneChan:
+		case r := <-c.Donechin:
 			s := new(openstack.ProgressStatusComplete)
 			s.Name = id
 			c.ProgressInfo.CompleteChan <- s
-			openstack.GC.ProgressDoneChan <- r
+			c.Donechout <- r
 			return
-		case r := <-openstack.GC.UpdateChan:
+		case r := <-c.Updatechin:
 			s := new(openstack.ProgressStatusUpdate)
 			s.Name = id
 			s.Increment = int(r.(float64))

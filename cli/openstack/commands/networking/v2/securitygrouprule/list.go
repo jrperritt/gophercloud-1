@@ -79,16 +79,16 @@ func (c *CommandList) DefaultTableFields() []string {
 
 func (c *CommandList) HandleFlags() error {
 	opts := rules.ListOpts{
-		Direction:    c.Context.String("direction"),
-		PortRangeMax: c.Context.Int("port-range-max"),
-		PortRangeMin: c.Context.Int("port-range-min"),
-		Protocol:     c.Context.String("protocol"),
-		SecGroupID:   c.Context.String("security-group-id"),
-		TenantID:     c.Context.String("tenant-id"),
+		Direction:    c.Context().String("direction"),
+		PortRangeMax: c.Context().Int("port-range-max"),
+		PortRangeMin: c.Context().Int("port-range-min"),
+		Protocol:     c.Context().String("protocol"),
+		SecGroupID:   c.Context().String("security-group-id"),
+		TenantID:     c.Context().String("tenant-id"),
 	}
 
-	if c.Context.IsSet("ether-type") {
-		etherType := c.Context.String("ether-type")
+	if c.Context().IsSet("ether-type") {
+		etherType := c.Context().String("ether-type")
 		switch etherType {
 		case "ipv4":
 			opts.EtherType = string(rules.EtherType4)

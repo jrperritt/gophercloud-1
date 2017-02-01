@@ -47,7 +47,7 @@ func (c *CommandGet) Flags() []cli.Flag {
 }
 
 func (c *CommandGet) HandleSingle() (interface{}, error) {
-	return c.Context.String("id"), c.CheckFlagsSet([]string{"id"})
+	return c.Context().String("id"), c.CheckFlagsSet([]string{"id"})
 }
 
 func (c *CommandGet) Execute(raw interface{}, out chan interface{}) {

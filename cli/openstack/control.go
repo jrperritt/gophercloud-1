@@ -1,17 +1,16 @@
 package openstack
 
 import (
-	"log"
+	"os"
 	"sync"
 
+	"github.com/gophercloud/gophercloud/cli/lib"
 	"github.com/gophercloud/gophercloud/cli/lib/interfaces"
 	"gopkg.in/urfave/cli.v1"
 )
 
 type globalctx struct {
-	*cli.Context
-	ExecuteResults, ResultsRunCommand      chan (interface{})
-	Logger                                 *logger
+	ExecuteResults                         chan (interface{})
 	DoneChan, ProgressDoneChan, UpdateChan chan (interface{})
 	wgExecute, wgProgress                  *sync.WaitGroup
 }
@@ -21,16 +20,16 @@ var gctx *globalctx
 
 // Action is the common function all commands run
 func Action(ctx *cli.Context, cmd interfaces.Commander) error {
+	lib.InitLog(os.Stdout)
 	cmd.SetContext(ctx)
 
 	gctx = &globalctx{
-		ExecuteResults:    make(chan interface{}),
-		ResultsRunCommand: make(chan interface{}),
-		DoneChan:          make(chan interface{}),
-		ProgressDoneChan:  make(chan interface{}),
-		UpdateChan:        make(chan interface{}),
-		wgExecute:         new(sync.WaitGroup),
-		wgProgress:        new(sync.WaitGroup),
+		ExecuteResults:   make(chan interface{}),
+		DoneChan:         make(chan interface{}),
+		ProgressDoneChan: make(chan interface{}),
+		UpdateChan:       make(chan interface{}),
+		wgExecute:        new(sync.WaitGroup),
+		wgProgress:       new(sync.WaitGroup),
 	}
 
 	gopts, err := globalopts(ctx)
@@ -38,10 +37,7 @@ func Action(ctx *cli.Context, cmd interfaces.Commander) error {
 		return ErrExit1{err}
 	}
 
-	l := new(logger)
-	l.Logger = log.New(ctx.App.Writer, "", log.LstdFlags)
-	l.debug = gopts.debug
-	gctx.Logger = l
+	lib.Log.SetDebug(gopts.debug)
 
 	ao := &authopts{
 		cmd:     cmd,
@@ -63,22 +59,22 @@ func Action(ctx *cli.Context, cmd interfaces.Commander) error {
 
 	cmd.SetServiceClient(sc)
 
-	gctx.Logger.Debugln("Running HandleInterfaceFlags...")
+	lib.Log.Debugln("Running HandleInterfaceFlags...")
 	err = cmd.HandleInterfaceFlags()
 	if err != nil {
 		return ErrExit1{err}
 	}
 
-	gctx.Logger.Debugln("Running HandleFlags...")
+	lib.Log.Debugln("Running HandleFlags...")
 	err = cmd.HandleFlags()
 	if err != nil {
 		return ErrExit1{err}
 	}
 
-	gctx.Logger.Debugln("Running RunCommand...")
+	lib.Log.Debugln("Running RunCommand...")
 	go runcmd(cmd)
 
-	gctx.Logger.Debugln("Running OutputResults...")
+	lib.Log.Debugln("Running OutputResults...")
 	err = outres(cmd)
 	if err != nil {
 		return ErrExit1{err}

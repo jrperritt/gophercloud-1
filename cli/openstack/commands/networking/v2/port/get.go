@@ -53,7 +53,7 @@ func (c *CommandGet) Fields() []string {
 }
 
 func (c *CommandGet) HandleFlags() error {
-	c.Wait = c.Context.IsSet("wait")
+	c.Wait = c.Context().IsSet("wait")
 	return nil
 }
 

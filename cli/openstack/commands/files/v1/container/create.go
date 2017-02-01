@@ -63,14 +63,14 @@ func (c *CommandCreate) Fields() []string {
 }
 
 func (c *CommandCreate) HandleFlags() error {
-	c.Wait = c.Context.IsSet("wait")
+	c.Wait = c.Context().IsSet("wait")
 
 	opts := &containers.CreateOpts{
-		ContainerRead:  c.Context.String("container-read"),
-		ContainerWrite: c.Context.String("container-write"),
+		ContainerRead:  c.Context().String("container-read"),
+		ContainerWrite: c.Context().String("container-write"),
 	}
 
-	if c.Context.IsSet("metadata") {
+	if c.Context().IsSet("metadata") {
 		metadata, err := c.ValidateKVFlag("metadata")
 		if err != nil {
 			return err
@@ -88,7 +88,7 @@ func (c *CommandCreate) HandlePipe(item string) (interface{}, error) {
 }
 
 func (c *CommandCreate) HandleSingle() (interface{}, error) {
-	return c.Context.String("name"), c.CheckFlagsSet([]string{"name"})
+	return c.Context().String("name"), c.CheckFlagsSet([]string{"name"})
 }
 
 func (c *CommandCreate) Execute(item interface{}, out chan interface{}) {

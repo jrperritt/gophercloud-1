@@ -53,8 +53,6 @@ func (c *CommandDelete) Flags() []cli.Flag {
 }
 
 func (c *CommandDelete) HandleFlags() error {
-	c.Wait = c.Context.IsSet("wait")
-	c.Quiet = c.Context.IsSet("quiet")
 	return nil
 }
 
@@ -73,7 +71,7 @@ func (c *CommandDelete) Execute(item interface{}, out chan interface{}) {
 		out <- err
 		return
 	}
-	switch c.Wait || !c.Quiet {
+	switch c.ShouldWait() || c.ShouldProgress() {
 	case true:
 		out <- id
 	default:
@@ -91,15 +89,15 @@ func (c *CommandDelete) WaitFor(raw interface{}) {
 	err := util.WaitFor(900, func() (bool, error) {
 		_, err := servers.Get(c.ServiceClient, id).Extract()
 		if err != nil {
-			openstack.GC.DoneChan <- fmt.Sprintf("Deleted server [%s]", id)
+			c.Donechout <- fmt.Sprintf("Deleted server [%s]", id)
 			return true, nil
 		}
-		openstack.GC.UpdateChan <- c.RunningMsg
+		c.Updatechin <- c.RunningMsg
 		return false, nil
 	})
 
 	if err != nil {
-		openstack.GC.DoneChan <- err
+		c.Donechout <- err
 	}
 }
 

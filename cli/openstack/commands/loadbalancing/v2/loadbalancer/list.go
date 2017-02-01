@@ -84,21 +84,21 @@ func (c *CommandList) DefaultTableFields() []string {
 
 func (c *CommandList) HandleFlags() error {
 	opts := &loadbalancers.ListOpts{
-		VipSubnetID:        c.Context.String("vip-subnet-id"),
-		Name:               c.Context.String("name"),
-		Description:        c.Context.String("description"),
-		VipAddress:         c.Context.String("vip-address"),
-		VipPortID:          c.Context.String("vip-port-id"),
-		TenantID:           c.Context.String("tenant-id"),
-		Flavor:             c.Context.String("flavor"),
-		Provider:           c.Context.String("provider"),
-		ID:                 c.Context.String("id"),
-		ProvisioningStatus: c.Context.String("provisioning-status"),
-		OperatingStatus:    c.Context.String("operating-status"),
+		VipSubnetID:        c.Context().String("vip-subnet-id"),
+		Name:               c.Context().String("name"),
+		Description:        c.Context().String("description"),
+		VipAddress:         c.Context().String("vip-address"),
+		VipPortID:          c.Context().String("vip-port-id"),
+		TenantID:           c.Context().String("tenant-id"),
+		Flavor:             c.Context().String("flavor"),
+		Provider:           c.Context().String("provider"),
+		ID:                 c.Context().String("id"),
+		ProvisioningStatus: c.Context().String("provisioning-status"),
+		OperatingStatus:    c.Context().String("operating-status"),
 	}
 
-	if c.Context.IsSet("admin-state-up") {
-		switch c.Context.String("admin-state-up") {
+	if c.Context().IsSet("admin-state-up") {
+		switch c.Context().String("admin-state-up") {
 		case "true":
 			opts.AdminStateUp = gophercloud.Enabled
 		case "false":

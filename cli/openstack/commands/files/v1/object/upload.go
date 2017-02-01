@@ -83,11 +83,11 @@ func (c *commandUpload) Flags() []cli.Flag {
 
 func (c *commandUpload) HandleFlags() error {
 	opts := &objects.CreateOpts{
-		ContentLength: int64(c.Context.Int("content-length")),
-		ContentType:   c.Context.String("content-type"),
+		ContentLength: int64(c.Context().Int("content-length")),
+		ContentType:   c.Context().String("content-type"),
 	}
 
-	if c.Context.IsSet("metadata") {
+	if c.Context().IsSet("metadata") {
 		metadata, err := c.ValidateKVFlag("metadata")
 		if err != nil {
 			return err
@@ -97,8 +97,8 @@ func (c *commandUpload) HandleFlags() error {
 
 	c.opts = opts
 
-	if c.Context.IsSet("stdin") {
-		c.pipedField = c.Context.String("stdin")
+	if c.Context().IsSet("stdin") {
+		c.pipedField = c.Context().String("stdin")
 	}
 
 	return nil
@@ -109,28 +109,28 @@ func (c *commandUpload) HandlePipe(item string) (interface{}, error) {
 	switch c.pipedField {
 	case "container":
 		pd.container = item
-		switch c.Context.IsSet("file") {
+		switch c.Context().IsSet("file") {
 		case true:
-			f, err := os.Open(c.Context.String("file"))
+			f, err := os.Open(c.Context().String("file"))
 			if err != nil {
 				return nil, err
 			}
 			pd.content = f
-			switch c.Context.IsSet("name") {
+			switch c.Context().IsSet("name") {
 			case true:
-				pd.object = c.Context.String("name")
+				pd.object = c.Context().String("name")
 			case false:
 				pd.object = f.Name()
 			}
 		case false:
-			switch c.Context.IsSet("content") {
+			switch c.Context().IsSet("content") {
 			case true:
 				err := c.CheckFlagsSet([]string{"name"})
 				if err != nil {
 					return nil, err
 				}
-				pd.object = c.Context.String("name")
-				pd.content = strings.NewReader(c.Context.String("content"))
+				pd.object = c.Context().String("name")
+				pd.content = strings.NewReader(c.Context().String("content"))
 			case false:
 				return nil, fmt.Errorf("One of `--file` and `--content` must be provided if not piping to STDIN")
 			}
@@ -140,7 +140,7 @@ func (c *commandUpload) HandlePipe(item string) (interface{}, error) {
 		if err != nil {
 			return nil, err
 		}
-		pd.container = c.Context.String("container")
+		pd.container = c.Context().String("container")
 		f, err := os.Open(item)
 		if err != nil {
 			return nil, err
@@ -159,8 +159,8 @@ func (c *commandUpload) HandleStreamPipe(stream io.Reader) (interface{}, error) 
 	}
 	pd := new(pipeData)
 	pd.content = stream
-	pd.container = c.Context.String("container")
-	pd.object = c.Context.String("name")
+	pd.container = c.Context().String("container")
+	pd.object = c.Context().String("name")
 	return pd, nil
 }
 
@@ -171,16 +171,16 @@ func (c *commandUpload) HandleSingle() (interface{}, error) {
 	}
 
 	pd := new(pipeData)
-	pd.object = c.Context.String("name")
-	pd.container = c.Context.String("container")
+	pd.object = c.Context().String("name")
+	pd.container = c.Context().String("container")
 
-	switch c.Context.IsSet("file") {
+	switch c.Context().IsSet("file") {
 	case true:
-		pd.content, err = os.Open(c.Context.String("file"))
+		pd.content, err = os.Open(c.Context().String("file"))
 	case false:
-		switch c.Context.IsSet("content") {
+		switch c.Context().IsSet("content") {
 		case true:
-			pd.content = strings.NewReader(c.Context.String("content"))
+			pd.content = strings.NewReader(c.Context().String("content"))
 		case false:
 			err = fmt.Errorf("One of `--file` and `--content` must be provided if not piping to STDIN")
 		}

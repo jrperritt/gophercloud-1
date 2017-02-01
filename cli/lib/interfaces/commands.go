@@ -20,6 +20,7 @@ type Commander interface {
 	ServiceClientFunc() ServiceClientFunc
 	ServiceType() string
 	ServiceVersion() string
+	Donech() chan interface{}
 }
 
 type PipeCommander interface {

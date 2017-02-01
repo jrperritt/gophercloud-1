@@ -71,7 +71,7 @@ func (c *CommandCreate) HandleFlags() error {
 	c.serverID = serverID
 
 	c.opts = &volumeattach.CreateOpts{
-		Device: c.Context.String("device"),
+		Device: c.Context().String("device"),
 	}
 	return nil
 }

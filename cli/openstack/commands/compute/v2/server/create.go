@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/gophercloud/gophercloud"
+	"github.com/gophercloud/gophercloud/cli/lib"
 	"github.com/gophercloud/gophercloud/cli/lib/interfaces"
 	"github.com/gophercloud/gophercloud/cli/lib/traits"
 	"github.com/gophercloud/gophercloud/cli/openstack"
@@ -22,7 +23,7 @@ type CommandCreate struct {
 	ServerV2Command
 	traits.Waitable
 	traits.Pipeable
-	traits.Progressable
+	traits.PercentageProgressable
 	traits.DataResp
 	opts servers.CreateOptsBuilder
 }
@@ -140,24 +141,21 @@ var flagsCreateExt = []cli.Flag{
 }
 
 func (c *CommandCreate) HandleFlags() error {
-	c.Wait = c.Context.IsSet("wait")
-	c.Quiet = c.Context.IsSet("quiet")
-
 	opts := &servers.CreateOpts{
-		ImageRef:      c.Context.String("image-id"),
-		ImageName:     c.Context.String("image-name"),
-		FlavorRef:     c.Context.String("flavor-id"),
-		FlavorName:    c.Context.String("flavor-name"),
-		AdminPass:     c.Context.String("admin-pass"),
+		ImageRef:      c.Context().String("image-id"),
+		ImageName:     c.Context().String("image-name"),
+		FlavorRef:     c.Context().String("flavor-id"),
+		FlavorName:    c.Context().String("flavor-name"),
+		AdminPass:     c.Context().String("admin-pass"),
 		ServiceClient: c.ServiceClient,
 	}
 
-	if c.Context.IsSet("security-groups") {
-		opts.SecurityGroups = strings.Split(c.Context.String("security-groups"), ",")
+	if c.Context().IsSet("security-groups") {
+		opts.SecurityGroups = strings.Split(c.Context().String("security-groups"), ",")
 	}
 
-	if c.Context.IsSet("user-data") {
-		abs, err := filepath.Abs(c.Context.String("user-data"))
+	if c.Context().IsSet("user-data") {
+		abs, err := filepath.Abs(c.Context().String("user-data"))
 		if err != nil {
 			return err
 		}
@@ -169,7 +167,7 @@ func (c *CommandCreate) HandleFlags() error {
 		opts.ConfigDrive = gophercloud.Enabled
 	}
 
-	if c.Context.IsSet("personality") {
+	if c.Context().IsSet("personality") {
 
 		filesToInjectMap, err := c.ValidateKVFlag("personality")
 		if err != nil {
@@ -205,8 +203,8 @@ func (c *CommandCreate) HandleFlags() error {
 		opts.Personality = filesToInject
 	}
 
-	if c.Context.IsSet("networks") {
-		netIDs := strings.Split(c.Context.String("networks"), ",")
+	if c.Context().IsSet("networks") {
+		netIDs := strings.Split(c.Context().String("networks"), ",")
 		networks := make([]servers.Network, len(netIDs))
 		for i, netID := range netIDs {
 			networks[i] = servers.Network{
@@ -216,7 +214,7 @@ func (c *CommandCreate) HandleFlags() error {
 		opts.Networks = networks
 	}
 
-	if c.Context.IsSet("metadata") {
+	if c.Context().IsSet("metadata") {
 		metadata, err := c.ValidateKVFlag("metadata")
 		if err != nil {
 			return err
@@ -227,14 +225,14 @@ func (c *CommandCreate) HandleFlags() error {
 	// -------------- Extensions logic starts here -------------------------
 	var optsExt servers.CreateOptsBuilder = opts
 
-	if c.Context.IsSet("keypair") {
+	if c.Context().IsSet("keypair") {
 		optsExt = keypairs.CreateOptsExt{
 			CreateOptsBuilder: opts,
-			KeyName:           c.Context.String("keypair"),
+			KeyName:           c.Context().String("keypair"),
 		}
 	}
 
-	if c.Context.IsSet("block-device") {
+	if c.Context().IsSet("block-device") {
 		bfvMap, err := c.ValidateKVFlag("block-device")
 		if err != nil {
 			return err
@@ -305,7 +303,7 @@ func (c *CommandCreate) HandleFlags() error {
 }
 
 func (c *CommandCreate) HandleSingle() (interface{}, error) {
-	return c.Context.String("name"), c.CheckFlagsSet([]string{"name"})
+	return c.Context().String("name"), c.CheckFlagsSet([]string{"name"})
 }
 
 func (c *CommandCreate) Execute(item interface{}, out chan (interface{})) {
@@ -331,7 +329,7 @@ func (c *CommandCreate) WaitFor(raw interface{}) {
 
 	err := util.WaitFor(900, func() (bool, error) {
 		var m map[string]map[string]interface{}
-		openstack.GC.Logger.Debugf("running servers.Get for item: %s", id)
+		lib.Log.Debugf("running servers.Get for item: %s", id)
 		err := servers.Get(c.ServiceClient, id).ExtractInto(&m)
 		if err != nil {
 			return false, err
@@ -339,23 +337,23 @@ func (c *CommandCreate) WaitFor(raw interface{}) {
 
 		switch m["server"]["status"].(string) {
 		case "ACTIVE":
-			openstack.GC.Logger.Debugf("server %s is active", id)
+			lib.Log.Debugf("server %s is active", id)
 			m["server"]["adminPass"] = orig["adminPass"].(string)
-			openstack.GC.Logger.Debugf("putting item %s in openstack.GC.DoneChan", id)
-			openstack.GC.DoneChan <- m["server"]
-			openstack.GC.Logger.Debugf("returning from WaitFor for item: %s", id)
+			lib.Log.Debugf("putting item %s in c.Donechin", id)
+			c.Donechin <- m["server"]
+			lib.Log.Debugf("returning from WaitFor for item: %s", id)
 			return true, nil
 		default:
-			if !c.Quiet {
-				openstack.GC.Logger.Debugf("putting item %s in openstack.GC.UpdateChan", id)
-				openstack.GC.UpdateChan <- m["server"]["progress"].(float64)
+			if c.ShouldProgress() {
+				lib.Log.Debugf("putting item %s in c.Updatechin", id)
+				c.Updatechin <- m["server"]["progress"].(float64)
 			}
 			return false, nil
 		}
 	})
 
 	if err != nil {
-		openstack.GC.DoneChan <- err
+		c.Donechin <- err
 	}
 }
 
@@ -376,17 +374,17 @@ func (c *CommandCreate) ShowBar(id string) {
 
 	for {
 		select {
-		case r := <-openstack.GC.DoneChan:
+		case r := <-c.Donechin:
 			s := new(openstack.ProgressStatusComplete)
 			s.Name = id
 			c.ProgressInfo.CompleteChan <- s
-			openstack.GC.ProgressDoneChan <- r
+			c.Donechout <- r
 			return
-		case r := <-openstack.GC.UpdateChan:
+		case r := <-c.Updatechin:
 			s := new(openstack.ProgressStatusUpdate)
 			s.Name = id
 			s.Increment = int(r.(float64))
-			c.ProgressInfo.UpdateChan <- s
+			c.Updatechout <- s
 		}
 	}
 }

@@ -57,8 +57,8 @@ func (c *CommandUpdate) Flags() []cli.Flag {
 
 func (c *CommandUpdate) HandleFlags() (err error) {
 	c.opts = &containers.UpdateOpts{
-		ContainerRead:  c.Context.String("container-read"),
-		ContainerWrite: c.Context.String("container-write"),
+		ContainerRead:  c.Context().String("container-read"),
+		ContainerWrite: c.Context().String("container-write"),
 	}
 	return
 }
@@ -68,7 +68,7 @@ func (c *CommandUpdate) HandlePipe(item string) (interface{}, error) {
 }
 
 func (c *CommandUpdate) HandleSingle() (interface{}, error) {
-	return c.Context.String("name"), c.CheckFlagsSet([]string{"name"})
+	return c.Context().String("name"), c.CheckFlagsSet([]string{"name"})
 }
 
 func (c *CommandUpdate) Execute(item interface{}, out chan interface{}) {

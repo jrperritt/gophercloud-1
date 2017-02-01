@@ -13,6 +13,7 @@ import (
 type Commandable struct {
 	ctx           *cli.Context
 	ServiceClient *gophercloud.ServiceClient
+	donech        chan interface{}
 }
 
 func (c *Commandable) SetContext(ctx *cli.Context) error {
@@ -27,6 +28,10 @@ func (c *Commandable) Context() *cli.Context {
 func (c *Commandable) SetServiceClient(sc *gophercloud.ServiceClient) error {
 	c.ServiceClient = sc
 	return nil
+}
+
+func (c *Commandable) Donech() chan interface{} {
+	return c.donech
 }
 
 func (c *Commandable) HandleInterfaceFlags() error {

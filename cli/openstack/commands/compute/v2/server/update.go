@@ -57,9 +57,9 @@ func (c *commandUpdate) Flags() []cli.Flag {
 
 func (c *commandUpdate) HandleFlags() (err error) {
 	c.opts = &servers.UpdateOpts{
-		Name:       c.Context.String("rename"),
-		AccessIPv4: c.Context.String("ipv4"),
-		AccessIPv6: c.Context.String("ipv6"),
+		Name:       c.Context().String("rename"),
+		AccessIPv4: c.Context().String("ipv4"),
+		AccessIPv6: c.Context().String("ipv6"),
 	}
 	c.id, err = c.IDOrName(servers.IDFromName)
 	return

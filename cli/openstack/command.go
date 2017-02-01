@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/gophercloud/gophercloud/cli/lib"
 	"github.com/gophercloud/gophercloud/cli/lib/interfaces"
 	"github.com/gophercloud/gophercloud/cli/util"
 )
@@ -21,11 +22,11 @@ func runPipeCommand(cmd interfaces.Commander) {
 
 func handlePipeCommand(cmd interfaces.Commander, text string) {
 	defer gctx.wgExecute.Done()
-	gctx.Logger.Debugln("Running HandlePipe...")
+	lib.Log.Debugln("Running HandlePipe...")
 	item, err := cmd.(interfaces.PipeCommander).HandlePipe(text)
 	switch err {
 	case nil:
-		gctx.Logger.Debugln("Running Execute...")
+		lib.Log.Debugln("Running Execute...")
 		cmd.Execute(item, gctx.ExecuteResults)
 	default:
 		gctx.ExecuteResults <- err
@@ -52,7 +53,7 @@ func handlePipeCommands(cmd interfaces.Commander) {
 func handleStreamPipeCommand(cmd interfaces.Commander) {
 	switch util.Contains(cmd.(interfaces.StreamPipeCommander).StreamFieldOptions(), cmd.Context().String("stdin")) {
 	case true:
-		gctx.Logger.Debugln("Running HandleStreamPipe...")
+		lib.Log.Debugln("Running HandleStreamPipe...")
 		stream, err := cmd.(interfaces.StreamPipeCommander).HandleStreamPipe(os.Stdin)
 		switch err {
 		case nil:
@@ -72,11 +73,11 @@ func handleStreamPipeCommand(cmd interfaces.Commander) {
 func runSingleCommand(cmd interfaces.Commander) {
 	switch cmd.(type) {
 	case interfaces.PipeCommander, interfaces.StreamPipeCommander:
-		gctx.Logger.Debugln("Running HandleSingle...")
+		lib.Log.Debugln("Running HandleSingle...")
 		item, err := cmd.(interfaces.PipeCommander).HandleSingle()
 		switch err {
 		case nil:
-			gctx.Logger.Debugln("Running Execute...")
+			lib.Log.Debugln("Running Execute...")
 			cmd.Execute(item, gctx.ExecuteResults)
 		default:
 			gctx.ExecuteResults <- err
@@ -98,7 +99,7 @@ func handleProgress(cmd interfaces.Commander) {
 			case error:
 				gctx.DoneChan <- e
 			default:
-				gctx.Logger.Debugf("running WaitFor for item: %v", item)
+				lib.Log.Debugf("running WaitFor for item: %v", item)
 				if w, ok := p.(interfaces.Waiter); ok {
 					go w.WaitFor(item)
 				}
@@ -106,25 +107,25 @@ func handleProgress(cmd interfaces.Commander) {
 				id := p.BarID(item)
 				p.ShowBar(id)
 			}
-			gctx.Logger.Debugf("done waiting on item: %v", item)
+			lib.Log.Debugf("done waiting on item: %v", item)
 		}()
 	}
 
 	go func() {
 		gctx.wgProgress.Wait()
-		gctx.Logger.Debugln("closing gctx.DoneChan...")
+		lib.Log.Debugln("closing gctx.DoneChan...")
 		close(gctx.ProgressDoneChan)
 	}()
 
 	progressResults := make([]interface{}, 0)
 
-	gctx.Logger.Debugln("Waiting for items on gctx.ProgressDoneChan...")
+	lib.Log.Debugln("Waiting for items on gctx.ProgressDoneChan...")
 	for r := range gctx.ProgressDoneChan {
 		progressResults = append(progressResults, r)
 	}
 
 	for _, r := range progressResults {
-		gctx.ResultsRunCommand <- r
+		cmd.Donech() <- r
 	}
 }
 
@@ -138,7 +139,7 @@ func handleWait(cmd interfaces.Commander) {
 			case error:
 				gctx.DoneChan <- e
 			default:
-				gctx.Logger.Debugf("running WaitFor for item: %v", item)
+				lib.Log.Debugf("running WaitFor for item: %v", item)
 				cmd.(interfaces.Waiter).WaitFor(item)
 			}
 		}()
@@ -146,36 +147,36 @@ func handleWait(cmd interfaces.Commander) {
 
 	go func() {
 		gctx.wgProgress.Wait()
-		gctx.Logger.Debugln("closing gctx.DoneChan...")
+		lib.Log.Debugln("closing gctx.DoneChan...")
 		close(gctx.DoneChan)
 	}()
 
 	waitResults := make([]interface{}, 0)
 
-	gctx.Logger.Debugln("Waiting for items on gctx.DoneChan...")
+	lib.Log.Debugln("Waiting for items on gctx.DoneChan...")
 	for r := range gctx.DoneChan {
 		waitResults = append(waitResults, r)
 	}
 
 	for _, r := range waitResults {
-		gctx.ResultsRunCommand <- r
+		cmd.Donech() <- r
 	}
 }
 
-func handleQuietNoWait(_ interfaces.Commander) {
+func handleQuietNoWait(cmd interfaces.Commander) {
 	for r := range gctx.ExecuteResults {
-		gctx.ResultsRunCommand <- r
+		cmd.Donech() <- r
 	}
 }
 
 func runcmd(cmd interfaces.Commander) {
-	defer close(gctx.ResultsRunCommand)
+	defer close(cmd.Donech())
 	switch cmd.Context().IsSet("stdin") {
 	case true:
-		gctx.Logger.Debugln("Running runPipeCommand...")
+		lib.Log.Debugln("Running runPipeCommand...")
 		runPipeCommand(cmd)
 	default:
-		gctx.Logger.Debugln("Running runSingleCommand...")
+		lib.Log.Debugln("Running runSingleCommand...")
 		gctx.wgExecute.Add(1)
 		go func() {
 			defer gctx.wgExecute.Done()

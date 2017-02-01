@@ -51,7 +51,7 @@ func (c *CommandDelete) Flags() []cli.Flag {
 }
 
 func (c *CommandDelete) HandleFlags() error {
-	c.Wait = c.Context.IsSet("wait")
+	c.Wait = c.Context().IsSet("wait")
 	return nil
 }
 

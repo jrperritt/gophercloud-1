@@ -49,7 +49,7 @@ func (c *CommandDelete) Flags() []cli.Flag {
 }
 
 func (c *CommandDelete) HandleSingle() (interface{}, error) {
-	return c.Context.String("name"), c.CheckFlagsSet([]string{"name"})
+	return c.Context().String("name"), c.CheckFlagsSet([]string{"name"})
 }
 
 func (c *CommandDelete) Execute(item interface{}, out chan interface{}) {

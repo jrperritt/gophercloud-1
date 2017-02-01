@@ -7,32 +7,15 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"strings"
+
+	"github.com/gophercloud/gophercloud/cli/lib"
 )
-
-type logger struct {
-	*log.Logger
-	debug bool
-}
-
-func (l logger) Debugln(v ...interface{}) {
-	if l.debug {
-		l.Println(v...)
-	}
-}
-
-func (l logger) Debugf(format string, v ...interface{}) {
-	if l.debug {
-		l.Printf(format, v...)
-	}
-}
 
 // LogRoundTripper satisfies the http.RoundTripper interface and is used to
 // customize the default Gophercloud RoundTripper to allow for logging.
 type LogRoundTripper struct {
-	Logger            *logger
 	rt                http.RoundTripper
 	numReauthAttempts int
 }
@@ -41,7 +24,6 @@ type LogRoundTripper struct {
 // information before and after the HTTP request.
 func newHTTPClient() http.Client {
 	lrt := new(LogRoundTripper)
-	lrt.Logger = gctx.Logger
 	lrt.rt = http.DefaultTransport
 	lrt.rt.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
 	return http.Client{Transport: lrt}
@@ -58,7 +40,7 @@ func (lrt *LogRoundTripper) RoundTrip(request *http.Request) (*http.Response, er
 	var err error
 
 	if request.Body != nil {
-		lrt.Logger.Debugln("Logging request body...")
+		lib.Log.Debugln("Logging request body...")
 		request.Body, err = lrt.logRequestBody(request.Body, request.Header)
 		if err != nil {
 			return nil, err
@@ -67,11 +49,11 @@ func (lrt *LogRoundTripper) RoundTrip(request *http.Request) (*http.Response, er
 
 	info, err := json.MarshalIndent(request.Header, "", "  ")
 	if err != nil {
-		lrt.Logger.Debugf(fmt.Sprintf("Error logging request headers: %s\n", err))
+		lib.Log.Debugf(fmt.Sprintf("Error logging request headers: %s\n", err))
 	}
-	lrt.Logger.Debugf("Request Headers: %+v\n", string(info))
+	lib.Log.Debugf("Request Headers: %+v\n", string(info))
 
-	lrt.Logger.Debugf("Request URL: %s\n", request.URL)
+	lib.Log.Debugf("Request URL: %s\n", request.URL)
 
 	response, err := lrt.rt.RoundTrip(request)
 	if response == nil {
@@ -79,7 +61,7 @@ func (lrt *LogRoundTripper) RoundTrip(request *http.Request) (*http.Response, er
 	}
 	response.Body, err = lrt.logResponseBody(response.Body, response.Header)
 	if err != nil {
-		lrt.Logger.Debugf("Unable to log response body: %s", err)
+		lib.Log.Debugf("Unable to log response body: %s", err)
 	}
 
 	if response.StatusCode == http.StatusUnauthorized {
@@ -89,13 +71,13 @@ func (lrt *LogRoundTripper) RoundTrip(request *http.Request) (*http.Response, er
 		lrt.numReauthAttempts++
 	}
 
-	lrt.Logger.Debugf("Response Status: %s\n", response.Status)
+	lib.Log.Debugf("Response Status: %s\n", response.Status)
 
 	info, err = json.MarshalIndent(response.Header, "", "  ")
 	if err != nil {
-		lrt.Logger.Debugf(fmt.Sprintf("Error logging response headers: %s\n", err))
+		lib.Log.Debugf(fmt.Sprintf("Error logging response headers: %s\n", err))
 	}
-	lrt.Logger.Debugf("Response Headers: %+v\n", string(info))
+	lib.Log.Debugf("Response Headers: %+v\n", string(info))
 
 	return response, err
 }
@@ -112,7 +94,7 @@ func (lrt *LogRoundTripper) logResponseBody(original io.ReadCloser, headers http
 		}
 
 		debugInfo := lrt.formatJSON(bs.Bytes())
-		lrt.Logger.Debugf("Response: %s\n", debugInfo)
+		lib.Log.Debugf("Response: %s\n", debugInfo)
 		return ioutil.NopCloser(strings.NewReader(bs.String())), nil
 	}
 	return original, nil
@@ -130,9 +112,9 @@ func (lrt *LogRoundTripper) logRequestBody(original io.ReadCloser, headers http.
 	contentType := headers.Get("Content-Type")
 	if strings.HasPrefix(contentType, "application/json") {
 		debugInfo := lrt.formatJSON(bs.Bytes())
-		lrt.Logger.Debugf("Request Options: %s\n", debugInfo)
+		lib.Log.Debugf("Request Options: %s\n", debugInfo)
 	} else {
-		lrt.Logger.Debugf("Request Options: %s\n", bs.String())
+		lib.Log.Debugf("Request Options: %s\n", bs.String())
 	}
 
 	return ioutil.NopCloser(strings.NewReader(bs.String())), nil
@@ -150,7 +132,7 @@ func (lrt *LogRoundTripper) formatJSON(raw []byte) string {
 		var slice []map[string]interface{}
 		err := json.Unmarshal(raw, &slice)
 		if err != nil {
-			lrt.Logger.Debugf("Unable to parse JSON: %s\n\n", err)
+			lib.Log.Debugf("Unable to parse JSON: %s\n\n", err)
 			return string(raw)
 		}
 		data = slice
@@ -158,7 +140,7 @@ func (lrt *LogRoundTripper) formatJSON(raw []byte) string {
 
 	pretty, err := json.MarshalIndent(data, "", "  ")
 	if err != nil {
-		lrt.Logger.Debugf("Unable to re-marshal JSON: %s\n", err)
+		lib.Log.Debugf("Unable to re-marshal JSON: %s\n", err)
 		return string(raw)
 	}
 

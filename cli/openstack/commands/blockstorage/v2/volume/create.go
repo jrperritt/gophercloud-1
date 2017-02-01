@@ -60,8 +60,8 @@ func (c *Create) Flags() []cli.Flag {
 
 func (c *Create) HandleFlags() error {
 	opts := &volumes.CreateOpts{
-		AvailabilityZone: c.Context.String("availability-zone"),
-		Description:      c.Context.String("description"),
+		AvailabilityZone: c.Context().String("availability-zone"),
+		Description:      c.Context().String("description"),
 	}
 
 	c.opts = opts
@@ -70,7 +70,7 @@ func (c *Create) HandleFlags() error {
 }
 
 func (c *Create) HandleSingle() (interface{}, error) {
-	return c.Context.String("name"), c.CheckFlagsSet([]string{"size"})
+	return c.Context().String("name"), c.CheckFlagsSet([]string{"size"})
 }
 
 func (c *Create) Execute(item interface{}, out chan interface{}) {

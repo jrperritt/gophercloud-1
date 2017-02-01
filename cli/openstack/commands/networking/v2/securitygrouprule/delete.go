@@ -48,7 +48,7 @@ func (c *CommandDelete) Flags() []cli.Flag {
 }
 
 func (c *CommandDelete) HandleSingle() (interface{}, error) {
-	return c.Context.String("id"), c.CheckFlagsSet([]string{"id"})
+	return c.Context().String("id"), c.CheckFlagsSet([]string{"id"})
 }
 
 func (c *CommandDelete) Execute(raw interface{}, out chan interface{}) {

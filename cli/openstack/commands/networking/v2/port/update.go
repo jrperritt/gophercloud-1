@@ -71,27 +71,27 @@ func (c *CommandUpdate) Flags() []cli.Flag {
 
 func (c *CommandUpdate) HandleFlags() error {
 	opts := &ports.UpdateOpts{
-		Name:     c.Context.String("new-name"),
-		DeviceID: c.Context.String("device-id"),
+		Name:     c.Context().String("new-name"),
+		DeviceID: c.Context().String("device-id"),
 	}
 
-	if c.Context.IsSet("up") {
-		switch c.Context.String("up") {
+	if c.Context().IsSet("up") {
+		switch c.Context().String("up") {
 		case "true":
 			opts.AdminStateUp = gophercloud.Enabled
 		case "false":
 			opts.AdminStateUp = gophercloud.Disabled
 		default:
-			return fmt.Errorf("Invalid value for flag `up`: %s. Options are: true, false", c.Context.String("up"))
+			return fmt.Errorf("Invalid value for flag `up`: %s. Options are: true, false", c.Context().String("up"))
 		}
 	}
 
-	if c.Context.IsSet("security-groups") {
-		opts.SecurityGroups = strings.Split(c.Context.String("security-groups"), ",")
+	if c.Context().IsSet("security-groups") {
+		opts.SecurityGroups = strings.Split(c.Context().String("security-groups"), ",")
 	}
 
 	c.opts = opts
-	c.Wait = c.Context.IsSet("wait")
+	c.Wait = c.Context().IsSet("wait")
 
 	return nil
 }

@@ -57,14 +57,14 @@ func (c *CommandCreate) Flags() []cli.Flag {
 
 func (c *CommandCreate) HandleFlags() error {
 	c.opts = &groups.CreateOpts{
-		Description: c.Context.String("description"),
-		TenantID:    c.Context.String("tenant-id"),
+		Description: c.Context().String("description"),
+		TenantID:    c.Context().String("tenant-id"),
 	}
 	return nil
 }
 
 func (c *CommandCreate) HandleSingle() (interface{}, error) {
-	return c.Context.String("name"), c.CheckFlagsSet([]string{"name"})
+	return c.Context().String("name"), c.CheckFlagsSet([]string{"name"})
 }
 
 func (c *CommandCreate) Execute(_ interface{}, out chan interface{}) {

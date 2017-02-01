@@ -53,7 +53,6 @@ func (c *CommandGetMetadata) Fields() []string {
 }
 
 func (c *CommandGetMetadata) HandleFlags() error {
-	c.Wait = c.Context.IsSet("wait")
 	return nil
 }
 

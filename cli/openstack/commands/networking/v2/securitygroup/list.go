@@ -57,8 +57,8 @@ func (c *CommandList) DefaultTableFields() []string {
 
 func (c *CommandList) HandleFlags() error {
 	c.opts = groups.ListOpts{
-		Name:     c.Context.String("name"),
-		TenantID: c.Context.String("tenant-id"),
+		Name:     c.Context().String("name"),
+		TenantID: c.Context().String("tenant-id"),
 	}
 
 	return nil

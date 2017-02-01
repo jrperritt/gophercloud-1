@@ -68,17 +68,17 @@ func (c *CommandCreate) Fields() []string {
 
 func (c *CommandCreate) HandleFlags() error {
 	opts := &ports.CreateOpts{
-		NetworkID: c.Context.String("network-id"),
-		TenantID:  c.Context.String("tenant-id"),
-		DeviceID:  c.Context.String("device-id"),
+		NetworkID: c.Context().String("network-id"),
+		TenantID:  c.Context().String("tenant-id"),
+		DeviceID:  c.Context().String("device-id"),
 	}
 
-	if c.Context.IsSet("up") {
+	if c.Context().IsSet("up") {
 		opts.AdminStateUp = gophercloud.Enabled
 	}
 
 	c.opts = opts
-	c.Wait = c.Context.IsSet("wait")
+	c.Wait = c.Context().IsSet("wait")
 
 	return nil
 }
@@ -88,7 +88,7 @@ func (c *CommandCreate) HandlePipe(item string) (interface{}, error) {
 }
 
 func (c *CommandCreate) HandleSingle() (interface{}, error) {
-	return c.Context.String("name"), c.CheckFlagsSet([]string{"network-id"})
+	return c.Context().String("name"), c.CheckFlagsSet([]string{"network-id"})
 }
 
 func (c *CommandCreate) Execute(item interface{}, out chan interface{}) {

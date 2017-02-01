@@ -69,33 +69,33 @@ func (c *CommandUpdate) Fields() []string {
 
 func (c *CommandUpdate) HandleFlags() error {
 	opts := &networks.UpdateOpts{
-		Name: c.Context.String("new-name"),
+		Name: c.Context().String("new-name"),
 	}
 
-	if c.Context.IsSet("up") {
-		switch c.Context.String("up") {
+	if c.Context().IsSet("up") {
+		switch c.Context().String("up") {
 		case "true":
 			opts.AdminStateUp = gophercloud.Enabled
 		case "false":
 			opts.AdminStateUp = gophercloud.Disabled
 		default:
-			return fmt.Errorf("Invalid value for flag `up`: %s. Options are: true, false", c.Context.String("up"))
+			return fmt.Errorf("Invalid value for flag `up`: %s. Options are: true, false", c.Context().String("up"))
 		}
 	}
 
-	if c.Context.IsSet("shared") {
-		switch c.Context.String("shared") {
+	if c.Context().IsSet("shared") {
+		switch c.Context().String("shared") {
 		case "true":
 			opts.Shared = gophercloud.Enabled
 		case "false":
 			opts.Shared = gophercloud.Disabled
 		default:
-			return fmt.Errorf("Invalid value for flag `shared`: %s. Options are: true, false", c.Context.String("shared"))
+			return fmt.Errorf("Invalid value for flag `shared`: %s. Options are: true, false", c.Context().String("shared"))
 		}
 	}
 
 	c.opts = opts
-	c.Wait = c.Context.IsSet("wait")
+	c.Wait = c.Context().IsSet("wait")
 
 	return nil
 }

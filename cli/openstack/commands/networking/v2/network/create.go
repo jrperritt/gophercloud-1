@@ -64,25 +64,25 @@ func (c *CommandCreate) Fields() []string {
 
 func (c *CommandCreate) HandleFlags() error {
 	opts := &networks.CreateOpts{
-		TenantID: c.Context.String("tenant-id"),
+		TenantID: c.Context().String("tenant-id"),
 	}
 
-	if c.Context.IsSet("up") {
+	if c.Context().IsSet("up") {
 		opts.AdminStateUp = gophercloud.Enabled
 	}
 
-	if c.Context.IsSet("shared") {
+	if c.Context().IsSet("shared") {
 		opts.Shared = gophercloud.Enabled
 	}
 
 	c.opts = opts
-	c.Wait = c.Context.IsSet("wait")
+	c.Wait = c.Context().IsSet("wait")
 
 	return nil
 }
 
 func (c *CommandCreate) HandleSingle() (interface{}, error) {
-	return c.Context.String("name"), c.CheckFlagsSet([]string{"name"})
+	return c.Context().String("name"), c.CheckFlagsSet([]string{"name"})
 }
 
 func (c *CommandCreate) Execute(item interface{}, out chan interface{}) {

@@ -53,7 +53,7 @@ func (c *CommandDelete) HandleFlags() error {
 	if err != nil {
 		return err
 	}
-	c.attachmentID = c.Context.String("id")
+	c.attachmentID = c.Context().String("id")
 
 	c.serverID, err = serverIDorName(c.Context, c.ServiceClient)
 	if err != nil {

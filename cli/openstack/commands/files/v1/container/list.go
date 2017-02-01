@@ -65,10 +65,10 @@ func (c *CommandList) DefaultTableFields() []string {
 func (c *CommandList) HandleFlags() error {
 	c.opts = &containers.ListOpts{
 		Full:      true,
-		Prefix:    c.Context.String("prefix"),
-		EndMarker: c.Context.String("end-marker"),
-		Marker:    c.Context.String("marker"),
-		Limit:     c.Context.Int("limit"),
+		Prefix:    c.Context().String("prefix"),
+		EndMarker: c.Context().String("end-marker"),
+		Marker:    c.Context().String("marker"),
+		Limit:     c.Context().Int("limit"),
 	}
 	return nil
 }

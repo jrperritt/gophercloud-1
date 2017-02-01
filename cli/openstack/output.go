@@ -25,7 +25,7 @@ var outerr = os.Stderr
 
 // outres prints the results of the command
 func outres(cmd interfaces.Commander) error {
-	for result := range gctx.ResultsRunCommand {
+	for result := range cmd.Donech() {
 		switch r := result.(type) {
 		case error:
 			outputError(r)

@@ -77,15 +77,15 @@ func (c *CommandList) DefaultTableFields() []string {
 
 func (c *CommandList) HandleFlags() error {
 	c.opts = &servers.ListOpts{
-		ChangesSince: c.Context.String("changes-since"),
-		Image:        c.Context.String("image-name"),
-		Flavor:       c.Context.String("flavor-name"),
-		Name:         c.Context.String("name"),
-		Status:       c.Context.String("status"),
-		Host:         c.Context.String("host"),
-		Marker:       c.Context.String("marker"),
-		Limit:        c.Context.Int("limit"),
-		AllTenants:   c.Context.IsSet("all-tenants"),
+		ChangesSince: c.Context().String("changes-since"),
+		Image:        c.Context().String("image-name"),
+		Flavor:       c.Context().String("flavor-name"),
+		Name:         c.Context().String("name"),
+		Status:       c.Context().String("status"),
+		Host:         c.Context().String("host"),
+		Marker:       c.Context().String("marker"),
+		Limit:        c.Context().Int("limit"),
+		AllTenants:   c.Context().IsSet("all-tenants"),
 	}
 	return nil
 }

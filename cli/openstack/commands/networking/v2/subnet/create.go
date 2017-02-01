@@ -88,33 +88,33 @@ func (c *CommandCreate) HandleFlags() error {
 	}
 
 	opts := &subnets.CreateOpts{
-		NetworkID: c.Context.String("network-id"),
-		CIDR:      c.Context.String("cidr"),
-		Name:      c.Context.String("name"),
-		IPVersion: gophercloud.IPVersion(c.Context.Int("ip-version")),
-		TenantID:  c.Context.String("tenant-id"),
+		NetworkID: c.Context().String("network-id"),
+		CIDR:      c.Context().String("cidr"),
+		Name:      c.Context().String("name"),
+		IPVersion: gophercloud.IPVersion(c.Context().Int("ip-version")),
+		TenantID:  c.Context().String("tenant-id"),
 	}
 
-	if c.Context.IsSet("gateway-ip") && c.Context.IsSet("no-gateway") {
+	if c.Context().IsSet("gateway-ip") && c.Context().IsSet("no-gateway") {
 		return fmt.Errorf("Only one of gateway-ip and no-gateway may be provided")
 	}
 
-	if c.Context.IsSet("gateway-ip") || c.Context.IsSet("no-gateway") {
-		gatewayIP := c.Context.String("gateway-ip")
+	if c.Context().IsSet("gateway-ip") || c.Context().IsSet("no-gateway") {
+		gatewayIP := c.Context().String("gateway-ip")
 		opts.GatewayIP = &gatewayIP
 	}
 
 	opts.EnableDHCP = gophercloud.Disabled
-	if c.Context.IsSet("enable-dhcp") {
+	if c.Context().IsSet("enable-dhcp") {
 		opts.EnableDHCP = gophercloud.Enabled
 	}
 
-	if c.Context.IsSet("dns-nameservers") {
-		opts.DNSNameservers = strings.Split(c.Context.String("dns-nameservers"), ",")
+	if c.Context().IsSet("dns-nameservers") {
+		opts.DNSNameservers = strings.Split(c.Context().String("dns-nameservers"), ",")
 	}
 
-	if c.Context.IsSet("allocation-pool") {
-		allocationPoolsRaw := c.Context.StringSlice("allocation-pool")
+	if c.Context().IsSet("allocation-pool") {
+		allocationPoolsRaw := c.Context().StringSlice("allocation-pool")
 		allocationPoolsRawSlice, err := c.ValidateStructFlag(allocationPoolsRaw)
 		if err != nil {
 			return err

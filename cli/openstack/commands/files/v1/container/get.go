@@ -56,7 +56,7 @@ func (c *CommandGet) HandlePipe(item string) (interface{}, error) {
 }
 
 func (c *CommandGet) HandleSingle() (interface{}, error) {
-	return c.Context.String("name"), c.CheckFlagsSet([]string{"name"})
+	return c.Context().String("name"), c.CheckFlagsSet([]string{"name"})
 }
 
 func (c *CommandGet) Execute(item interface{}, out chan interface{}) {

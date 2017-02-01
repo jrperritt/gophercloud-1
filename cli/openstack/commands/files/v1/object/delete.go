@@ -56,12 +56,12 @@ func (c *commandDelete) HandleFlags() error {
 	if err != nil {
 		return err
 	}
-	c.container = c.Context.String("container")
+	c.container = c.Context().String("container")
 	return nil
 }
 
 func (c *commandDelete) HandleSingle() (interface{}, error) {
-	return c.Context.String("name"), c.CheckFlagsSet([]string{"name"})
+	return c.Context().String("name"), c.CheckFlagsSet([]string{"name"})
 }
 
 func (c *commandDelete) Execute(item interface{}, out chan interface{}) {

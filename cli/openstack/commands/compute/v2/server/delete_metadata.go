@@ -56,8 +56,7 @@ func (c *CommandDeleteMetadata) Flags() []cli.Flag {
 }
 
 func (c *CommandDeleteMetadata) HandleFlags() error {
-	c.Wait = c.Context.IsSet("wait")
-	c.opts = strings.Split(c.Context.String("metadata-keys"), ",")
+	c.opts = strings.Split(c.Context().String("metadata-keys"), ",")
 	return nil
 }
 

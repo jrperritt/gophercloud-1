@@ -62,21 +62,18 @@ func (c *CommandReboot) Flags() []cli.Flag {
 }
 
 func (c *CommandReboot) HandleFlags() error {
-	c.Wait = c.Context.IsSet("wait")
-	c.Quiet = c.Context.IsSet("quiet")
-
-	switch c.Context.IsSet("hard") {
+	switch c.Context().IsSet("hard") {
 	case true:
-		switch c.Context.IsSet("soft") {
+		switch c.Context().IsSet("soft") {
 		case true:
 			return fmt.Errorf("Only one of either --soft or --hard may be provided.")
 		default:
-			c.opts = &servers.RebootOpts{servers.HardReboot}
+			c.opts = &servers.RebootOpts{Type: servers.HardReboot}
 		}
 	default:
-		switch c.Context.IsSet("soft") {
+		switch c.Context().IsSet("soft") {
 		case true:
-			c.opts = &servers.RebootOpts{servers.SoftReboot}
+			c.opts = &servers.RebootOpts{Type: servers.SoftReboot}
 		default:
 			return fmt.Errorf("One of either --soft or --hard must be provided.")
 		}
@@ -100,7 +97,7 @@ func (c *CommandReboot) Execute(item interface{}, out chan interface{}) {
 		out <- err
 		return
 	}
-	switch c.Wait || !c.Quiet {
+	switch c.ShouldWait() || c.ShouldProgress() {
 	case true:
 		out <- id
 	default:
@@ -123,18 +120,18 @@ func (c *CommandReboot) WaitFor(raw interface{}) {
 		}
 		switch m["server"]["status"].(string) {
 		case "ACTIVE":
-			openstack.GC.DoneChan <- fmt.Sprintf("Rebooted server [%s]", id)
+			c.Donechout <- fmt.Sprintf("Rebooted server [%s]", id)
 			return true, nil
 		default:
-			if !c.Quiet {
-				openstack.GC.UpdateChan <- m["server"]["status"]
+			if c.ShouldProgress() {
+				c.Updatechin <- m["server"]["status"]
 			}
 			return false, nil
 		}
 	})
 
 	if err != nil {
-		openstack.GC.DoneChan <- err
+		c.Donechout <- err
 	}
 }
 

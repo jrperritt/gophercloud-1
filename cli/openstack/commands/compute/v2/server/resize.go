@@ -62,19 +62,19 @@ func (c *CommandResize) Flags() []cli.Flag {
 }
 
 func (c *CommandResize) HandleFlags() error {
-	c.Wait = c.Context.IsSet("wait")
-	c.Quiet = c.Context.IsSet("quiet")
+	c.Wait = c.Context().IsSet("wait")
+	c.Quiet = c.Context().IsSet("quiet")
 
 	opts := new(servers.ResizeOpts)
 
-	if c.Context.IsSet("flavor-id") {
-		opts.FlavorRef = c.Context.String("flavor-id")
+	if c.Context().IsSet("flavor-id") {
+		opts.FlavorRef = c.Context().String("flavor-id")
 		c.opts = opts
 		return nil
 	}
 
-	if c.Context.IsSet("flavor-name") {
-		id, err := flavors.IDFromName(c.ServiceClient, c.Context.String("flavor-name"))
+	if c.Context().IsSet("flavor-name") {
+		id, err := flavors.IDFromName(c.ServiceClient, c.Context().String("flavor-name"))
 		if err != nil {
 			return err
 		}

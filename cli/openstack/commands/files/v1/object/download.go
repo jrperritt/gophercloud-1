@@ -60,15 +60,15 @@ func (c *commandDownload) HandleFlags() error {
 	if err != nil {
 		return err
 	}
-	c.container = c.Context.String("container")
-	c.name = c.Context.String("object")
+	c.container = c.Context().String("container")
+	c.name = c.Context().String("object")
 
-	if c.Context.IsSet("wait") {
+	if c.Context().IsSet("wait") {
 		err := c.CheckFlagsSet([]string{"file"})
 		if err != nil {
 			return err
 		}
-		c.file = c.Context.String("file")
+		c.file = c.Context().String("file")
 	}
 
 	return nil

@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/gophercloud/gophercloud"
+	"github.com/gophercloud/gophercloud/cli/lib"
 	"github.com/gophercloud/gophercloud/cli/lib/interfaces"
 	"github.com/gophercloud/gophercloud/cli/util"
 	"github.com/gophercloud/gophercloud/openstack"
@@ -43,9 +44,9 @@ func AuthFromScratch(ao *authopts) (sc *gophercloud.ServiceClient, err error) {
 	serviceType := ao.cmd.ServiceType()
 	serviceVersion := ao.cmd.ServiceVersion()
 
-	gctx.Logger.Debugln("Authenticating from scratch.\n")
+	lib.Log.Debugln("Authenticating from scratch.\n")
 
-	gctx.Logger.Debugf("auth options: %+v\n", *ao)
+	lib.Log.Debugf("auth options: %+v\n", *ao)
 
 	pc, err := openstack.NewClient(ao.gao.IdentityEndpoint)
 	if err != nil {
@@ -71,21 +72,21 @@ func AuthFromScratch(ao *authopts) (sc *gophercloud.ServiceClient, err error) {
 		return nil, fmt.Errorf("Unable to create service client: Unknown service type and version: %s %s", serviceType, serviceVersion)
 	}
 
-	gctx.Logger.Debugf("Created %s service client: %+v", serviceType, sc)
+	lib.Log.Debugf("Created %s service client: %+v", serviceType, sc)
 	sc.UserAgent.Prepend(util.UserAgent)
 	return sc, nil
 }
 
 func AuthFromCache(ao *authopts) (sc *gophercloud.ServiceClient, err error) {
-	gctx.Logger.Debugln("Authenticating from cache")
+	lib.Log.Debugln("Authenticating from cache")
 
 	cache := GetCache()
 	cacheKey := GetCacheKey(ao)
-	gctx.Logger.Debugf("Looking in the cache for cache key: %s", cacheKey)
+	lib.Log.Debugf("Looking in the cache for cache key: %s", cacheKey)
 	creds, err := cache.GetCacheValue(cacheKey)
 
 	if err == nil && creds != nil {
-		gctx.Logger.Debugf("Using token from cache: %s", creds.TokenID)
+		lib.Log.Debugf("Using token from cache: %s", creds.TokenID)
 		pc, err := openstack.NewClient(ao.gao.IdentityEndpoint)
 		if err == nil {
 			pc.UserAgent.Prepend(util.UserAgent)
@@ -118,7 +119,7 @@ func GetCacheKey(ao *authopts) string {
 	case ao.gao.UserID != "":
 		usernameOrTenantID = ao.gao.UserID
 	default:
-		gctx.Logger.Debugf("Username nor User ID set in auth: %+v", ao)
+		lib.Log.Debugf("Username nor User ID set in auth: %+v", ao)
 	}
 	return fmt.Sprintf("%s,%s,%s,%s,%s", usernameOrTenantID, ao.gao.IdentityEndpoint, ao.region, ao.cmd.ServiceType(), ao.urltype)
 }
@@ -133,6 +134,6 @@ func cachecreds(ao *authopts, sc *gophercloud.ServiceClient) error {
 		ServiceEndpoint: ep,
 	}
 	cacheKey := GetCacheKey(ao)
-	gctx.Logger.Debugf("Setting cache key [%s] to: %s", cacheKey, newCacheValue)
+	lib.Log.Debugf("Setting cache key [%s] to: %s", cacheKey, newCacheValue)
 	return GetCache().SetCacheValue(cacheKey, newCacheValue)
 }

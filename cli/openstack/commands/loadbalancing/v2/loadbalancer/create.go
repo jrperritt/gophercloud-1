@@ -61,17 +61,17 @@ func (c *CommandCreate) Flags() []cli.Flag {
 
 func (c *CommandCreate) HandleFlags() error {
 	opts := &loadbalancers.CreateOpts{
-		VipSubnetID: c.Context.String("vip-subnet-id"),
-		Name:        c.Context.String("name"),
-		Description: c.Context.String("description"),
-		VipAddress:  c.Context.String("vip-address"),
-		TenantID:    c.Context.String("tenant-id"),
-		Flavor:      c.Context.String("flavor"),
-		Provider:    c.Context.String("provider"),
+		VipSubnetID: c.Context().String("vip-subnet-id"),
+		Name:        c.Context().String("name"),
+		Description: c.Context().String("description"),
+		VipAddress:  c.Context().String("vip-address"),
+		TenantID:    c.Context().String("tenant-id"),
+		Flavor:      c.Context().String("flavor"),
+		Provider:    c.Context().String("provider"),
 	}
 
 	opts.AdminStateUp = gophercloud.Disabled
-	if c.Context.IsSet("up") {
+	if c.Context().IsSet("up") {
 		opts.AdminStateUp = gophercloud.Enabled
 	}
 

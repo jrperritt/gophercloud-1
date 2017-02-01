@@ -50,14 +50,14 @@ func (c *CommandUpload) HandleFlags() error {
 		return err
 	}
 
-	s := c.Context.String("file")
+	s := c.Context().String("file")
 	pk, err := ioutil.ReadFile(s)
 	if err != nil {
 		return err
 	}
 
 	c.opts = &keypairs.CreateOpts{
-		Name:      c.Context.String("name"),
+		Name:      c.Context().String("name"),
 		PublicKey: string(pk),
 	}
 

@@ -56,7 +56,7 @@ func (c *commandGet) HandleFlags() error {
 	if err != nil {
 		return err
 	}
-	c.container = c.Context.String("container")
+	c.container = c.Context().String("container")
 	return nil
 }
 
@@ -65,7 +65,7 @@ func (c *commandGet) HandlePipe(item string) (interface{}, error) {
 }
 
 func (c *commandGet) HandleSingle() (interface{}, error) {
-	return c.Context.String("name"), c.CheckFlagsSet([]string{"name"})
+	return c.Context().String("name"), c.CheckFlagsSet([]string{"name"})
 }
 
 func (c *commandGet) Execute(item interface{}, out chan interface{}) {

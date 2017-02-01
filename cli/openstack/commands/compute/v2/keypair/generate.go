@@ -47,7 +47,7 @@ func (c *CommandGenerate) Flags() []cli.Flag {
 }
 
 func (c *CommandGenerate) HandleSingle() (interface{}, error) {
-	return c.Context.String("name"), c.CheckFlagsSet([]string{"name"})
+	return c.Context().String("name"), c.CheckFlagsSet([]string{"name"})
 }
 
 func (c *CommandGenerate) Execute(item interface{}, out chan interface{}) {

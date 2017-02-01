@@ -55,7 +55,7 @@ func (c *CommandDelete) Fields() []string {
 }
 
 func (c *CommandDelete) HandleFlags() error {
-	c.purge = c.Context.IsSet("purge")
+	c.purge = c.Context().IsSet("purge")
 	return nil
 }
 
@@ -64,7 +64,7 @@ func (c *CommandDelete) HandlePipe(item string) (interface{}, error) {
 }
 
 func (c *CommandDelete) HandleSingle() (interface{}, error) {
-	return c.Context.String("name"), c.CheckFlagsSet([]string{"name"})
+	return c.Context().String("name"), c.CheckFlagsSet([]string{"name"})
 }
 
 func (c *CommandDelete) Execute(item interface{}, out chan interface{}) {

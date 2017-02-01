@@ -71,25 +71,25 @@ func (c *CommandList) DefaultTableFields() []string {
 
 func (c *CommandList) HandleFlags() error {
 	opts := &ports.ListOpts{
-		Name:      c.Context.String("name"),
-		NetworkID: c.Context.String("network-id"),
-		DeviceID:  c.Context.String("device-id"),
-		TenantID:  c.Context.String("tenant-id"),
-		Status:    c.Context.String("status"),
+		Name:      c.Context().String("name"),
+		NetworkID: c.Context().String("network-id"),
+		DeviceID:  c.Context().String("device-id"),
+		TenantID:  c.Context().String("tenant-id"),
+		Status:    c.Context().String("status"),
 	}
 
-	if c.Context.IsSet("up") {
-		switch c.Context.String("up") {
+	if c.Context().IsSet("up") {
+		switch c.Context().String("up") {
 		case "true":
 			opts.AdminStateUp = gophercloud.Enabled
 		case "false":
 			opts.AdminStateUp = gophercloud.Disabled
 		default:
-			return fmt.Errorf("Invalid value for flag `up`: %s. Options are: true, false", c.Context.String("up"))
+			return fmt.Errorf("Invalid value for flag `up`: %s. Options are: true, false", c.Context().String("up"))
 		}
 	}
 
-	c.Wait = c.Context.IsSet("wait")
+	c.Wait = c.Context().IsSet("wait")
 	c.opts = opts
 
 	return nil

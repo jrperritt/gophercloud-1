@@ -74,16 +74,16 @@ func (c *commandList) DefaultTableFields() []string {
 func (c *commandList) HandleFlags() error {
 	c.opts = &objects.ListOpts{
 		Full:      true,
-		Prefix:    c.Context.String("prefix"),
-		EndMarker: c.Context.String("end-marker"),
-		Marker:    c.Context.String("marker"),
-		Limit:     c.Context.Int("limit"),
+		Prefix:    c.Context().String("prefix"),
+		EndMarker: c.Context().String("end-marker"),
+		Marker:    c.Context().String("marker"),
+		Limit:     c.Context().Int("limit"),
 	}
 	return nil
 }
 
 func (c *commandList) HandleSingle() (interface{}, error) {
-	return c.Context.String("container"), c.CheckFlagsSet([]string{"container"})
+	return c.Context().String("container"), c.CheckFlagsSet([]string{"container"})
 }
 
 func (c *commandList) Execute(item interface{}, out chan interface{}) {

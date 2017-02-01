@@ -74,14 +74,14 @@ func (c *CommandCreate) HandleFlags() error {
 	}
 
 	opts := &rules.CreateOpts{
-		PortRangeMax:   c.Context.Int("port-range-max"),
-		PortRangeMin:   c.Context.Int("port-range-min"),
-		Protocol:       rules.RuleProtocol(c.Context.String("protocol")),
-		SecGroupID:     c.Context.String("security-group-id"),
-		RemoteIPPrefix: c.Context.String("remote-ip-prefix"),
+		PortRangeMax:   c.Context().Int("port-range-max"),
+		PortRangeMin:   c.Context().Int("port-range-min"),
+		Protocol:       rules.RuleProtocol(c.Context().String("protocol")),
+		SecGroupID:     c.Context().String("security-group-id"),
+		RemoteIPPrefix: c.Context().String("remote-ip-prefix"),
 	}
 
-	direction := c.Context.String("direction")
+	direction := c.Context().String("direction")
 	switch direction {
 	case "ingress":
 		opts.Direction = rules.DirIngress
@@ -91,8 +91,8 @@ func (c *CommandCreate) HandleFlags() error {
 		return fmt.Errorf("Invalid value for `direction`: %s. Options are: ingress, egress", direction)
 	}
 
-	if c.Context.IsSet("ether-type") {
-		etherType := c.Context.String("ether-type")
+	if c.Context().IsSet("ether-type") {
+		etherType := c.Context().String("ether-type")
 		switch etherType {
 		case "ipv4":
 			opts.EtherType = rules.EtherType4
