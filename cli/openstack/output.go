@@ -14,18 +14,12 @@ import (
 	"github.com/gophercloud/gophercloud/cli/util"
 )
 
-// CustomWriterer is an interface implemented by commands that offer
-// custom output destinations
-type CustomWriterer interface {
-	CustomWriter() io.Writer
-}
-
 var outreg = os.Stdout
 var outerr = os.Stderr
 
 // outres prints the results of the command
 func outres(cmd interfaces.Commander) error {
-	for result := range cmd.Donech() {
+	for result := range cmd.AllDoneCh() {
 		switch r := result.(type) {
 		case error:
 			outputError(r)
@@ -96,34 +90,29 @@ func outputReader(cmd interfaces.Commander, r io.Reader) {
 	if rc, ok := r.(io.ReadCloser); ok {
 		defer rc.Close()
 	}
-	var writer io.Writer
-	customWriterer, ok := cmd.(CustomWriterer)
-	switch ok {
-	case true:
-		writer = customWriterer.CustomWriter()
-		toTabler, ok := cmd.(interfaces.ToTabler)
-		switch ok {
-		case true:
-			toTabler.ToTable()
-		case false:
-			_, err := io.Copy(writer, r)
-			if err != nil {
-				fmt.Fprintf(os.Stderr, "Error copying (io.Reader) result: %s\n", err)
-			}
+	if customWriterer, ok := cmd.(interfaces.CustomWriterer); ok {
+		writer, err := customWriterer.CustomWriter()
+		if err != nil {
+
 		}
-	case false:
-		toJSONer, ok := cmd.(interfaces.ToJSONer)
-		switch ok {
-		case true:
-			toJSONer.ToJSON()
-		case false:
-			bytes, err := ioutil.ReadAll(r)
-			if err != nil {
-				//return err
-			}
-			defaultJSON(string(bytes))
+		_, err = io.Copy(writer, r)
+		if err != nil {
+			fmt.Fprintf(outerr, "Error copying (io.Reader) result: %s\n", err)
 		}
+		return
 	}
+
+	if toJSONer, ok := cmd.(interfaces.ToJSONer); ok {
+		toJSONer.ToJSON()
+		return
+	}
+
+	bytes, err := ioutil.ReadAll(r)
+	if err != nil {
+		fmt.Fprintf(outerr, "Error reading (io.Reader) result: %s\n", err)
+		return
+	}
+	defaultJSON(string(bytes))
 }
 
 // LimitFields reduces the number of fields in the output

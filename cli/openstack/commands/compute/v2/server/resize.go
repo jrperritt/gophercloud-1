@@ -62,9 +62,6 @@ func (c *CommandResize) Flags() []cli.Flag {
 }
 
 func (c *CommandResize) HandleFlags() error {
-	c.Wait = c.Context().IsSet("wait")
-	c.Quiet = c.Context().IsSet("quiet")
-
 	opts := new(servers.ResizeOpts)
 
 	if c.Context().IsSet("flavor-id") {
@@ -101,7 +98,7 @@ func (c *CommandResize) Execute(item interface{}, out chan interface{}) {
 		out <- err
 		return
 	}
-	switch c.Wait {
+	switch c.ShouldWait() {
 	case true:
 		out <- id
 	default:
@@ -124,24 +121,24 @@ func (c *CommandResize) WaitFor(raw interface{}) {
 		}
 		switch m["server"]["status"].(string) {
 		case "ACTIVE":
-			openstack.GC.DoneChan <- fmt.Sprintf("Resized server [%s]", id)
+			c.ProgDoneChIn() <- fmt.Sprintf("Resized server [%s]", id)
 			return true, nil
 		default:
-			if !c.Quiet {
-				openstack.GC.UpdateChan <- m["server"]["status"]
+			if c.ShouldProgress() {
+				c.ProgUpdateChIn() <- m["server"]["status"]
 			}
 			return false, nil
 		}
 	})
 
 	if err != nil {
-		openstack.GC.DoneChan <- err
+		c.ProgDoneChIn() <- err
 	}
 }
 
-func (c *CommandResize) InitProgress() {
+func (c *CommandResize) InitProgress(donech chan interface{}) {
 	c.ProgressInfo = openstack.NewProgressInfo(2)
 	c.RunningMsg = "Resizing"
 	c.DoneMsg = "Resized"
-	c.Progressable.InitProgress()
+	c.Progressable.InitProgress(donech)
 }

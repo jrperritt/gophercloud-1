@@ -3,6 +3,7 @@ package traits
 import (
 	"fmt"
 	"strings"
+	"sync"
 
 	"github.com/gophercloud/gophercloud"
 	"github.com/gophercloud/gophercloud/cli/lib"
@@ -13,7 +14,10 @@ import (
 type Commandable struct {
 	ctx           *cli.Context
 	ServiceClient *gophercloud.ServiceClient
-	donech        chan interface{}
+	execdonech    chan interface{}
+	alldonech     chan interface{}
+	updatech      chan interface{}
+	wg            *sync.WaitGroup
 }
 
 func (c *Commandable) SetContext(ctx *cli.Context) error {
@@ -30,8 +34,20 @@ func (c *Commandable) SetServiceClient(sc *gophercloud.ServiceClient) error {
 	return nil
 }
 
-func (c *Commandable) Donech() chan interface{} {
-	return c.donech
+func (c *Commandable) ExecDoneCh() chan interface{} {
+	return c.execdonech
+}
+
+func (c *Commandable) AllDoneCh() chan interface{} {
+	return c.alldonech
+}
+
+func (c *Commandable) UpdateCh() chan interface{} {
+	return c.updatech
+}
+
+func (c *Commandable) WG() *sync.WaitGroup {
+	return c.wg
 }
 
 func (c *Commandable) HandleInterfaceFlags() error {
@@ -88,7 +104,7 @@ func (c *Commandable) CheckFlagsSet(flagNames []string) error {
 	return nil
 }
 
-// CheckKVFlag is a function used for verifying the format of a key-value flag.
+// ValidateKVFlag is a function used for verifying the format of a key-value flag.
 func (c *Commandable) ValidateKVFlag(flagName string) (map[string]string, error) {
 	kv := make(map[string]string)
 	kvStrings := strings.Split(c.ctx.String(flagName), ",")
@@ -102,7 +118,7 @@ func (c *Commandable) ValidateKVFlag(flagName string) (map[string]string, error)
 	return kv, nil
 }
 
-// CheckStructFlag is a function used for verifying the format of a struct flag.
+// ValidateStructFlag is a function used for verifying the format of a struct flag.
 func (c *Commandable) ValidateStructFlag(flagValues []string) ([]map[string]interface{}, error) {
 	valSliceMap := make([]map[string]interface{}, len(flagValues))
 	for i, flagValue := range flagValues {

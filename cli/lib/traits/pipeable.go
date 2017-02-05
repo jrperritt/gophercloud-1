@@ -1,6 +1,7 @@
 package traits
 
-type Pipeable struct{}
+type Pipeable struct {
+}
 
 func (c *Pipeable) HandlePipe(item string) (interface{}, error) {
 	return item, nil

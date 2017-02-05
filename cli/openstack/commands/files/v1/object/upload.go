@@ -16,7 +16,7 @@ import (
 
 type commandUpload struct {
 	ObjectV1Command
-	traits.Progressable
+	traits.BytesProgressable
 	opts       objects.CreateOptsBuilder
 	pipedField string
 }
@@ -190,8 +190,8 @@ func (c *commandUpload) HandleSingle() (interface{}, error) {
 }
 
 type bytescontent struct {
-	reader        io.Reader
-	bytessentchan chan (int)
+	reader      io.Reader
+	bytessentch chan (interface{})
 }
 
 func (b *bytescontent) Read(p []byte) (n int, err error) {
@@ -199,7 +199,7 @@ func (b *bytescontent) Read(p []byte) (n int, err error) {
 	if err != nil {
 		return
 	}
-	b.bytessentchan <- n
+	b.bytessentch <- n
 	return
 }
 
@@ -218,7 +218,7 @@ func (c *commandUpload) Execute(item interface{}, out chan interface{}) {
 	}()
 
 	bc := new(bytescontent)
-	bc.bytessentchan = make(chan int)
+	bc.bytessentch = c.ProgUpdateChIn()
 	bc.reader = reader
 	c.opts.(*objects.CreateOpts).Content = bc
 
@@ -238,31 +238,4 @@ func (c *commandUpload) PipeFieldOptions() []string {
 
 func (c *commandUpload) StreamFieldOptions() []string {
 	return []string{"content"}
-}
-
-func (c *commandUpload) InitProgress() {
-	c.ProgressInfo = openstack.NewProgressInfo(1)
-	c.Progressable.InitProgress()
-}
-
-func (c *commandUpload) ShowBar(id string) {
-	s := new(openstack.ProgressStatusStart)
-	s.Name = id
-	c.StartChan <- s
-
-	for {
-		select {
-		case r := <-openstack.GC.DoneChan:
-			s := new(openstack.ProgressStatusComplete)
-			s.Name = id
-			c.ProgressInfo.CompleteChan <- s
-			openstack.GC.ProgressDoneChan <- r
-			return
-		case r := <-openstack.GC.UpdateChan:
-			s := new(openstack.ProgressStatusUpdate)
-			s.Name = id
-			s.Increment = int(r.(float64))
-			c.ProgressInfo.UpdateChan <- s
-		}
-	}
 }

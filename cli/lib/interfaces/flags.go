@@ -1,9 +1,15 @@
 package interfaces
 
-import "gopkg.in/urfave/cli.v1"
+import (
+	"sync"
+
+	"gopkg.in/urfave/cli.v1"
+)
 
 // Waiter should be implemented by commands that launch background operations
 type Waiter interface {
+	WaitDoneCh() chan interface{}
+	WG() *sync.WaitGroup
 	WaitFor(item interface{})
 	SetWait(bool)
 	ShouldWait() bool
@@ -19,7 +25,11 @@ type Fieldser interface {
 // Progresser should be implemented by commands that allow progress updates
 // during execution
 type Progresser interface {
-	InitProgress()
+	InitProgress(donechout chan interface{})
+	ProgDoneChIn() chan interface{}
+	ProgDoneChOut() chan interface{}
+	ProgUpdateChIn() chan interface{}
+	WG() *sync.WaitGroup
 	BarID(item interface{}) string
 	ShowBar(id string)
 	SetProgress(bool)

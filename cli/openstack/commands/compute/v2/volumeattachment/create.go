@@ -64,7 +64,7 @@ func (c *CommandCreate) Flags() []cli.Flag {
 }
 
 func (c *CommandCreate) HandleFlags() error {
-	serverID, err := serverIDorName(c.Context, c.ServiceClient)
+	serverID, err := serverIDorName(c.Context(), c.ServiceClient)
 	if err != nil {
 		return err
 	}
@@ -77,7 +77,7 @@ func (c *CommandCreate) HandleFlags() error {
 }
 
 func (c *CommandCreate) HandleSingle() (interface{}, error) {
-	return volumeIDorName(c.Context, c.ServiceClient)
+	return volumeIDorName(c.Context(), c.ServiceClient)
 }
 
 func (c *CommandCreate) Execute(item interface{}, out chan interface{}) {

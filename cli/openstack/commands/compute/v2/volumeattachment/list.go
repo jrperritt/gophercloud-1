@@ -58,7 +58,7 @@ func (c *CommandList) DefaultTableFields() []string {
 }
 
 func (c *CommandList) HandleSingle() (interface{}, error) {
-	return serverIDorName(c.Context, c.ServiceClient)
+	return serverIDorName(c.Context(), c.ServiceClient)
 }
 
 func (c *CommandList) Execute(item interface{}, out chan interface{}) {

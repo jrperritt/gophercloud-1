@@ -3,11 +3,11 @@ package port
 import (
 	"fmt"
 
+	"github.com/gophercloud/gophercloud"
 	"github.com/gophercloud/gophercloud/cli/lib/interfaces"
 	"github.com/gophercloud/gophercloud/cli/lib/traits"
 	"github.com/gophercloud/gophercloud/cli/openstack"
 	"github.com/gophercloud/gophercloud/cli/util"
-	"github.com/gophercloud/gophercloud"
 	"github.com/gophercloud/gophercloud/openstack/networking/v2/ports"
 	"github.com/gophercloud/gophercloud/pagination"
 	"gopkg.in/urfave/cli.v1"
@@ -89,7 +89,6 @@ func (c *CommandList) HandleFlags() error {
 		}
 	}
 
-	c.Wait = c.Context().IsSet("wait")
 	c.opts = opts
 
 	return nil

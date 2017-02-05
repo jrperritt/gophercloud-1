@@ -7,6 +7,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/gophercloud/gophercloud/cli/lib/interfaces"
 	"github.com/gophercloud/gophercloud/cli/lib/traits"
 	"github.com/gophercloud/gophercloud/cli/openstack"
 	"github.com/gophercloud/gophercloud/cli/util"
@@ -16,14 +17,14 @@ import (
 
 type commandDownload struct {
 	ObjectV1Command
-	traits.Progressable
+	traits.BytesProgressable
 	file string
 }
 
 var (
-	cDownload = new(commandDownload)
-	//	_         openstack.Progresser     = cDownload
-	_ openstack.CustomWriterer = cDownload
+	cDownload                           = new(commandDownload)
+	_         interfaces.Progresser     = cDownload
+	_         interfaces.CustomWriterer = cDownload
 
 	flagsDownload = openstack.CommandFlags(cDownload)
 )
@@ -84,37 +85,21 @@ func (c *commandDownload) Execute(_ interface{}, out chan interface{}) {
 	}
 }
 
-func (c *commandDownload) InitProgress() {
-	c.ProgressInfo = openstack.NewProgressInfo(1)
-	c.Progressable.InitProgress()
+type filecontent struct {
+	writer      io.Writer
+	bytessentch chan (interface{})
 }
 
-func (c *commandDownload) ShowBar(raw interface{}) {
-	orig := raw.(map[string]interface{})
-	id := orig["id"].(string)
-
-	s := new(openstack.ProgressStatusStart)
-	s.Name = id
-	c.StartChan <- s
-
-	for {
-		select {
-		case r := <-openstack.GC.DoneChan:
-			s := new(openstack.ProgressStatusComplete)
-			s.Name = id
-			c.ProgressInfo.CompleteChan <- s
-			openstack.GC.ProgressDoneChan <- r
-			return
-		case r := <-openstack.GC.UpdateChan:
-			s := new(openstack.ProgressStatusUpdate)
-			s.Name = id
-			s.Msg = r.(string)
-			c.ProgressInfo.UpdateChan <- s
-		}
+func (b *filecontent) Write(p []byte) (n int, err error) {
+	n, err = b.writer.Write(p)
+	if err != nil {
+		return
 	}
+	b.bytessentch <- n
+	return
 }
 
-func (c *commandDownload) CustomWriter() io.Writer {
+func (c *commandDownload) CustomWriter() (io.Writer, error) {
 	f, err := os.OpenFile(c.file, os.O_RDWR|os.O_CREATE|os.O_EXCL, 0666)
 	if err != nil {
 		reader := bufio.NewReader(os.Stdin)
@@ -124,14 +109,18 @@ func (c *commandDownload) CustomWriter() io.Writer {
 			choice = strings.TrimSpace(choice)
 			switch strings.ToLower(choice) {
 			case "y", "yes":
-				return f
+				goto done
 			case "n", "no":
-				os.Exit(0)
+				return nil, err
 			default:
 				continue
 			}
 		}
 	}
 
-	return f
+done:
+	fc := new(filecontent)
+	fc.writer = f
+	fc.bytessentch = c.ProgUpdateChIn()
+	return fc, nil
 }

@@ -53,7 +53,7 @@ func (c *CommandGet) HandleFlags() error {
 	}
 	c.attachmentID = c.Context().String("id")
 
-	c.serverID, err = serverIDorName(c.Context, c.ServiceClient)
+	c.serverID, err = serverIDorName(c.Context(), c.ServiceClient)
 	if err != nil {
 		return err
 	}

@@ -89,21 +89,21 @@ func (c *CommandDelete) WaitFor(raw interface{}) {
 	err := util.WaitFor(900, func() (bool, error) {
 		_, err := servers.Get(c.ServiceClient, id).Extract()
 		if err != nil {
-			c.Donechout <- fmt.Sprintf("Deleted server [%s]", id)
+			c.ProgDoneChIn() <- fmt.Sprintf("Deleted server [%s]", id)
 			return true, nil
 		}
-		c.Updatechin <- c.RunningMsg
+		c.ProgUpdateChIn() <- c.RunningMsg
 		return false, nil
 	})
 
 	if err != nil {
-		c.Donechout <- err
+		c.ProgDoneChIn() <- err
 	}
 }
 
-func (c *CommandDelete) InitProgress() {
+func (c *CommandDelete) InitProgress(donech chan interface{}) {
 	c.ProgressInfo = openstack.NewProgressInfo(2)
 	c.RunningMsg = "Deleting"
 	c.DoneMsg = "Deleted"
-	c.Progressable.InitProgress()
+	c.Progressable.InitProgress(donech)
 }

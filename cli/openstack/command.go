@@ -21,49 +21,52 @@ func runPipeCommand(cmd interfaces.Commander) {
 }
 
 func handlePipeCommand(cmd interfaces.Commander, text string) {
-	defer gctx.wgExecute.Done()
+	p := cmd.(interfaces.PipeCommander)
+	defer p.WG().Done()
 	lib.Log.Debugln("Running HandlePipe...")
-	item, err := cmd.(interfaces.PipeCommander).HandlePipe(text)
+	item, err := p.HandlePipe(text)
 	switch err {
 	case nil:
 		lib.Log.Debugln("Running Execute...")
-		cmd.Execute(item, gctx.ExecuteResults)
+		p.Execute(item, cmd.ExecDoneCh())
 	default:
-		gctx.ExecuteResults <- err
+		cmd.ExecDoneCh() <- err
 	}
 }
 
 func handlePipeCommands(cmd interfaces.Commander) {
-	switch util.Contains(cmd.(interfaces.PipeCommander).PipeFieldOptions(), cmd.Context().String("stdin")) {
+	p := cmd.(interfaces.PipeCommander)
+	switch util.Contains(p.PipeFieldOptions(), cmd.Context().String("stdin")) {
 	case true:
 		scanner := bufio.NewScanner(os.Stdin)
 		for scanner.Scan() {
-			gctx.wgExecute.Add(1)
+			p.WG().Add(1)
 			text := scanner.Text()
 			go handlePipeCommand(cmd, text)
 		}
 		if scanner.Err() != nil {
-			gctx.ExecuteResults <- scanner.Err()
+			cmd.ExecDoneCh() <- scanner.Err()
 		}
 	default:
-		gctx.ExecuteResults <- fmt.Errorf("Unknown STDIN field: %s\n", cmd.Context().String("stdin"))
+		cmd.ExecDoneCh() <- fmt.Errorf("Unknown STDIN field: %s\n", cmd.Context().String("stdin"))
 	}
 }
 
 func handleStreamPipeCommand(cmd interfaces.Commander) {
-	switch util.Contains(cmd.(interfaces.StreamPipeCommander).StreamFieldOptions(), cmd.Context().String("stdin")) {
+	p := cmd.(interfaces.StreamPipeCommander)
+	switch util.Contains(p.StreamFieldOptions(), cmd.Context().String("stdin")) {
 	case true:
 		lib.Log.Debugln("Running HandleStreamPipe...")
-		stream, err := cmd.(interfaces.StreamPipeCommander).HandleStreamPipe(os.Stdin)
+		stream, err := p.HandleStreamPipe(os.Stdin)
 		switch err {
 		case nil:
-			gctx.wgExecute.Add(1)
+			p.WG().Add(1)
 			go func() {
-				defer gctx.wgExecute.Done()
-				cmd.Execute(stream, gctx.ExecuteResults)
+				defer p.WG().Done()
+				cmd.Execute(stream, cmd.ExecDoneCh())
 			}()
 		default:
-			gctx.ExecuteResults <- err
+			cmd.ExecDoneCh() <- err
 		}
 	default:
 		handlePipeCommands(cmd)
@@ -78,32 +81,32 @@ func runSingleCommand(cmd interfaces.Commander) {
 		switch err {
 		case nil:
 			lib.Log.Debugln("Running Execute...")
-			cmd.Execute(item, gctx.ExecuteResults)
+			cmd.Execute(item, cmd.ExecDoneCh())
 		default:
-			gctx.ExecuteResults <- err
+			cmd.ExecDoneCh() <- err
 		}
 	default:
-		cmd.Execute(nil, gctx.ExecuteResults)
+		cmd.Execute(nil, cmd.ExecDoneCh())
 	}
 }
 
 func handleProgress(cmd interfaces.Commander) {
 	p := cmd.(interfaces.Progresser)
-	go p.InitProgress()
-	for item := range gctx.ExecuteResults {
+	donech := make(chan interface{})
+	go p.InitProgress(donech)
+	for item := range cmd.ExecDoneCh() {
 		item := item
-		gctx.wgProgress.Add(1)
+		p.WG().Add(1)
 		go func() {
-			defer gctx.wgProgress.Done()
+			defer p.WG().Done()
 			switch e := item.(type) {
 			case error:
-				gctx.DoneChan <- e
+				cmd.AllDoneCh() <- e
 			default:
-				lib.Log.Debugf("running WaitFor for item: %v", item)
 				if w, ok := p.(interfaces.Waiter); ok {
+					lib.Log.Debugf("running Waiter.WaitFor for item: %v", item)
 					go w.WaitFor(item)
 				}
-
 				id := p.BarID(item)
 				p.ShowBar(id)
 			}
@@ -112,81 +115,82 @@ func handleProgress(cmd interfaces.Commander) {
 	}
 
 	go func() {
-		gctx.wgProgress.Wait()
-		lib.Log.Debugln("closing gctx.DoneChan...")
-		close(gctx.ProgressDoneChan)
+		p.WG().Wait()
+		lib.Log.Debugln("closing Progresser.ProgDoneChOut()...")
+		close(p.ProgDoneChOut())
 	}()
 
 	progressResults := make([]interface{}, 0)
 
-	lib.Log.Debugln("Waiting for items on gctx.ProgressDoneChan...")
-	for r := range gctx.ProgressDoneChan {
+	lib.Log.Debugln("Waiting for items on Progresser.ProgDoneChOut()...")
+	for r := range p.ProgDoneChOut() {
 		progressResults = append(progressResults, r)
 	}
 
 	for _, r := range progressResults {
-		cmd.Donech() <- r
+		cmd.AllDoneCh() <- r
 	}
 }
 
 func handleWait(cmd interfaces.Commander) {
-	for item := range gctx.ExecuteResults {
+	w := cmd.(interfaces.Waiter)
+	for item := range cmd.ExecDoneCh() {
 		item := item
-		gctx.wgProgress.Add(1)
+		w.WG().Add(1)
 		go func() {
-			defer gctx.wgProgress.Done()
+			defer w.WG().Done()
 			switch e := item.(type) {
 			case error:
-				gctx.DoneChan <- e
+				cmd.AllDoneCh() <- e
 			default:
 				lib.Log.Debugf("running WaitFor for item: %v", item)
-				cmd.(interfaces.Waiter).WaitFor(item)
+				w.WaitFor(item)
 			}
 		}()
 	}
 
 	go func() {
-		gctx.wgProgress.Wait()
-		lib.Log.Debugln("closing gctx.DoneChan...")
-		close(gctx.DoneChan)
+		w.WG().Wait()
+		lib.Log.Debugln("closing w.WaitDoneCh()...")
+		close(w.WaitDoneCh())
 	}()
 
 	waitResults := make([]interface{}, 0)
 
-	lib.Log.Debugln("Waiting for items on gctx.DoneChan...")
-	for r := range gctx.DoneChan {
+	lib.Log.Debugln("Waiting for items on w.WaitDoneCh()...")
+	for r := range w.WaitDoneCh() {
 		waitResults = append(waitResults, r)
 	}
 
 	for _, r := range waitResults {
-		cmd.Donech() <- r
+		cmd.AllDoneCh() <- r
 	}
 }
 
 func handleQuietNoWait(cmd interfaces.Commander) {
-	for r := range gctx.ExecuteResults {
-		cmd.Donech() <- r
+	for r := range cmd.ExecDoneCh() {
+		cmd.AllDoneCh() <- r
 	}
 }
 
 func runcmd(cmd interfaces.Commander) {
-	defer close(cmd.Donech())
+	defer close(cmd.AllDoneCh())
 	switch cmd.Context().IsSet("stdin") {
 	case true:
 		lib.Log.Debugln("Running runPipeCommand...")
 		runPipeCommand(cmd)
 	default:
 		lib.Log.Debugln("Running runSingleCommand...")
-		gctx.wgExecute.Add(1)
+		cmd.WG().Add(1)
 		go func() {
-			defer gctx.wgExecute.Done()
+			defer cmd.WG().Done()
 			runSingleCommand(cmd)
 		}()
 	}
 
 	go func() {
-		gctx.wgExecute.Wait()
-		close(gctx.ExecuteResults)
+		cmd.WG().Wait()
+		close(cmd.ExecDoneCh())
 	}()
 
 	if p, ok := cmd.(interfaces.Progresser); ok && p.ShouldProgress() {

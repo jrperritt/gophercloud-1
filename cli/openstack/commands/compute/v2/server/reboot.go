@@ -120,24 +120,24 @@ func (c *CommandReboot) WaitFor(raw interface{}) {
 		}
 		switch m["server"]["status"].(string) {
 		case "ACTIVE":
-			c.Donechout <- fmt.Sprintf("Rebooted server [%s]", id)
+			c.ProgDoneChIn() <- fmt.Sprintf("Rebooted server [%s]", id)
 			return true, nil
 		default:
 			if c.ShouldProgress() {
-				c.Updatechin <- m["server"]["status"]
+				c.ProgUpdateChIn() <- m["server"]["status"]
 			}
 			return false, nil
 		}
 	})
 
 	if err != nil {
-		c.Donechout <- err
+		c.ProgDoneChIn() <- err
 	}
 }
 
-func (c *CommandReboot) InitProgress() {
+func (c *CommandReboot) InitProgress(donech chan interface{}) {
 	c.ProgressInfo = openstack.NewProgressInfo(2)
 	c.RunningMsg = "Rebooting"
 	c.DoneMsg = "Rebooted"
-	c.Progressable.InitProgress()
+	c.Progressable.InitProgress(donech)
 }

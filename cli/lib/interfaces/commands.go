@@ -2,6 +2,7 @@ package interfaces
 
 import (
 	"io"
+	"sync"
 
 	"github.com/gophercloud/gophercloud"
 	"gopkg.in/urfave/cli.v1"
@@ -20,7 +21,10 @@ type Commander interface {
 	ServiceClientFunc() ServiceClientFunc
 	ServiceType() string
 	ServiceVersion() string
-	Donech() chan interface{}
+	ExecDoneCh() chan interface{}
+	AllDoneCh() chan interface{}
+	UpdateCh() chan interface{}
+	WG() *sync.WaitGroup
 }
 
 type PipeCommander interface {

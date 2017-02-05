@@ -340,51 +340,24 @@ func (c *CommandCreate) WaitFor(raw interface{}) {
 			lib.Log.Debugf("server %s is active", id)
 			m["server"]["adminPass"] = orig["adminPass"].(string)
 			lib.Log.Debugf("putting item %s in c.Donechin", id)
-			c.Donechin <- m["server"]
+			c.ProgDoneChIn() <- m["server"]
 			lib.Log.Debugf("returning from WaitFor for item: %s", id)
 			return true, nil
 		default:
 			if c.ShouldProgress() {
 				lib.Log.Debugf("putting item %s in c.Updatechin", id)
-				c.Updatechin <- m["server"]["progress"].(float64)
+				c.ProgUpdateChIn() <- m["server"]["progress"].(float64)
 			}
 			return false, nil
 		}
 	})
 
 	if err != nil {
-		c.Donechin <- err
+		c.ProgDoneChIn() <- err
 	}
-}
-
-func (c *CommandCreate) InitProgress() {
-	c.ProgressInfo = openstack.NewProgressInfo(0)
-	c.Progressable.InitProgress()
 }
 
 func (c *CommandCreate) BarID(raw interface{}) string {
 	orig := raw.(map[string]interface{})
 	return orig["id"].(string)
-}
-
-func (c *CommandCreate) ShowBar(id string) {
-	s := new(openstack.ProgressStatusStart)
-	s.Name = id
-	c.StartChan <- s
-
-	for {
-		select {
-		case r := <-c.Donechin:
-			s := new(openstack.ProgressStatusComplete)
-			s.Name = id
-			c.ProgressInfo.CompleteChan <- s
-			c.Donechout <- r
-			return
-		case r := <-c.Updatechin:
-			s := new(openstack.ProgressStatusUpdate)
-			s.Name = id
-			s.Increment = int(r.(float64))
-			c.Updatechout <- s
-		}
-	}
 }

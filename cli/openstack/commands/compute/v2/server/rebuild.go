@@ -210,26 +210,26 @@ func (c *CommandRebuild) WaitFor(raw interface{}) {
 		switch m["server"]["status"].(string) {
 		case "ACTIVE":
 			m["server"]["adminPass"] = orig["adminPass"].(string)
-			c.Donechout <- m["server"]
+			c.ProgDoneChIn() <- m["server"]
 			return true, nil
 		default:
 			if c.ShouldProgress() {
-				c.Updatechout <- m["server"]["progress"].(float64)
+				c.ProgUpdateChIn() <- m["server"]["progress"].(float64)
 			}
 			return false, nil
 		}
 	})
 
 	if err != nil {
-		c.Donechout <- err
+		c.ProgDoneChIn() <- err
 	}
 }
 
-func (c *CommandRebuild) InitProgress() {
+func (c *CommandRebuild) InitProgress(donech chan interface{}) {
 	c.ProgressInfo = openstack.NewProgressInfo(2)
 	c.ProgressInfo.RunningMsg = "Rebuilding"
 	c.ProgressInfo.DoneMsg = "Rebuilt"
-	c.Progressable.InitProgress()
+	c.Progressable.InitProgress(donech)
 }
 
 func (c *CommandRebuild) BarID(raw interface{}) string {
@@ -244,13 +244,13 @@ func (c *CommandRebuild) ShowBar(id string) {
 
 	for {
 		select {
-		case r := <-c.Donechin:
+		case r := <-c.ProgDoneChIn():
 			s := new(openstack.ProgressStatusComplete)
 			s.Name = id
 			c.ProgressInfo.CompleteChan <- s
-			c.Donechout <- r
+			c.ProgDoneChOut() <- r
 			return
-		case r := <-c.Updatechin:
+		case r := <-c.ProgUpdateChIn():
 			s := new(openstack.ProgressStatusUpdate)
 			s.Name = id
 			s.Increment = int(r.(float64))

@@ -1,5 +1,7 @@
 package interfaces
 
+import "io"
+
 type ToTabler interface {
 	ToTable() error
 }
@@ -16,4 +18,10 @@ type PreJSONer interface {
 // PreTabler is an interface that commands will satisfy if they have a `PreTable` method.
 type PreTabler interface {
 	PreTable(interface{}) error
+}
+
+// CustomWriterer is an interface implemented by commands that offer
+// custom output destinations
+type CustomWriterer interface {
+	CustomWriter() (io.Writer, error)
 }

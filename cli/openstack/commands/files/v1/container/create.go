@@ -63,8 +63,6 @@ func (c *CommandCreate) Fields() []string {
 }
 
 func (c *CommandCreate) HandleFlags() error {
-	c.Wait = c.Context().IsSet("wait")
-
 	opts := &containers.CreateOpts{
 		ContainerRead:  c.Context().String("container-read"),
 		ContainerWrite: c.Context().String("container-write"),
