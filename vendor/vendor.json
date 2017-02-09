@@ -1,0 +1,85 @@
+{
+	"comment": "",
+	"ignore": "test",
+	"package": [
+		{
+			"checksumSHA1": "x01z+Unn0xyLwqgn8fz5jpuNeAE=",
+			"path": "github.com/gosuri/uilive",
+			"revision": "efb88ccd059957c48f24f9d351d33a0eb00ede41",
+			"revisionTime": "2016-02-02T01:18:46Z"
+		},
+		{
+			"checksumSHA1": "IGTIRzGuGprBaAAhuh0DCHmO7Rc=",
+			"path": "github.com/gosuri/uiprogress",
+			"revision": "a9f819bfc744fe70043abcc5a6cd0137a678e3d8",
+			"revisionTime": "2016-02-02T01:22:59Z"
+		},
+		{
+			"checksumSHA1": "1dKG7apJl3CGGIrmXMHZp3emYTQ=",
+			"path": "github.com/gosuri/uiprogress/util/strutil",
+			"revision": "a9f819bfc744fe70043abcc5a6cd0137a678e3d8",
+			"revisionTime": "2016-02-02T01:22:59Z"
+		},
+		{
+			"checksumSHA1": "xZuhljnmBysJPta/lMyYmJdujCg=",
+			"path": "github.com/mattn/go-isatty",
+			"revision": "30a891c33c7cde7b02a981314b4228ec99380cca",
+			"revisionTime": "2016-11-23T14:36:37Z"
+		},
+		{
+			"checksumSHA1": "C1KKOxFoW7/W/NFNpiXK+boguNo=",
+			"path": "golang.org/x/crypto/curve25519",
+			"revision": "59a182cab66ead4fe21e6472267504ac035edee2",
+			"revisionTime": "2017-02-06T19:10:07Z"
+		},
+		{
+			"checksumSHA1": "wGb//LjBPNxYHqk+dcLo7BjPXK8=",
+			"path": "golang.org/x/crypto/ed25519",
+			"revision": "59a182cab66ead4fe21e6472267504ac035edee2",
+			"revisionTime": "2017-02-06T19:10:07Z"
+		},
+		{
+			"checksumSHA1": "LXFcVx8I587SnWmKycSDEq9yvK8=",
+			"path": "golang.org/x/crypto/ed25519/internal/edwards25519",
+			"revision": "59a182cab66ead4fe21e6472267504ac035edee2",
+			"revisionTime": "2017-02-06T19:10:07Z"
+		},
+		{
+			"checksumSHA1": "oN2GzDGBWk8bL8rGUOGlfb0GbD4=",
+			"path": "golang.org/x/crypto/ssh",
+			"revision": "59a182cab66ead4fe21e6472267504ac035edee2",
+			"revisionTime": "2017-02-06T19:10:07Z"
+		},
+		{
+			"checksumSHA1": "xiderUuvye8Kpn7yX3niiJg32bE=",
+			"path": "golang.org/x/crypto/ssh/terminal",
+			"revision": "59a182cab66ead4fe21e6472267504ac035edee2",
+			"revisionTime": "2017-02-06T19:10:07Z"
+		},
+		{
+			"checksumSHA1": "uTQtOqR0ePMMcvuvAIksiIZxhqU=",
+			"path": "golang.org/x/sys/unix",
+			"revision": "7a6e5648d140666db5d920909e082ca00a87ba2c",
+			"revisionTime": "2017-02-01T04:15:14Z"
+		},
+		{
+			"checksumSHA1": "RBqxfgzA24qAzzpS+qDtvYLOVPs=",
+			"path": "gopkg.in/ini.v1",
+			"revision": "e3c2d47c61e5333f9aa2974695dd94396eb69c75",
+			"revisionTime": "2017-01-23T09:11:46Z"
+		},
+		{
+			"checksumSHA1": "brhONOPp4CSdTZf5uEtcH+FpFUI=",
+			"path": "gopkg.in/urfave/cli.v1",
+			"revision": "0bdeddeeb0f650497d603c4ad7b20cfe685682f6",
+			"revisionTime": "2016-11-22T04:36:10Z"
+		},
+		{
+			"checksumSHA1": "QpWY2ygzClg3Bw+GHjD7yXlcTxw=",
+			"path": "gopkg.in/yaml.v2",
+			"revision": "4c78c975fe7c825c6d1466c42be594d1d6f3aba6",
+			"revisionTime": "2017-01-25T14:37:19Z"
+		}
+	],
+	"rootPath": "github.com/gophercloud/gophercloud"
+}
