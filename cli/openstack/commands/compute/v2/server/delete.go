@@ -83,13 +83,13 @@ func (c *CommandDelete) PipeFieldOptions() []string {
 	return []string{"id"}
 }
 
-func (c *CommandDelete) WaitFor(raw interface{}) {
+func (c *CommandDelete) WaitFor(raw interface{}, out chan<- interface{}) {
 	id := raw.(string)
 
 	err := util.WaitFor(900, func() (bool, error) {
 		_, err := servers.Get(c.ServiceClient, id).Extract()
 		if err != nil {
-			c.ProgDoneChIn() <- fmt.Sprintf("Deleted server [%s]", id)
+			out <- fmt.Sprintf("Deleted server [%s]", id)
 			return true, nil
 		}
 		c.ProgUpdateChIn() <- c.RunningMsg
@@ -97,13 +97,12 @@ func (c *CommandDelete) WaitFor(raw interface{}) {
 	})
 
 	if err != nil {
-		c.ProgDoneChIn() <- err
+		out <- err
 	}
 }
 
 func (c *CommandDelete) InitProgress(donech chan interface{}) {
-	c.ProgressInfo = openstack.NewProgressInfo(2)
 	c.RunningMsg = "Deleting"
 	c.DoneMsg = "Deleted"
-	c.Progressable.InitProgress(donech)
+	c.TextProgressable.InitProgress(donech)
 }

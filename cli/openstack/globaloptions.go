@@ -34,6 +34,8 @@ type GlobalOptions struct {
 
 // globalopts sets the global context's global options
 func globalopts(ctx *cli.Context) (gopts *GlobalOptions, err error) {
+	gopts = new(GlobalOptions)
+
 	gopts.want = []GlobalOption{
 		{name: "username"},
 		{name: "user-id"},

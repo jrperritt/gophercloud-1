@@ -40,7 +40,6 @@ func (lrt *LogRoundTripper) RoundTrip(request *http.Request) (*http.Response, er
 	var err error
 
 	if request.Body != nil {
-		lib.Log.Debugln("Logging request body...")
 		request.Body, err = lrt.logRequestBody(request.Body, request.Header)
 		if err != nil {
 			return nil, err
@@ -101,23 +100,21 @@ func (lrt *LogRoundTripper) logResponseBody(original io.ReadCloser, headers http
 }
 
 func (lrt *LogRoundTripper) logRequestBody(original io.ReadCloser, headers http.Header) (io.ReadCloser, error) {
-	defer original.Close()
-
-	var bs bytes.Buffer
-	_, err := io.Copy(&bs, original)
-	if err != nil {
-		return nil, err
-	}
-
 	contentType := headers.Get("Content-Type")
 	if strings.HasPrefix(contentType, "application/json") {
+		lib.Log.Debugln("Logging request body...")
+		defer original.Close()
+		var bs bytes.Buffer
+		_, err := io.Copy(&bs, original)
+		if err != nil {
+			return nil, err
+		}
 		debugInfo := lrt.formatJSON(bs.Bytes())
 		lib.Log.Debugf("Request Options: %s\n", debugInfo)
-	} else {
-		lib.Log.Debugf("Request Options: %s\n", bs.String())
+		return ioutil.NopCloser(strings.NewReader(bs.String())), nil
 	}
 
-	return ioutil.NopCloser(strings.NewReader(bs.String())), nil
+	return original, nil
 }
 
 func (lrt *LogRoundTripper) formatJSON(raw []byte) string {
@@ -130,7 +127,7 @@ func (lrt *LogRoundTripper) formatJSON(raw []byte) string {
 		data = m
 	default:
 		var slice []map[string]interface{}
-		err := json.Unmarshal(raw, &slice)
+		err = json.Unmarshal(raw, &slice)
 		if err != nil {
 			lib.Log.Debugf("Unable to parse JSON: %s\n\n", err)
 			return string(raw)

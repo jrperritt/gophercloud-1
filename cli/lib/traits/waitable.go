@@ -1,27 +1,13 @@
 package traits
 
-import (
-	"sync"
-
-	"gopkg.in/urfave/cli.v1"
-)
+import "gopkg.in/urfave/cli.v1"
 
 type Waitable struct {
-	wait   bool
-	donech chan interface{}
-	wg     *sync.WaitGroup
+	wait bool
 }
 
-func (c *Waitable) WaitDoneCh() chan interface{} {
-	return c.donech
-}
-
-func (c *Waitable) WG() *sync.WaitGroup {
-	return c.wg
-}
-
-func (c *Waitable) WaitFor(raw interface{}) {
-	c.donech <- raw
+func (c *Waitable) WaitFor(raw interface{}, out chan<- interface{}) {
+	out <- raw
 }
 
 func (c *Waitable) WaitFlags() []cli.Flag {

@@ -5,6 +5,7 @@ import (
 	"io"
 	"os"
 	"strings"
+	"sync"
 
 	"github.com/gophercloud/gophercloud/cli/lib/interfaces"
 	"github.com/gophercloud/gophercloud/cli/lib/traits"
@@ -25,6 +26,7 @@ type pipeData struct {
 	container string
 	object    string
 	content   io.Reader
+	size      int64
 }
 
 var (
@@ -101,6 +103,8 @@ func (c *commandUpload) HandleFlags() error {
 		c.pipedField = c.Context().String("stdin")
 	}
 
+	c.BytesProgressable.InitByteSizesMap()
+
 	return nil
 }
 
@@ -174,14 +178,23 @@ func (c *commandUpload) HandleSingle() (interface{}, error) {
 	pd.object = c.Context().String("name")
 	pd.container = c.Context().String("container")
 
-	switch c.Context().IsSet("file") {
-	case true:
-		pd.content, err = os.Open(c.Context().String("file"))
-	case false:
-		switch c.Context().IsSet("content") {
-		case true:
-			pd.content = strings.NewReader(c.Context().String("content"))
-		case false:
+	if ok := c.Context().IsSet("file"); ok {
+		f, err := os.Open(c.Context().String("file"))
+		if err != nil {
+			return nil, err
+		}
+		fi, err := f.Stat()
+		if err != nil {
+			return nil, err
+		}
+		pd.size = fi.Size()
+		pd.content = f
+	} else {
+		if ok := c.Context().IsSet("content"); ok {
+			r := strings.NewReader(c.Context().String("content"))
+			pd.size = int64(r.Len())
+			pd.content = r
+		} else {
 			err = fmt.Errorf("One of `--file` and `--content` must be provided if not piping to STDIN")
 		}
 	}
@@ -192,7 +205,11 @@ func (c *commandUpload) HandleSingle() (interface{}, error) {
 type bytescontent struct {
 	reader      io.Reader
 	bytessentch chan (interface{})
+	total       int64
+	totalread   int64
 }
+
+var i int
 
 func (b *bytescontent) Read(p []byte) (n int, err error) {
 	n, err = b.reader.Read(p)
@@ -206,29 +223,50 @@ func (b *bytescontent) Read(p []byte) (n int, err error) {
 func (c *commandUpload) Execute(item interface{}, out chan interface{}) {
 	pd := item.(*pipeData)
 
-	reader, ok := pd.content.(io.Reader)
-	if !ok {
-		out <- fmt.Errorf("Expected an io.Reader but instead got %T", item)
-	}
+	bc := new(bytescontent)
+	bc.total = pd.size
+	bc.bytessentch = c.ProgUpdateChIn()
 
-	defer func() {
-		if closeable, ok := reader.(io.ReadCloser); ok {
-			closeable.Close()
+	wg := new(sync.WaitGroup)
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		reader, ok := pd.content.(io.Reader)
+		if !ok {
+			out <- fmt.Errorf("Expected an io.Reader but instead got %T", item)
+			return
+		}
+
+		defer func() {
+			if closeable, ok := reader.(io.ReadCloser); ok {
+				closeable.Close()
+			}
+		}()
+
+		if c.ShouldProgress() {
+			bc.reader = reader
+			c.opts.(*objects.CreateOpts).Content = bc
+		} else {
+			c.opts.(*objects.CreateOpts).Content = reader
+		}
+
+		var m map[string]interface{}
+		err := objects.Create(c.ServiceClient, pd.container, pd.object, c.opts).ExtractInto(&m)
+		if c.ShouldProgress() {
+			switch err {
+			case nil:
+				c.ProgDoneChIn() <- fmt.Sprintf("Successfully uploaded object [%s] to container [%s]", pd.object, pd.container)
+			default:
+				c.ProgDoneChIn() <- err
+			}
 		}
 	}()
 
-	bc := new(bytescontent)
-	bc.bytessentch = c.ProgUpdateChIn()
-	bc.reader = reader
-	c.opts.(*objects.CreateOpts).Content = bc
-
-	var m map[string]interface{}
-	err := objects.Create(c.ServiceClient, pd.container, pd.object, c.opts).ExtractInto(&m)
-	switch err {
-	case nil:
-		out <- fmt.Sprintf("Successfully uploaded object [%s] to container [%s]", pd.object, pd.container)
-	default:
-		out <- err
+	if c.ShouldProgress() {
+		c.Sizes.Set(pd.object, int(pd.size))
+		out <- pd.object
+	} else {
+		wg.Wait()
 	}
 }
 

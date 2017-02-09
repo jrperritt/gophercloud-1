@@ -18,8 +18,8 @@ var outreg = os.Stdout
 var outerr = os.Stderr
 
 // outres prints the results of the command
-func outres(cmd interfaces.Commander) error {
-	for result := range cmd.AllDoneCh() {
+func outres(cmd interfaces.Commander, alldonech chan interface{}) error {
+	for result := range alldonech {
 		switch r := result.(type) {
 		case error:
 			outputError(r)

@@ -1,16 +1,16 @@
 package interfaces
 
 import (
-	"sync"
+	"strings"
+
+	"github.com/gophercloud/gophercloud/cli/lib"
 
 	"gopkg.in/urfave/cli.v1"
 )
 
 // Waiter should be implemented by commands that launch background operations
 type Waiter interface {
-	WaitDoneCh() chan interface{}
-	WG() *sync.WaitGroup
-	WaitFor(item interface{})
+	WaitFor(item interface{}, out chan<- interface{})
 	SetWait(bool)
 	ShouldWait() bool
 	WaitFlags() []cli.Flag
@@ -29,12 +29,23 @@ type Progresser interface {
 	ProgDoneChIn() chan interface{}
 	ProgDoneChOut() chan interface{}
 	ProgUpdateChIn() chan interface{}
-	WG() *sync.WaitGroup
+	ProgListenCh() chan ProgressStatuser
 	BarID(item interface{}) string
 	ShowBar(id string)
 	SetProgress(bool)
 	ShouldProgress() bool
 	ProgressFlags() []cli.Flag
+}
+
+type ProgressBarrer interface {
+	Complete()
+	Update(interface{})
+	Error(error) string
+	Reset()
+	ID() string
+}
+
+type ProgressStatuser interface {
 }
 
 // Tabler is the interface a command implements if it offers tabular output.
@@ -47,4 +58,31 @@ type Tabler interface {
 	ShouldTable() bool
 	SetHeader(bool)
 	ShouldHeader() bool
+}
+
+func HandleInterfaceFlags(cmd Commander) error {
+	if w, ok := cmd.(Waiter); ok {
+		lib.Log.Debugln("cmd implements Waiter")
+		w.SetWait(cmd.Context().IsSet("wait"))
+		lib.Log.Debugf("w.ShouldWait(): %+v\n", w.ShouldWait())
+	}
+
+	if p, ok := cmd.(Progresser); ok {
+		lib.Log.Debugln("cmd implements Progresser")
+		p.SetProgress(cmd.Context().IsSet("quiet"))
+		lib.Log.Debugln("p.ShouldProgress() : ", p.ShouldProgress())
+	}
+
+	if t, ok := cmd.(Tabler); ok {
+		lib.Log.Debugln("cmd implements Tabler")
+		t.SetTable(cmd.Context().IsSet("table"))
+		t.SetHeader(cmd.Context().IsSet("no-header"))
+	}
+
+	if f, ok := cmd.(Fieldser); ok {
+		lib.Log.Debugln("cmd implements Fieldser")
+		f.SetFields(strings.Split(cmd.Context().String("fields"), ","))
+	}
+
+	return nil
 }

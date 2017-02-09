@@ -2,7 +2,6 @@ package interfaces
 
 import (
 	"io"
-	"sync"
 
 	"github.com/gophercloud/gophercloud"
 	"gopkg.in/urfave/cli.v1"
@@ -11,7 +10,6 @@ import (
 type ServiceClientFunc func(*gophercloud.ProviderClient, gophercloud.EndpointOpts) (*gophercloud.ServiceClient, error)
 
 type Commander interface {
-	HandleInterfaceFlags() error
 	HandleFlags() error
 	Execute(item interface{}, out chan interface{})
 	Flags() []cli.Flag
@@ -21,10 +19,6 @@ type Commander interface {
 	ServiceClientFunc() ServiceClientFunc
 	ServiceType() string
 	ServiceVersion() string
-	ExecDoneCh() chan interface{}
-	AllDoneCh() chan interface{}
-	UpdateCh() chan interface{}
-	WG() *sync.WaitGroup
 }
 
 type PipeCommander interface {

@@ -16,7 +16,7 @@ import (
 type CommandRebuild struct {
 	ServerV2Command
 	traits.Waitable
-	traits.Progressable
+	traits.TextProgressable
 	traits.DataResp
 	opts servers.RebuildOptsBuilder
 }
@@ -196,7 +196,7 @@ func (c *CommandRebuild) PipeFieldOptions() []string {
 	return []string{"id"}
 }
 
-func (c *CommandRebuild) WaitFor(raw interface{}) {
+func (c *CommandRebuild) WaitFor(raw interface{}, out chan<- interface{}) {
 	orig := raw.(map[string]interface{})
 	id := orig["id"].(string)
 
@@ -210,7 +210,7 @@ func (c *CommandRebuild) WaitFor(raw interface{}) {
 		switch m["server"]["status"].(string) {
 		case "ACTIVE":
 			m["server"]["adminPass"] = orig["adminPass"].(string)
-			c.ProgDoneChIn() <- m["server"]
+			out <- m["server"]
 			return true, nil
 		default:
 			if c.ShouldProgress() {
@@ -221,40 +221,17 @@ func (c *CommandRebuild) WaitFor(raw interface{}) {
 	})
 
 	if err != nil {
-		c.ProgDoneChIn() <- err
+		out <- err
 	}
 }
 
 func (c *CommandRebuild) InitProgress(donech chan interface{}) {
-	c.ProgressInfo = openstack.NewProgressInfo(2)
 	c.ProgressInfo.RunningMsg = "Rebuilding"
 	c.ProgressInfo.DoneMsg = "Rebuilt"
-	c.Progressable.InitProgress(donech)
+	c.TextProgressable.InitProgress(donech)
 }
 
 func (c *CommandRebuild) BarID(raw interface{}) string {
 	orig := raw.(map[string]interface{})
 	return orig["id"].(string)
-}
-
-func (c *CommandRebuild) ShowBar(id string) {
-	s := new(openstack.ProgressStatusStart)
-	s.Name = id
-	c.StartChan <- s
-
-	for {
-		select {
-		case r := <-c.ProgDoneChIn():
-			s := new(openstack.ProgressStatusComplete)
-			s.Name = id
-			c.ProgressInfo.CompleteChan <- s
-			c.ProgDoneChOut() <- r
-			return
-		case r := <-c.ProgUpdateChIn():
-			s := new(openstack.ProgressStatusUpdate)
-			s.Name = id
-			s.Increment = int(r.(float64))
-			c.ProgressInfo.UpdateChan <- s
-		}
-	}
 }

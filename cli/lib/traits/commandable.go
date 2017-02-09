@@ -3,21 +3,15 @@ package traits
 import (
 	"fmt"
 	"strings"
-	"sync"
 
 	"github.com/gophercloud/gophercloud"
 	"github.com/gophercloud/gophercloud/cli/lib"
-	"github.com/gophercloud/gophercloud/cli/lib/interfaces"
 	"gopkg.in/urfave/cli.v1"
 )
 
 type Commandable struct {
 	ctx           *cli.Context
 	ServiceClient *gophercloud.ServiceClient
-	execdonech    chan interface{}
-	alldonech     chan interface{}
-	updatech      chan interface{}
-	wg            *sync.WaitGroup
 }
 
 func (c *Commandable) SetContext(ctx *cli.Context) error {
@@ -31,40 +25,6 @@ func (c *Commandable) Context() *cli.Context {
 
 func (c *Commandable) SetServiceClient(sc *gophercloud.ServiceClient) error {
 	c.ServiceClient = sc
-	return nil
-}
-
-func (c *Commandable) ExecDoneCh() chan interface{} {
-	return c.execdonech
-}
-
-func (c *Commandable) AllDoneCh() chan interface{} {
-	return c.alldonech
-}
-
-func (c *Commandable) UpdateCh() chan interface{} {
-	return c.updatech
-}
-
-func (c *Commandable) WG() *sync.WaitGroup {
-	return c.wg
-}
-
-func (c *Commandable) HandleInterfaceFlags() error {
-	if w, ok := interface{}(c).(interfaces.Waiter); ok {
-		w.SetWait(c.ctx.IsSet("wait"))
-	}
-	if p, ok := interface{}(c).(interfaces.Progresser); ok {
-		p.SetProgress(c.ctx.IsSet("quiet"))
-	}
-	if t, ok := interface{}(c).(interfaces.Tabler); ok {
-		t.SetTable(c.ctx.IsSet("table"))
-		t.SetHeader(c.ctx.IsSet("no-header"))
-	}
-	if f, ok := interface{}(c).(interfaces.Fieldser); ok {
-		f.SetFields(strings.Split(c.ctx.String("fields"), ","))
-	}
-
 	return nil
 }
 

@@ -109,7 +109,7 @@ func (c *CommandReboot) PipeFieldOptions() []string {
 	return []string{"id"}
 }
 
-func (c *CommandReboot) WaitFor(raw interface{}) {
+func (c *CommandReboot) WaitFor(raw interface{}, out chan<- interface{}) {
 	id := raw.(string)
 
 	err := util.WaitFor(900, func() (bool, error) {
@@ -120,7 +120,7 @@ func (c *CommandReboot) WaitFor(raw interface{}) {
 		}
 		switch m["server"]["status"].(string) {
 		case "ACTIVE":
-			c.ProgDoneChIn() <- fmt.Sprintf("Rebooted server [%s]", id)
+			out <- fmt.Sprintf("Rebooted server [%s]", id)
 			return true, nil
 		default:
 			if c.ShouldProgress() {
@@ -131,13 +131,12 @@ func (c *CommandReboot) WaitFor(raw interface{}) {
 	})
 
 	if err != nil {
-		c.ProgDoneChIn() <- err
+		out <- err
 	}
 }
 
 func (c *CommandReboot) InitProgress(donech chan interface{}) {
-	c.ProgressInfo = openstack.NewProgressInfo(2)
 	c.RunningMsg = "Rebooting"
 	c.DoneMsg = "Rebooted"
-	c.Progressable.InitProgress(donech)
+	c.TextProgressable.InitProgress(donech)
 }

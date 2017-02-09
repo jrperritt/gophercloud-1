@@ -110,7 +110,7 @@ func (c *CommandResize) PipeFieldOptions() []string {
 	return []string{"id"}
 }
 
-func (c *CommandResize) WaitFor(raw interface{}) {
+func (c *CommandResize) WaitFor(raw interface{}, out chan<- interface{}) {
 	id := raw.(string)
 
 	err := util.WaitFor(900, func() (bool, error) {
@@ -121,7 +121,7 @@ func (c *CommandResize) WaitFor(raw interface{}) {
 		}
 		switch m["server"]["status"].(string) {
 		case "ACTIVE":
-			c.ProgDoneChIn() <- fmt.Sprintf("Resized server [%s]", id)
+			out <- fmt.Sprintf("Resized server [%s]", id)
 			return true, nil
 		default:
 			if c.ShouldProgress() {
@@ -132,13 +132,12 @@ func (c *CommandResize) WaitFor(raw interface{}) {
 	})
 
 	if err != nil {
-		c.ProgDoneChIn() <- err
+		out <- err
 	}
 }
 
 func (c *CommandResize) InitProgress(donech chan interface{}) {
-	c.ProgressInfo = openstack.NewProgressInfo(2)
 	c.RunningMsg = "Resizing"
 	c.DoneMsg = "Resized"
-	c.Progressable.InitProgress(donech)
+	c.TextProgressable.InitProgress(donech)
 }

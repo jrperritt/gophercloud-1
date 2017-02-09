@@ -31,6 +31,7 @@ type CommandCreate struct {
 var (
 	cCreate                          = new(CommandCreate)
 	_       interfaces.PipeCommander = cCreate
+	_       interfaces.Waiter        = cCreate
 	_       interfaces.Progresser    = cCreate
 
 	flagsCreate = openstack.CommandFlags(cCreate)
@@ -323,7 +324,7 @@ func (c *CommandCreate) PipeFieldOptions() []string {
 	return []string{"name"}
 }
 
-func (c *CommandCreate) WaitFor(raw interface{}) {
+func (c *CommandCreate) WaitFor(raw interface{}, donech chan<- interface{}) {
 	orig := raw.(map[string]interface{})
 	id := orig["id"].(string)
 
@@ -340,7 +341,7 @@ func (c *CommandCreate) WaitFor(raw interface{}) {
 			lib.Log.Debugf("server %s is active", id)
 			m["server"]["adminPass"] = orig["adminPass"].(string)
 			lib.Log.Debugf("putting item %s in c.Donechin", id)
-			c.ProgDoneChIn() <- m["server"]
+			donech <- m["server"]
 			lib.Log.Debugf("returning from WaitFor for item: %s", id)
 			return true, nil
 		default:
@@ -353,7 +354,7 @@ func (c *CommandCreate) WaitFor(raw interface{}) {
 	})
 
 	if err != nil {
-		c.ProgDoneChIn() <- err
+		donech <- err
 	}
 }
 
