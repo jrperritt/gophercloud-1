@@ -94,7 +94,7 @@ func (c *CommandCreate) Execute(item interface{}, out chan interface{}) {
 	var m map[string]interface{}
 	opts := *c.opts.(*ports.CreateOpts)
 	opts.Name = item.(string)
-	err := ports.Create(c.ServiceClient, opts).ExtractInto(&m)
+	err := ports.Create(c.ServiceClient(), opts).ExtractInto(&m)
 	switch err {
 	case nil:
 		out <- m["port"]

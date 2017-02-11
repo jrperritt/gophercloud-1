@@ -100,7 +100,7 @@ func (c *CommandRebuild) HandleFlags() error {
 		Name:          c.Context().String("rename"),
 		AccessIPv4:    c.Context().String("ipv4"),
 		AccessIPv6:    c.Context().String("ipv6"),
-		ServiceClient: c.ServiceClient,
+		ServiceClient: c.ServiceClient(),
 	}
 
 	if c.Context().IsSet("metadata") {
@@ -179,7 +179,7 @@ func (c *CommandRebuild) HandleSingle() (interface{}, error) {
 func (c *CommandRebuild) Execute(item interface{}, out chan interface{}) {
 	id := item.(string)
 	m := make(map[string]map[string]interface{})
-	err := servers.Rebuild(c.ServiceClient, id, c.opts).ExtractInto(&m)
+	err := servers.Rebuild(c.ServiceClient(), id, c.opts).ExtractInto(&m)
 	if err != nil {
 		out <- err
 		return
@@ -202,7 +202,7 @@ func (c *CommandRebuild) WaitFor(raw interface{}, out chan<- interface{}) {
 
 	err := util.WaitFor(900, func() (bool, error) {
 		var m map[string]map[string]interface{}
-		err := servers.Get(c.ServiceClient, id).ExtractInto(&m)
+		err := servers.Get(c.ServiceClient(), id).ExtractInto(&m)
 		if err != nil {
 			return false, err
 		}
@@ -226,8 +226,8 @@ func (c *CommandRebuild) WaitFor(raw interface{}, out chan<- interface{}) {
 }
 
 func (c *CommandRebuild) InitProgress(donech chan interface{}) {
-	c.ProgressInfo.RunningMsg = "Rebuilding"
-	c.ProgressInfo.DoneMsg = "Rebuilt"
+	c.RunningMsg = "Rebuilding"
+	c.DoneMsg = "Rebuilt"
 	c.TextProgressable.InitProgress(donech)
 }
 

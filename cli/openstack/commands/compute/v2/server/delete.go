@@ -66,7 +66,7 @@ func (c *CommandDelete) HandleSingle() (interface{}, error) {
 
 func (c *CommandDelete) Execute(item interface{}, out chan interface{}) {
 	id := item.(string)
-	err := servers.Delete(c.ServiceClient, id).ExtractErr()
+	err := servers.Delete(c.ServiceClient(), id).ExtractErr()
 	if err != nil {
 		out <- err
 		return
@@ -87,7 +87,7 @@ func (c *CommandDelete) WaitFor(raw interface{}, out chan<- interface{}) {
 	id := raw.(string)
 
 	err := util.WaitFor(900, func() (bool, error) {
-		_, err := servers.Get(c.ServiceClient, id).Extract()
+		_, err := servers.Get(c.ServiceClient(), id).Extract()
 		if err != nil {
 			out <- fmt.Sprintf("Deleted server [%s]", id)
 			return true, nil

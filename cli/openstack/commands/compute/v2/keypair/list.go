@@ -43,7 +43,7 @@ func (c *CommandList) DefaultTableFields() []string {
 }
 
 func (c *CommandList) Execute(item interface{}, out chan interface{}) {
-	p, err := keypairs.List(c.ServiceClient).AllPages()
+	p, err := keypairs.List(c.ServiceClient()).AllPages()
 	if err != nil {
 		out <- err
 		return

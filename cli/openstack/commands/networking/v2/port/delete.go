@@ -62,7 +62,7 @@ func (c *CommandDelete) HandleSingle() (interface{}, error) {
 }
 
 func (c *CommandDelete) Execute(item interface{}, out chan interface{}) {
-	err := ports.Delete(c.ServiceClient, item.(string)).ExtractErr()
+	err := ports.Delete(c.ServiceClient(), item.(string)).ExtractErr()
 	switch err {
 	case nil:
 		out <- fmt.Sprintf("Successfully deleted port [%s]", item.(string))

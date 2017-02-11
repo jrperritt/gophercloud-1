@@ -64,7 +64,7 @@ func (c *CommandCreate) Flags() []cli.Flag {
 }
 
 func (c *CommandCreate) HandleFlags() error {
-	serverID, err := serverIDorName(c.Context(), c.ServiceClient)
+	serverID, err := serverIDorName(c.Context(), c.ServiceClient())
 	if err != nil {
 		return err
 	}
@@ -77,14 +77,14 @@ func (c *CommandCreate) HandleFlags() error {
 }
 
 func (c *CommandCreate) HandleSingle() (interface{}, error) {
-	return volumeIDorName(c.Context(), c.ServiceClient)
+	return volumeIDorName(c.Context(), c.ServiceClient())
 }
 
 func (c *CommandCreate) Execute(item interface{}, out chan interface{}) {
 	var m map[string]map[string]interface{}
 	opts := *c.opts.(*volumeattach.CreateOpts)
 	opts.VolumeID = item.(string)
-	err := volumeattach.Create(c.ServiceClient, c.serverID, opts).ExtractInto(&m)
+	err := volumeattach.Create(c.ServiceClient(), c.serverID, opts).ExtractInto(&m)
 	if err != nil {
 		out <- err
 		return

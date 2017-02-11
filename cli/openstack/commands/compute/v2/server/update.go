@@ -67,7 +67,7 @@ func (c *commandUpdate) HandleFlags() (err error) {
 
 func (c *commandUpdate) Execute(id interface{}, out chan interface{}) {
 	var m map[string]interface{}
-	err := servers.Update(c.ServiceClient, id.(string), c.opts).ExtractInto(&m)
+	err := servers.Update(c.ServiceClient(), id.(string), c.opts).ExtractInto(&m)
 	switch err {
 	case nil:
 		out <- m["server"]

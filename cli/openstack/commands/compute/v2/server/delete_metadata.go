@@ -71,7 +71,7 @@ func (c *CommandDeleteMetadata) HandleSingle() (interface{}, error) {
 func (c *CommandDeleteMetadata) Execute(item interface{}, out chan interface{}) {
 	id := item.(string)
 	for _, key := range c.opts {
-		err := servers.DeleteMetadatum(c.ServiceClient, id, key).ExtractErr()
+		err := servers.DeleteMetadatum(c.ServiceClient(), id, key).ExtractErr()
 		switch err {
 		case nil:
 			out <- fmt.Sprintf("Deleted metadata [%s] from server [%s]", key, id)

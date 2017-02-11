@@ -113,7 +113,7 @@ func (c *CommandList) HandleFlags() error {
 }
 
 func (c *CommandList) Execute(_ interface{}, out chan interface{}) {
-	err := networks.List(c.ServiceClient, c.opts).EachPage(func(page pagination.Page) (bool, error) {
+	err := networks.List(c.ServiceClient(), c.opts).EachPage(func(page pagination.Page) (bool, error) {
 		var tmp map[string][]map[string]interface{}
 		err := (page.(networks.NetworkPage)).ExtractInto(&tmp)
 		if err != nil {

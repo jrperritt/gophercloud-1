@@ -87,7 +87,7 @@ func (c *commandList) HandleSingle() (interface{}, error) {
 }
 
 func (c *commandList) Execute(item interface{}, out chan interface{}) {
-	err := objects.List(c.ServiceClient, item.(string), c.opts).EachPage(func(page pagination.Page) (bool, error) {
+	err := objects.List(c.ServiceClient(), item.(string), c.opts).EachPage(func(page pagination.Page) (bool, error) {
 		var tmp []map[string]interface{}
 		err := (page.(objects.ObjectPage)).ExtractInto(&tmp)
 		switch err {

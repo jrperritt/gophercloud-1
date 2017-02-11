@@ -71,7 +71,7 @@ func (c *CommandResize) HandleFlags() error {
 	}
 
 	if c.Context().IsSet("flavor-name") {
-		id, err := flavors.IDFromName(c.ServiceClient, c.Context().String("flavor-name"))
+		id, err := flavors.IDFromName(c.ServiceClient(), c.Context().String("flavor-name"))
 		if err != nil {
 			return err
 		}
@@ -93,7 +93,7 @@ func (c *CommandResize) HandleSingle() (interface{}, error) {
 
 func (c *CommandResize) Execute(item interface{}, out chan interface{}) {
 	id := item.(string)
-	err := servers.Resize(c.ServiceClient, id, c.opts).ExtractErr()
+	err := servers.Resize(c.ServiceClient(), id, c.opts).ExtractErr()
 	if err != nil {
 		out <- err
 		return
@@ -115,7 +115,7 @@ func (c *CommandResize) WaitFor(raw interface{}, out chan<- interface{}) {
 
 	err := util.WaitFor(900, func() (bool, error) {
 		var m map[string]map[string]interface{}
-		err := servers.Get(c.ServiceClient, id).ExtractInto(&m)
+		err := servers.Get(c.ServiceClient(), id).ExtractInto(&m)
 		if err != nil {
 			return false, err
 		}

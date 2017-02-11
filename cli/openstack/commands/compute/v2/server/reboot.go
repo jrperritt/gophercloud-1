@@ -92,7 +92,7 @@ func (c *CommandReboot) HandleSingle() (interface{}, error) {
 
 func (c *CommandReboot) Execute(item interface{}, out chan interface{}) {
 	id := item.(string)
-	err := servers.Reboot(c.ServiceClient, id, c.opts).ExtractErr()
+	err := servers.Reboot(c.ServiceClient(), id, c.opts).ExtractErr()
 	if err != nil {
 		out <- err
 		return
@@ -114,7 +114,7 @@ func (c *CommandReboot) WaitFor(raw interface{}, out chan<- interface{}) {
 
 	err := util.WaitFor(900, func() (bool, error) {
 		var m map[string]map[string]interface{}
-		err := servers.Get(c.ServiceClient, id).ExtractInto(&m)
+		err := servers.Get(c.ServiceClient(), id).ExtractInto(&m)
 		if err != nil {
 			return false, err
 		}

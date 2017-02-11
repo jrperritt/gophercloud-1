@@ -7,6 +7,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/gophercloud/gophercloud/cli/lib"
 	"github.com/gophercloud/gophercloud/cli/lib/interfaces"
 	"github.com/gophercloud/gophercloud/cli/lib/traits"
 	"github.com/gophercloud/gophercloud/cli/openstack"
@@ -30,7 +31,7 @@ var (
 )
 
 var download = cli.Command{
-	Name:         "Download",
+	Name:         "download",
 	Usage:        util.Usage(commandPrefix, "download", "--container <containerName> --name <objectName>"),
 	Description:  "Downloads an object",
 	Action:       func(ctx *cli.Context) error { return openstack.Action(ctx, cDownload) },
@@ -50,7 +51,7 @@ func (c *commandDownload) Flags() []cli.Flag {
 		},
 		cli.StringFlag{
 			Name: "file",
-			Usage: "[optional; required if `wait` is provided] The name for the file to which \n" +
+			Usage: "[optional; required if `quiet` is not provided] The name for the file to which \n" +
 				"\t the object should be saved",
 		},
 	}
@@ -62,9 +63,9 @@ func (c *commandDownload) HandleFlags() error {
 		return err
 	}
 	c.container = c.Context().String("container")
-	c.name = c.Context().String("object")
+	c.name = c.Context().String("name")
 
-	if c.Context().IsSet("wait") {
+	if c.ShouldProgress() {
 		err := c.CheckFlagsSet([]string{"file"})
 		if err != nil {
 			return err
@@ -76,12 +77,32 @@ func (c *commandDownload) HandleFlags() error {
 }
 
 func (c *commandDownload) Execute(_ interface{}, out chan interface{}) {
-	res := objects.Download(c.ServiceClient, c.container, c.name, nil)
-	switch res.Err {
-	case nil:
-		out <- res.Body
-	default:
-		out <- res.Err
+	w, err := c.CustomWriter()
+	if err != nil {
+		out <- err
+		return
+	}
+	res := objects.Download(c.ServiceClient(), c.container, c.name, nil)
+	if res.Err != nil {
+		lib.Log.Debugf("err from objects.Download: %s\n", res.Err)
+	}
+	dh, err := res.Extract()
+	if err != nil {
+		lib.Log.Debugf("err from res.Extract: %s\n", err)
+		out <- err
+		return
+	}
+	if c.ShouldProgress() {
+		id := fmt.Sprintf("%s/%s", c.name, c.container)
+		c.Sizes.Set(id, int(dh.ContentLength))
+		out <- id
+
+		go func() {
+			_, err = io.Copy(w, res.Body)
+			if err != nil {
+				lib.Log.Debugf("Error copying (io.Reader) result: %s\n", err)
+			}
+		}()
 	}
 }
 
@@ -96,25 +117,30 @@ func (b *filecontent) Write(p []byte) (n int, err error) {
 		return
 	}
 	b.bytessentch <- n
+	lib.Log.Debugf("wrote %d bytes to bytessentch", n)
 	return
 }
 
 func (c *commandDownload) CustomWriter() (io.Writer, error) {
 	f, err := os.OpenFile(c.file, os.O_RDWR|os.O_CREATE|os.O_EXCL, 0666)
 	if err != nil {
-		reader := bufio.NewReader(os.Stdin)
-		for {
-			fmt.Printf("\nA file named %s already exists. Overwrite? (y/n): ", c.file)
-			choice, _ := reader.ReadString('\n')
-			choice = strings.TrimSpace(choice)
-			switch strings.ToLower(choice) {
-			case "y", "yes":
-				goto done
-			case "n", "no":
-				return nil, err
-			default:
-				continue
+		if os.IsExist(err) {
+			reader := bufio.NewReader(os.Stdin)
+			for {
+				fmt.Printf("\nA file named %s already exists. Overwrite? (y/n): ", c.file)
+				choice, _ := reader.ReadString('\n')
+				choice = strings.TrimSpace(choice)
+				switch strings.ToLower(choice) {
+				case "y", "yes":
+					goto done
+				case "n", "no":
+					return nil, err
+				default:
+					continue
+				}
 			}
+		} else {
+			return nil, err
 		}
 	}
 

@@ -66,7 +66,7 @@ func (c *commandDelete) HandleSingle() (interface{}, error) {
 
 func (c *commandDelete) Execute(item interface{}, out chan interface{}) {
 	var m map[string]interface{}
-	err := objects.Delete(c.ServiceClient, c.container, item.(string), nil).ExtractInto(&m)
+	err := objects.Delete(c.ServiceClient(), c.container, item.(string), nil).ExtractInto(&m)
 	switch err {
 	case nil:
 		out <- fmt.Sprintf("Successfully deleted object [%s] from container [%s]", item.(string), c.container)

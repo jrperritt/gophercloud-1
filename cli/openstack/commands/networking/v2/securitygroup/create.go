@@ -69,7 +69,7 @@ func (c *CommandCreate) HandleSingle() (interface{}, error) {
 
 func (c *CommandCreate) Execute(_ interface{}, out chan interface{}) {
 	var m map[string]interface{}
-	err := groups.Create(c.ServiceClient, c.opts).ExtractInto(&m)
+	err := groups.Create(c.ServiceClient(), c.opts).ExtractInto(&m)
 	switch err {
 	case nil:
 		out <- m["security_group"]

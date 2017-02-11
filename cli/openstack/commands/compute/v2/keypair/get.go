@@ -52,7 +52,7 @@ func (c *CommandGet) HandleSingle() (interface{}, error) {
 
 func (c *CommandGet) Execute(item interface{}, out chan interface{}) {
 	var m map[string]map[string]interface{}
-	err := keypairs.Get(c.ServiceClient, item.(string)).ExtractInto(&m)
+	err := keypairs.Get(c.ServiceClient(), item.(string)).ExtractInto(&m)
 	switch err {
 	case nil:
 		out <- m["keypair"]

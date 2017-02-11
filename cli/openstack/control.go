@@ -153,7 +153,7 @@ func prog(p interfaces.Progresser, in, out chan interface{}) {
 				out <- e
 			default:
 				id := p.BarID(item)
-				lib.Log.Debugln("running p.ShowBar...")
+				lib.Log.Debugln("running p.ShowBar for ", id)
 				p.ShowBar(id)
 			}
 			lib.Log.Debugf("done waiting on item: %v", item)

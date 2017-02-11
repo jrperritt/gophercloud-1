@@ -113,7 +113,7 @@ func (c *CommandList) HandleFlags() error {
 }
 
 func (c *CommandList) Execute(_ interface{}, out chan interface{}) {
-	err := loadbalancers.List(c.ServiceClient, c.opts).EachPage(func(page pagination.Page) (bool, error) {
+	err := loadbalancers.List(c.ServiceClient(), c.opts).EachPage(func(page pagination.Page) (bool, error) {
 		var tmp map[string][]map[string]interface{}
 		err := (page.(loadbalancers.LoadBalancerPage)).ExtractInto(&tmp)
 		if err != nil {

@@ -105,7 +105,7 @@ func (c *CommandList) HandleFlags() error {
 }
 
 func (c *CommandList) Execute(_ interface{}, out chan interface{}) {
-	err := rules.List(c.ServiceClient, c.opts).EachPage(func(page pagination.Page) (bool, error) {
+	err := rules.List(c.ServiceClient(), c.opts).EachPage(func(page pagination.Page) (bool, error) {
 		var tmp map[string][]map[string]interface{}
 		err := (page.(rules.SecGroupRulePage)).ExtractInto(&tmp)
 		if err != nil {

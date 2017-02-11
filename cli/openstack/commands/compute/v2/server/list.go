@@ -91,7 +91,7 @@ func (c *CommandList) HandleFlags() error {
 }
 
 func (c *CommandList) Execute(_ interface{}, out chan interface{}) {
-	err := servers.List(c.ServiceClient, c.opts).EachPage(func(page pagination.Page) (bool, error) {
+	err := servers.List(c.ServiceClient(), c.opts).EachPage(func(page pagination.Page) (bool, error) {
 		var tmp map[string][]map[string]interface{}
 		err := (page.(servers.ServerPage)).ExtractInto(&tmp)
 		if err != nil {

@@ -66,7 +66,7 @@ func (c *CommandUpload) HandleFlags() error {
 
 func (c *CommandUpload) Execute(item interface{}, out chan interface{}) {
 	var m map[string]map[string]interface{}
-	err := keypairs.Create(c.ServiceClient, c.opts).ExtractInto(&m)
+	err := keypairs.Create(c.ServiceClient(), c.opts).ExtractInto(&m)
 	switch err {
 	case nil:
 		out <- m["keypair"]

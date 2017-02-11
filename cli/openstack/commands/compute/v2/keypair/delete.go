@@ -53,7 +53,7 @@ func (c *CommandDelete) HandleSingle() (interface{}, error) {
 }
 
 func (c *CommandDelete) Execute(item interface{}, out chan interface{}) {
-	err := keypairs.Delete(c.ServiceClient, item.(string)).ExtractErr()
+	err := keypairs.Delete(c.ServiceClient(), item.(string)).ExtractErr()
 	switch err {
 	case nil:
 		out <- fmt.Sprintf("Successfully deleted keypair [%s]", item.(string))

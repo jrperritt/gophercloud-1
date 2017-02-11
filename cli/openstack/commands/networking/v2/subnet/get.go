@@ -65,7 +65,7 @@ func (c *CommandGet) HandleSingle() (interface{}, error) {
 
 func (c *CommandGet) Execute(item interface{}, out chan interface{}) {
 	var m map[string]interface{}
-	err := networks.Get(c.ServiceClient, item.(string)).ExtractInto(&m)
+	err := networks.Get(c.ServiceClient(), item.(string)).ExtractInto(&m)
 	switch err {
 	case nil:
 		out <- m["network"]

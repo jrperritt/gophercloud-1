@@ -55,7 +55,7 @@ func (c *CommandDelete) HandleFlags() error {
 	}
 	c.attachmentID = c.Context().String("id")
 
-	c.serverID, err = serverIDorName(c.Context(), c.ServiceClient)
+	c.serverID, err = serverIDorName(c.Context(), c.ServiceClient())
 	if err != nil {
 		return err
 	}
@@ -64,7 +64,7 @@ func (c *CommandDelete) HandleFlags() error {
 }
 
 func (c *CommandDelete) Execute(item interface{}, out chan interface{}) {
-	err := volumeattach.Delete(c.ServiceClient, c.serverID, c.attachmentID).ExtractErr()
+	err := volumeattach.Delete(c.ServiceClient(), c.serverID, c.attachmentID).ExtractErr()
 	if err != nil {
 		out <- err
 		return

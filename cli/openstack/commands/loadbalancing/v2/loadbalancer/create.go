@@ -1,10 +1,10 @@
 package loadbalancer
 
 import (
+	"github.com/gophercloud/gophercloud"
 	"github.com/gophercloud/gophercloud/cli/lib/traits"
 	"github.com/gophercloud/gophercloud/cli/openstack"
 	"github.com/gophercloud/gophercloud/cli/util"
-	"github.com/gophercloud/gophercloud"
 	"github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/lbaas_v2/loadbalancers"
 	"gopkg.in/urfave/cli.v1"
 )
@@ -82,7 +82,7 @@ func (c *CommandCreate) HandleFlags() error {
 
 func (c *CommandCreate) Execute(_ interface{}, out chan interface{}) {
 	var m map[string]interface{}
-	err := loadbalancers.Create(c.ServiceClient, c.opts).ExtractInto(&m)
+	err := loadbalancers.Create(c.ServiceClient(), c.opts).ExtractInto(&m)
 	switch err {
 	case nil:
 		out <- m["loadbalancer"]

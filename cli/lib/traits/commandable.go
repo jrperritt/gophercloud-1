@@ -10,8 +10,8 @@ import (
 )
 
 type Commandable struct {
-	ctx           *cli.Context
-	ServiceClient *gophercloud.ServiceClient
+	ctx *cli.Context
+	sc  *gophercloud.ServiceClient
 }
 
 func (c *Commandable) SetContext(ctx *cli.Context) error {
@@ -24,8 +24,12 @@ func (c *Commandable) Context() *cli.Context {
 }
 
 func (c *Commandable) SetServiceClient(sc *gophercloud.ServiceClient) error {
-	c.ServiceClient = sc
+	c.sc = sc
 	return nil
+}
+
+func (c *Commandable) ServiceClient() *gophercloud.ServiceClient {
+	return c.sc
 }
 
 func (c *Commandable) HandleFlags() error {
@@ -47,7 +51,7 @@ func (c *Commandable) IDOrName(idFromNameFunc func(*gophercloud.ServiceClient, s
 		switch c.ctx.IsSet("name") {
 		case true:
 			name := c.ctx.String("name")
-			id, err := idFromNameFunc(c.ServiceClient, name)
+			id, err := idFromNameFunc(c.sc, name)
 			return id, err
 		}
 	}

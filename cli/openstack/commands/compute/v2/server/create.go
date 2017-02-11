@@ -148,7 +148,7 @@ func (c *CommandCreate) HandleFlags() error {
 		FlavorRef:     c.Context().String("flavor-id"),
 		FlavorName:    c.Context().String("flavor-name"),
 		AdminPass:     c.Context().String("admin-pass"),
-		ServiceClient: c.ServiceClient,
+		ServiceClient: c.ServiceClient(),
 	}
 
 	if c.Context().IsSet("security-groups") {
@@ -311,7 +311,7 @@ func (c *CommandCreate) Execute(item interface{}, out chan (interface{})) {
 	var m map[string]map[string]interface{}
 	opts := *c.opts.(*servers.CreateOpts)
 	opts.Name = item.(string)
-	err := servers.Create(c.ServiceClient, opts).ExtractInto(&m)
+	err := servers.Create(c.ServiceClient(), opts).ExtractInto(&m)
 	switch err {
 	case nil:
 		out <- m["server"]
@@ -331,7 +331,7 @@ func (c *CommandCreate) WaitFor(raw interface{}, donech chan<- interface{}) {
 	err := util.WaitFor(900, func() (bool, error) {
 		var m map[string]map[string]interface{}
 		lib.Log.Debugf("running servers.Get for item: %s", id)
-		err := servers.Get(c.ServiceClient, id).ExtractInto(&m)
+		err := servers.Get(c.ServiceClient(), id).ExtractInto(&m)
 		if err != nil {
 			return false, err
 		}

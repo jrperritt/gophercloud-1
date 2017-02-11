@@ -110,7 +110,7 @@ func (c *CommandCreate) HandleFlags() error {
 
 func (c *CommandCreate) Execute(_ interface{}, out chan interface{}) {
 	var m map[string]interface{}
-	err := rules.Create(c.ServiceClient, c.opts).ExtractInto(&m)
+	err := rules.Create(c.ServiceClient(), c.opts).ExtractInto(&m)
 	switch err {
 	case nil:
 		out <- m["security_group_rule"]

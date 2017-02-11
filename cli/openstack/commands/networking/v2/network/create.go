@@ -88,7 +88,7 @@ func (c *CommandCreate) Execute(item interface{}, out chan interface{}) {
 	var m map[string]interface{}
 	opts := *c.opts.(*networks.CreateOpts)
 	opts.Name = item.(string)
-	err := networks.Create(c.ServiceClient, c.opts).ExtractInto(&m)
+	err := networks.Create(c.ServiceClient(), c.opts).ExtractInto(&m)
 	switch err {
 	case nil:
 		out <- m["network"]

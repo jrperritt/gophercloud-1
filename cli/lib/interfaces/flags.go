@@ -9,6 +9,7 @@ import (
 )
 
 // Waiter should be implemented by commands that launch background operations
+// that will continue even if the command ends
 type Waiter interface {
 	WaitFor(item interface{}, out chan<- interface{})
 	SetWait(bool)
@@ -35,17 +36,31 @@ type Progresser interface {
 	SetProgress(bool)
 	ShouldProgress() bool
 	ProgressFlags() []cli.Flag
+	Update()
+
+	StartBar(ProgressStartStatuser)
+	CompleteBar(ProgressCompleteStatuser)
+	UpdateBar(ProgressUpdateStatuser)
+	ErrorBar(ProgressErrorStatuser)
+}
+
+type BytesProgresser interface {
+	Progresser
+	BarSizes() map[string]int64
 }
 
 type ProgressBarrer interface {
-	Complete()
-	Update(interface{})
-	Error(error) string
+	Start(ProgressStartStatuser) ProgressBarrer
+	Complete(ProgressCompleteStatuser)
+	Update(ProgressUpdateStatuser)
+	Error(ProgressErrorStatuser) string
 	Reset()
 	ID() string
 }
 
-type ProgressStatuser interface {
+type ProgressBytesBarrer interface {
+	ProgressBarrer
+	TotalSize()
 }
 
 // Tabler is the interface a command implements if it offers tabular output.

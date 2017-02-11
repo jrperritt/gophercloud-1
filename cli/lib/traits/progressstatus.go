@@ -1,17 +1,29 @@
 package traits
 
 type ProgressStatus struct {
-	Name string
+	id string
+}
+
+func (p *ProgressStatus) BarID() string {
+	return p.id
 }
 
 type ProgressStatusStart struct {
 	ProgressStatus
-	TotalSize int
+	size int
+}
+
+func (s *ProgressStatusStart) BarSize() int {
+	return s.size
 }
 
 type ProgressStatusError struct {
 	ProgressStatus
-	Err error
+	e error
+}
+
+func (s *ProgressStatusError) Err() error {
+	return s.e
 }
 
 type ProgressStatusUpdate struct {

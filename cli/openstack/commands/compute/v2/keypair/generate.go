@@ -52,7 +52,7 @@ func (c *CommandGenerate) HandleSingle() (interface{}, error) {
 
 func (c *CommandGenerate) Execute(item interface{}, out chan interface{}) {
 	var m map[string]map[string]interface{}
-	err := keypairs.Create(c.ServiceClient, keypairs.CreateOpts{Name: item.(string)}).ExtractInto(&m)
+	err := keypairs.Create(c.ServiceClient(), keypairs.CreateOpts{Name: item.(string)}).ExtractInto(&m)
 	switch err {
 	case nil:
 		out <- m

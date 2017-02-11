@@ -10,6 +10,7 @@ import (
 	"strings"
 	"text/tabwriter"
 
+	"github.com/gophercloud/gophercloud/cli/lib"
 	"github.com/gophercloud/gophercloud/cli/lib/interfaces"
 	"github.com/gophercloud/gophercloud/cli/util"
 )
@@ -87,6 +88,7 @@ func outputMap(cmd interfaces.Commander, i interface{}) {
 }
 
 func outputReader(cmd interfaces.Commander, r io.Reader) {
+	lib.Log.Debugln("outputting reader..")
 	if rc, ok := r.(io.ReadCloser); ok {
 		defer rc.Close()
 	}

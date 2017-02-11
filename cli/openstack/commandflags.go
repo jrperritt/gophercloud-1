@@ -19,9 +19,7 @@ func CommandFlags(c interfaces.Commander) []cli.Flag {
 		keys := fieldser.Fields()
 		if len(keys) > 0 {
 			usage := "[optional] Only return these comma-separated case-insensitive fields."
-			if keys[0] != "" {
-				usage = fmt.Sprintf(usage+"\n\tChoices: %s", strings.Join(keys, ", "))
-			}
+			usage = fmt.Sprintf(usage+"\n\tChoices: %s", strings.Join(keys, ", "))
 
 			flagFields := cli.StringFlag{
 				Name:  "fields",

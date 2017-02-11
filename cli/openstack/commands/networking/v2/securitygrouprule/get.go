@@ -52,7 +52,7 @@ func (c *CommandGet) HandleSingle() (interface{}, error) {
 
 func (c *CommandGet) Execute(raw interface{}, out chan interface{}) {
 	var m map[string]interface{}
-	err := rules.Get(c.ServiceClient, raw.(string)).ExtractInto(&m)
+	err := rules.Get(c.ServiceClient(), raw.(string)).ExtractInto(&m)
 	switch err {
 	case nil:
 		out <- m["security_group_rule"]

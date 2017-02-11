@@ -109,7 +109,7 @@ func (c *CommandUpdate) HandleSingle() (interface{}, error) {
 
 func (c *CommandUpdate) Execute(item interface{}, out chan interface{}) {
 	var m map[string]interface{}
-	err := networks.Update(c.ServiceClient, item.(string), c.opts).ExtractInto(&m)
+	err := networks.Update(c.ServiceClient(), item.(string), c.opts).ExtractInto(&m)
 	switch err {
 	case nil:
 		out <- m["network"]

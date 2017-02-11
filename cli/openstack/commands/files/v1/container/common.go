@@ -6,7 +6,7 @@ import (
 )
 
 func handleEmpty(c ContainerV1Command, container string) error {
-	allPages, err := objects.List(c.ServiceClient, container, nil).AllPages()
+	allPages, err := objects.List(c.ServiceClient(), container, nil).AllPages()
 	if err != nil {
 		return err
 	}
@@ -16,13 +16,13 @@ func handleEmpty(c ContainerV1Command, container string) error {
 	}
 
 	for _, name := range names {
-		_, err := objects.Delete(c.ServiceClient, container, name, nil).Extract()
+		_, err := objects.Delete(c.ServiceClient(), container, name, nil).Extract()
 		if err != nil {
 			return err
 		}
 	}
 
-	header, err := containers.Get(c.ServiceClient, c.name).Extract()
+	header, err := containers.Get(c.ServiceClient(), c.name).Extract()
 	if err != nil {
 		return err
 	}

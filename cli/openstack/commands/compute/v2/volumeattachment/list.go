@@ -58,11 +58,11 @@ func (c *CommandList) DefaultTableFields() []string {
 }
 
 func (c *CommandList) HandleSingle() (interface{}, error) {
-	return serverIDorName(c.Context(), c.ServiceClient)
+	return serverIDorName(c.Context(), c.ServiceClient())
 }
 
 func (c *CommandList) Execute(item interface{}, out chan interface{}) {
-	p, err := volumeattach.List(c.ServiceClient, item.(string)).AllPages()
+	p, err := volumeattach.List(c.ServiceClient(), item.(string)).AllPages()
 	if err != nil {
 		out <- err
 		return

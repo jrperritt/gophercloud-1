@@ -53,7 +53,7 @@ func (c *CommandGet) HandleFlags() error {
 	}
 	c.attachmentID = c.Context().String("id")
 
-	c.serverID, err = serverIDorName(c.Context(), c.ServiceClient)
+	c.serverID, err = serverIDorName(c.Context(), c.ServiceClient())
 	if err != nil {
 		return err
 	}
@@ -63,7 +63,7 @@ func (c *CommandGet) HandleFlags() error {
 
 func (c *CommandGet) Execute(item interface{}, out chan interface{}) {
 	var m map[string]map[string]interface{}
-	err := volumeattach.Get(c.ServiceClient, c.serverID, c.attachmentID).ExtractInto(&m)
+	err := volumeattach.Get(c.ServiceClient(), c.serverID, c.attachmentID).ExtractInto(&m)
 	if err != nil {
 		out <- err
 		return

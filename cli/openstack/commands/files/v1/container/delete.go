@@ -75,7 +75,7 @@ func (c *CommandDelete) Execute(item interface{}, out chan interface{}) {
 			return
 		}
 	}
-	res := containers.Delete(c.ServiceClient, item.(string))
+	res := containers.Delete(c.ServiceClient(), item.(string))
 	switch res.Err {
 	case nil:
 		out <- fmt.Sprintf("Successfully deleted container [%s]", item.(string))

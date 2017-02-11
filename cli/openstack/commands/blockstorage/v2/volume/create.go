@@ -77,7 +77,7 @@ func (c *Create) Execute(item interface{}, out chan interface{}) {
 	var m map[string]interface{}
 	opts := *c.opts.(*volumes.CreateOpts)
 	opts.Name = item.(string)
-	err := volumes.Create(c.ServiceClient, c.opts).ExtractInto(&m)
+	err := volumes.Create(c.ServiceClient(), c.opts).ExtractInto(&m)
 	switch err {
 	case nil:
 		out <- m["volume"]

@@ -72,7 +72,7 @@ func (c *commandList) HandleFlags() error {
 }
 
 func (c *commandList) Execute(_ interface{}, out chan interface{}) {
-	err := flavors.ListDetail(c.ServiceClient, c.opts).EachPage(func(page pagination.Page) (bool, error) {
+	err := flavors.ListDetail(c.ServiceClient(), c.opts).EachPage(func(page pagination.Page) (bool, error) {
 		var tmp map[string][]map[string]interface{}
 		err := (page.(flavors.FlavorPage)).ExtractInto(&tmp)
 		if err != nil {

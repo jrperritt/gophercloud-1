@@ -66,7 +66,7 @@ func (c *CommandGetMetadata) HandleSingle() (interface{}, error) {
 
 func (c *CommandGetMetadata) Execute(item interface{}, out chan interface{}) {
 	id := item.(string)
-	m, err := servers.Metadata(c.ServiceClient, id).Extract()
+	m, err := servers.Metadata(c.ServiceClient(), id).Extract()
 	switch err {
 	case nil:
 		out <- m

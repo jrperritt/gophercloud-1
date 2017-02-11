@@ -1,12 +1,17 @@
 package object
 
 import (
+	"bytes"
+	"crypto/md5"
 	"fmt"
+	"hash"
 	"io"
 	"os"
 	"strings"
 	"sync"
 
+	"github.com/gophercloud/gophercloud"
+	"github.com/gophercloud/gophercloud/cli/lib"
 	"github.com/gophercloud/gophercloud/cli/lib/interfaces"
 	"github.com/gophercloud/gophercloud/cli/lib/traits"
 	"github.com/gophercloud/gophercloud/cli/openstack"
@@ -83,11 +88,31 @@ func (c *commandUpload) Flags() []cli.Flag {
 	}
 }
 
-func (c *commandUpload) HandleFlags() error {
-	opts := &objects.CreateOpts{
-		ContentLength: int64(c.Context().Int("content-length")),
-		ContentType:   c.Context().String("content-type"),
+type creatopts struct {
+	objects.CreateOpts
+}
+
+func (opts *creatopts) ToObjectCreateParams() (io.Reader, map[string]string, string, error) {
+	q, err := gophercloud.BuildQueryString(opts)
+	if err != nil {
+		return nil, nil, "", err
 	}
+	h, err := gophercloud.BuildHeaders(opts)
+	if err != nil {
+		return nil, nil, "", err
+	}
+
+	for k, v := range opts.Metadata {
+		h["X-Object-Meta-"+k] = v
+	}
+
+	return opts.Content, h, q.String(), nil
+}
+
+func (c *commandUpload) HandleFlags() error {
+	opts := new(creatopts)
+	opts.ContentLength = int64(c.Context().Int("content-length"))
+	opts.ContentType = c.Context().String("content-type")
 
 	if c.Context().IsSet("metadata") {
 		metadata, err := c.ValidateKVFlag("metadata")
@@ -102,8 +127,6 @@ func (c *commandUpload) HandleFlags() error {
 	if c.Context().IsSet("stdin") {
 		c.pipedField = c.Context().String("stdin")
 	}
-
-	c.BytesProgressable.InitByteSizesMap()
 
 	return nil
 }
@@ -149,8 +172,13 @@ func (c *commandUpload) HandlePipe(item string) (interface{}, error) {
 		if err != nil {
 			return nil, err
 		}
+		fi, err := f.Stat()
+		if err != nil {
+			return nil, err
+		}
 		pd.content = f
 		pd.object = f.Name()
+		pd.size = fi.Size()
 	}
 
 	return pd, nil
@@ -205,14 +233,16 @@ func (c *commandUpload) HandleSingle() (interface{}, error) {
 type bytescontent struct {
 	reader      io.Reader
 	bytessentch chan (interface{})
-	total       int64
-	totalread   int64
+	hash        hash.Hash
+	checksum    string
 }
-
-var i int
 
 func (b *bytescontent) Read(p []byte) (n int, err error) {
 	n, err = b.reader.Read(p)
+	if err != nil {
+		return
+	}
+	_, err = io.CopyN(b.hash, bytes.NewReader(p), int64(n))
 	if err != nil {
 		return
 	}
@@ -224,8 +254,8 @@ func (c *commandUpload) Execute(item interface{}, out chan interface{}) {
 	pd := item.(*pipeData)
 
 	bc := new(bytescontent)
-	bc.total = pd.size
 	bc.bytessentch = c.ProgUpdateChIn()
+	bc.hash = md5.New()
 
 	wg := new(sync.WaitGroup)
 	wg.Add(1)
@@ -245,13 +275,16 @@ func (c *commandUpload) Execute(item interface{}, out chan interface{}) {
 
 		if c.ShouldProgress() {
 			bc.reader = reader
-			c.opts.(*objects.CreateOpts).Content = bc
+			c.opts.(*creatopts).Content = bc
 		} else {
-			c.opts.(*objects.CreateOpts).Content = reader
+			c.opts.(*creatopts).Content = reader
 		}
 
-		var m map[string]interface{}
-		err := objects.Create(c.ServiceClient, pd.container, pd.object, c.opts).ExtractInto(&m)
+		ch, err := objects.Create(c.ServiceClient(), pd.container, pd.object, c.opts).Extract()
+		bc.checksum = fmt.Sprintf("%x", bc.hash.Sum(nil))
+		if ch.ETag != bc.checksum {
+			lib.Log.Debugf("Different checksums: expected %s, got back %s\n", bc.checksum, ch.ETag)
+		}
 		if c.ShouldProgress() {
 			switch err {
 			case nil:

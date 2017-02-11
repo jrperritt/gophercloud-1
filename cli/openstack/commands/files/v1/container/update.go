@@ -73,7 +73,7 @@ func (c *CommandUpdate) HandleSingle() (interface{}, error) {
 
 func (c *CommandUpdate) Execute(item interface{}, out chan interface{}) {
 	name := item.(string)
-	r := containers.Update(c.ServiceClient, name, c.opts)
+	r := containers.Update(c.ServiceClient(), name, c.opts)
 	switch r.Err {
 	case nil:
 		out <- fmt.Sprintf("Successfully updated container [%s]", name)

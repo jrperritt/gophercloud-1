@@ -62,7 +62,7 @@ func (c *CommandGet) HandleSingle() (interface{}, error) {
 func (c *CommandGet) Execute(item interface{}, out chan interface{}) {
 	name := item.(string)
 	var m map[string]interface{}
-	err := containers.Get(c.ServiceClient, name).ExtractInto(&m)
+	err := containers.Get(c.ServiceClient(), name).ExtractInto(&m)
 	switch err {
 	case nil:
 		out <- m
