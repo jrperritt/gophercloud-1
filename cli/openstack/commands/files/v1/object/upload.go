@@ -8,7 +8,6 @@ import (
 	"io"
 	"os"
 	"strings"
-	"sync"
 
 	"github.com/gophercloud/gophercloud"
 	"github.com/gophercloud/gophercloud/cli/lib"
@@ -27,17 +26,59 @@ type commandUpload struct {
 	pipedField string
 }
 
-type pipeData struct {
-	container string
-	object    string
-	content   io.Reader
-	size      int64
+type pipedata struct {
+	*traits.ProgressItemBytes
+	container   string
+	object      string
+	size        int64
+	reader      io.Reader
+	bytessentch chan interface{}
+	hash        hash.Hash
+	checksum    string
+}
+
+func newpipedata() *pipedata {
+	pd := new(pipedata)
+	pd.hash = md5.New()
+	pd.bytessentch = make(chan interface{})
+	endch := make(chan interface{})
+	pd.ProgressItemBytes = new(traits.ProgressItemBytes)
+	pd.SetEndCh(endch)
+	return pd
+}
+
+func (b *pipedata) Read(p []byte) (n int, err error) {
+	n, err = b.reader.Read(p)
+	if err != nil {
+		return
+	}
+	_, err = io.CopyN(b.hash, bytes.NewReader(p), int64(n))
+	if err != nil {
+		return
+	}
+
+	b.bytessentch <- n
+	return
+}
+
+func (b *pipedata) UpCh() chan interface{} {
+	return b.bytessentch
+}
+
+func (b *pipedata) ID() string {
+	return b.object
+}
+
+func (b *pipedata) Size() int64 {
+	return b.size
 }
 
 var (
-	cUpload                                = new(commandUpload)
-	_       interfaces.StreamPipeCommander = cUpload
-	_       interfaces.Progresser          = cUpload
+	cUpload                          = new(commandUpload)
+	_       interfaces.PipeCommander = cUpload
+	_       interfaces.Progresser    = cUpload
+
+	_ interfaces.ProgressItemer = new(pipedata)
 
 	flagsUpload = openstack.CommandFlags(cUpload)
 )
@@ -123,16 +164,13 @@ func (c *commandUpload) HandleFlags() error {
 	}
 
 	c.opts = opts
-
-	if c.Context().IsSet("stdin") {
-		c.pipedField = c.Context().String("stdin")
-	}
+	c.pipedField = c.Context().String("stdin")
 
 	return nil
 }
 
 func (c *commandUpload) HandlePipe(item string) (interface{}, error) {
-	pd := new(pipeData)
+	pd := newpipedata()
 	switch c.pipedField {
 	case "container":
 		pd.container = item
@@ -142,7 +180,7 @@ func (c *commandUpload) HandlePipe(item string) (interface{}, error) {
 			if err != nil {
 				return nil, err
 			}
-			pd.content = f
+			pd.reader = f
 			switch c.Context().IsSet("name") {
 			case true:
 				pd.object = c.Context().String("name")
@@ -157,7 +195,7 @@ func (c *commandUpload) HandlePipe(item string) (interface{}, error) {
 					return nil, err
 				}
 				pd.object = c.Context().String("name")
-				pd.content = strings.NewReader(c.Context().String("content"))
+				pd.reader = strings.NewReader(c.Context().String("content"))
 			case false:
 				return nil, fmt.Errorf("One of `--file` and `--content` must be provided if not piping to STDIN")
 			}
@@ -176,23 +214,19 @@ func (c *commandUpload) HandlePipe(item string) (interface{}, error) {
 		if err != nil {
 			return nil, err
 		}
-		pd.content = f
+		pd.reader = f
 		pd.object = f.Name()
 		pd.size = fi.Size()
+	case "content":
+		err := c.CheckFlagsSet([]string{"container", "name"})
+		if err != nil {
+			return nil, err
+		}
+		pd.reader = os.Stdin
+		pd.container = c.Context().String("container")
+		pd.object = c.Context().String("name")
 	}
 
-	return pd, nil
-}
-
-func (c *commandUpload) HandleStreamPipe(stream io.Reader) (interface{}, error) {
-	err := c.CheckFlagsSet([]string{"container", "name"})
-	if err != nil {
-		return nil, err
-	}
-	pd := new(pipeData)
-	pd.content = stream
-	pd.container = c.Context().String("container")
-	pd.object = c.Context().String("name")
 	return pd, nil
 }
 
@@ -202,7 +236,7 @@ func (c *commandUpload) HandleSingle() (interface{}, error) {
 		return nil, err
 	}
 
-	pd := new(pipeData)
+	pd := newpipedata()
 	pd.object = c.Context().String("name")
 	pd.container = c.Context().String("container")
 
@@ -216,97 +250,49 @@ func (c *commandUpload) HandleSingle() (interface{}, error) {
 			return nil, err
 		}
 		pd.size = fi.Size()
-		pd.content = f
+		pd.reader = f
+	} else if ok := c.Context().IsSet("content"); ok {
+		r := strings.NewReader(c.Context().String("content"))
+		pd.size = int64(r.Len())
+		pd.reader = r
 	} else {
-		if ok := c.Context().IsSet("content"); ok {
-			r := strings.NewReader(c.Context().String("content"))
-			pd.size = int64(r.Len())
-			pd.content = r
-		} else {
-			err = fmt.Errorf("One of `--file` and `--content` must be provided if not piping to STDIN")
-		}
+		err = fmt.Errorf("One of `--file` and `--content` must be provided if not piping to STDIN")
 	}
 
 	return pd, err
 }
 
-type bytescontent struct {
-	reader      io.Reader
-	bytessentch chan (interface{})
-	hash        hash.Hash
-	checksum    string
-}
-
-func (b *bytescontent) Read(p []byte) (n int, err error) {
-	n, err = b.reader.Read(p)
-	if err != nil {
-		return
-	}
-	_, err = io.CopyN(b.hash, bytes.NewReader(p), int64(n))
-	if err != nil {
-		return
-	}
-	b.bytessentch <- n
-	return
-}
-
 func (c *commandUpload) Execute(item interface{}, out chan interface{}) {
-	pd := item.(*pipeData)
+	pd := item.(*pipedata)
 
-	bc := new(bytescontent)
-	bc.bytessentch = c.ProgUpdateChIn()
-	bc.hash = md5.New()
-
-	wg := new(sync.WaitGroup)
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		reader, ok := pd.content.(io.Reader)
-		if !ok {
-			out <- fmt.Errorf("Expected an io.Reader but instead got %T", item)
-			return
-		}
-
-		defer func() {
-			if closeable, ok := reader.(io.ReadCloser); ok {
-				closeable.Close()
-			}
-		}()
-
-		if c.ShouldProgress() {
-			bc.reader = reader
-			c.opts.(*creatopts).Content = bc
-		} else {
-			c.opts.(*creatopts).Content = reader
-		}
-
-		ch, err := objects.Create(c.ServiceClient(), pd.container, pd.object, c.opts).Extract()
-		bc.checksum = fmt.Sprintf("%x", bc.hash.Sum(nil))
-		if ch.ETag != bc.checksum {
-			lib.Log.Debugf("Different checksums: expected %s, got back %s\n", bc.checksum, ch.ETag)
-		}
-		if c.ShouldProgress() {
-			switch err {
-			case nil:
-				c.ProgDoneChIn() <- fmt.Sprintf("Successfully uploaded object [%s] to container [%s]", pd.object, pd.container)
-			default:
-				c.ProgDoneChIn() <- err
-			}
+	defer func() {
+		if closeable, ok := pd.reader.(io.ReadCloser); ok {
+			closeable.Close()
 		}
 	}()
 
-	if c.ShouldProgress() {
-		c.Sizes.Set(pd.object, int(pd.size))
-		out <- pd.object
-	} else {
-		wg.Wait()
+	c.opts.(*creatopts).Content = pd
+
+	lib.Log.Debugln("running objects.Create...")
+	header, err := objects.Create(c.ServiceClient(), pd.container, pd.object, c.opts).Extract()
+	close(pd.UpCh())
+	if err != nil {
+		lib.Log.Debugf("err from objects.Create: %+v", err)
+		pd.EndCh() <- err
+		return
 	}
+
+	pd.checksum = fmt.Sprintf("%x", pd.hash.Sum(nil))
+	if header.ETag != pd.checksum {
+		lib.Log.Debugf("Different checksums: expected %s, got back %s\n", pd.checksum, header.ETag)
+		pd.EndCh() <- fmt.Errorf("Different checksums: expected %s, got back %s\n", pd.checksum, header.ETag)
+		return
+	}
+
+	lib.Log.Debugln("successfully uploaded object")
+	pd.EndCh() <- fmt.Sprintf("Successfully uploaded object [%s] to container [%s]", pd.object, pd.container)
 }
 
 func (c *commandUpload) PipeFieldOptions() []string {
-	return []string{"file", "container"}
-}
-
-func (c *commandUpload) StreamFieldOptions() []string {
-	return []string{"content"}
+	return []string{"file", "container", "content"}
 }

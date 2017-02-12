@@ -2,10 +2,12 @@ package openstack
 
 import (
 	"os"
+	"strings"
 	"sync"
 
 	"github.com/gophercloud/gophercloud/cli/lib"
 	"github.com/gophercloud/gophercloud/cli/lib/interfaces"
+	"github.com/gophercloud/gophercloud/cli/lib/traits"
 	"gopkg.in/urfave/cli.v1"
 )
 
@@ -49,48 +51,37 @@ func Action(ctx *cli.Context, cmd interfaces.Commander) error {
 
 	cmd.SetServiceClient(sc)
 
-	lib.Log.Debugln("Running HandleInterfaceFlags...")
-	err = interfaces.HandleInterfaceFlags(cmd)
-	if err != nil {
-		return ErrExit1{err}
+	if t, ok := cmd.(interfaces.Tabler); ok {
+		lib.Log.Debugln("cmd implements Tabler")
+		t.SetTable(cmd.Context().IsSet("table"))
+		t.SetHeader(cmd.Context().IsSet("no-header"))
 	}
 
-	lib.Log.Debugln("Running HandleFlags...")
+	if f, ok := cmd.(interfaces.Fieldser); ok {
+		lib.Log.Debugln("cmd implements Fieldser")
+		f.SetFields(strings.Split(cmd.Context().String("fields"), ","))
+	}
+
+	if p, ok := cmd.(interfaces.Progresser); ok {
+		lib.Log.Debugln("cmd implements Progresser")
+		p.SetProgress(cmd.Context().IsSet("quiet"))
+		lib.Log.Debugln("p.ShouldProgress() : ", p.ShouldProgress())
+	}
+
 	err = cmd.HandleFlags()
 	if err != nil {
 		return ErrExit1{err}
 	}
 
-	lib.Log.Debugln("Running RunCommand...")
 	execchout := make(chan interface{})
-	go exec(cmd, execchout)
-
-	if w, ok := cmd.(interfaces.Waiter); ok && w.ShouldWait() {
-		waitchout := make(chan interface{})
-		lib.Log.Debugln("going to wait")
-		go wait(w, execchout, waitchout)
-		if p, ok := w.(interfaces.Progresser); ok && p.ShouldProgress() {
-			// wait and prog
-			progchout := make(chan interface{})
-			lib.Log.Debugln("going to prog")
-			go prog(p, waitchout, progchout)
-			lib.Log.Debugln("outres from prog")
-			err = outres(cmd, progchout)
-		} else {
-			// wait and no prog
-			lib.Log.Debugln("outres from wait")
-			err = outres(cmd, waitchout)
-		}
-	} else if p, ok := cmd.(interfaces.Progresser); ok && p.ShouldProgress() {
-		// no wait and prog
+	if p, ok := cmd.(interfaces.Progresser); ok && p.ShouldProgress() {
 		progchout := make(chan interface{})
-		lib.Log.Debugln("going to prog")
-		go prog(p, execchout, progchout)
-		lib.Log.Debugln("outres from prog")
+		p.InitProgress()
+		exec(cmd, execchout)
+		go prog(p, progchout)
 		err = outres(cmd, progchout)
 	} else {
-		// no wait and no prog
-		lib.Log.Debugln("outres from exec")
+		go exec(cmd, execchout)
 		err = outres(cmd, execchout)
 	}
 
@@ -101,79 +92,57 @@ func Action(ctx *cli.Context, cmd interfaces.Commander) error {
 	return nil
 }
 
-func wait(w interfaces.Waiter, in, out chan interface{}) {
-	defer close(out)
+func prog(p interfaces.Progresser, outch chan interface{}) {
+	defer close(outch)
+	waitch := make(chan interface{})
 	wg := new(sync.WaitGroup)
-	waitchmid := make(chan interface{})
-	for item := range in {
-		item := item
+
+	for pi := range p.ProgStartCh() {
+		pi := pi
+		id := pi.ID()
+		b := p.CreateBar(pi)
+		p.StartBar()
+
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			switch e := item.(type) {
+			for up := range pi.UpCh() {
+				s := new(traits.ProgressStatusUpdate)
+				s.SetBarID(id)
+				s.SetChange(up)
+				b.Update(s)
+			}
+
+			switch t := (<-pi.EndCh()).(type) {
 			case error:
-				out <- e
+				s := new(traits.ProgressStatusError)
+				s.SetBarID(id)
+				s.SetErr(t)
+				//b.Error(s)
+				p.ErrorBar()
+				waitch <- t
 			default:
-				lib.Log.Debugf("running WaitFor for item: %v", item)
-				w.WaitFor(item, waitchmid)
+				s := new(traits.ProgressStatusComplete)
+				s.SetBarID(id)
+				b.Complete(s)
+				p.CompleteBar()
+				waitch <- t
 			}
 		}()
 	}
 
 	go func() {
 		wg.Wait()
-		lib.Log.Debugln("closing w.WaitDoneCh()...")
-		close(waitchmid)
-	}()
-
-	waitResults := make([]interface{}, 0)
-
-	lib.Log.Debugln("Waiting for items on waitchmid...")
-	for r := range waitchmid {
-		waitResults = append(waitResults, r)
-	}
-
-	for _, r := range waitResults {
-		out <- r
-	}
-}
-
-func prog(p interfaces.Progresser, in, out chan interface{}) {
-	defer close(out)
-	progchmid := make(chan interface{})
-	p.InitProgress(progchmid)
-	wg := new(sync.WaitGroup)
-	for item := range in {
-		item := item
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			switch e := item.(type) {
-			case error:
-				out <- e
-			default:
-				id := p.BarID(item)
-				lib.Log.Debugln("running p.ShowBar for ", id)
-				p.ShowBar(id)
-			}
-			lib.Log.Debugf("done waiting on item: %v", item)
-		}()
-	}
-
-	go func() {
-		wg.Wait()
-		lib.Log.Debugln("closing progchmid...")
-		close(progchmid)
+		close(waitch)
 	}()
 
 	progressResults := make([]interface{}, 0)
 
-	lib.Log.Debugln("Waiting for items on progchmid...")
-	for r := range progchmid {
+	for r := range waitch {
 		progressResults = append(progressResults, r)
 	}
 
 	for _, r := range progressResults {
-		out <- r
+		outch <- r
 	}
 }

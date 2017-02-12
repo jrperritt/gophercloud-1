@@ -1,8 +1,6 @@
 package interfaces
 
 import (
-	"io"
-
 	"github.com/gophercloud/gophercloud"
 	"gopkg.in/urfave/cli.v1"
 )
@@ -27,10 +25,4 @@ type PipeCommander interface {
 	HandleSingle() (interface{}, error)
 	HandlePipe(string) (interface{}, error)
 	PipeFieldOptions() []string
-}
-
-type StreamPipeCommander interface {
-	PipeCommander
-	HandleStreamPipe(io.Reader) (interface{}, error)
-	StreamFieldOptions() []string
 }

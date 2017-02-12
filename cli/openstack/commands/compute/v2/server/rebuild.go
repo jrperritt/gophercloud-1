@@ -225,13 +225,19 @@ func (c *CommandRebuild) WaitFor(raw interface{}, out chan<- interface{}) {
 	}
 }
 
-func (c *CommandRebuild) InitProgress(donech chan interface{}) {
-	c.RunningMsg = "Rebuilding"
-	c.DoneMsg = "Rebuilt"
-	c.TextProgressable.InitProgress(donech)
+func (c *CommandRebuild) InitProgress() {
+	c.TextProgressable.InitProgress()
 }
 
 func (c *CommandRebuild) BarID(raw interface{}) string {
 	orig := raw.(map[string]interface{})
 	return orig["id"].(string)
+}
+
+func (c *CommandRebuild) RunningMsg() string {
+	return "Rebuilding"
+}
+
+func (c *CommandRebuild) DoneMsg() string {
+	return "Rebuilt"
 }

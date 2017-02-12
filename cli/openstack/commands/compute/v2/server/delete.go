@@ -92,7 +92,7 @@ func (c *CommandDelete) WaitFor(raw interface{}, out chan<- interface{}) {
 			out <- fmt.Sprintf("Deleted server [%s]", id)
 			return true, nil
 		}
-		c.ProgUpdateChIn() <- c.RunningMsg
+		c.ProgUpdateChIn() <- c.RunningMsg()
 		return false, nil
 	})
 
@@ -101,8 +101,14 @@ func (c *CommandDelete) WaitFor(raw interface{}, out chan<- interface{}) {
 	}
 }
 
-func (c *CommandDelete) InitProgress(donech chan interface{}) {
-	c.RunningMsg = "Deleting"
-	c.DoneMsg = "Deleted"
-	c.TextProgressable.InitProgress(donech)
+func (c *CommandDelete) InitProgress() {
+	c.TextProgressable.InitProgress()
+}
+
+func (c *CommandDelete) RunningMsg() string {
+	return "Deleting"
+}
+
+func (c *CommandDelete) DoneMsg() string {
+	return "Deleted"
 }

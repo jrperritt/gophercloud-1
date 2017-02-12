@@ -1,19 +1,27 @@
 package traits
 
 type ProgressStatus struct {
-	id string
+	barid string
 }
 
-func (p *ProgressStatus) BarID() string {
-	return p.id
+func (s *ProgressStatus) SetBarID(barid string) {
+	s.barid = barid
+}
+
+func (s *ProgressStatus) BarID() string {
+	return s.barid
 }
 
 type ProgressStatusStart struct {
 	ProgressStatus
-	size int
+	size int64
 }
 
-func (s *ProgressStatusStart) BarSize() int {
+func (s *ProgressStatusStart) SetBarSize(size int64) {
+	s.size = size
+}
+
+func (s *ProgressStatusStart) BarSize() int64 {
 	return s.size
 }
 
@@ -22,17 +30,36 @@ type ProgressStatusError struct {
 	e error
 }
 
+func (s *ProgressStatusError) SetErr(e error) {
+	s.e = e
+}
+
 func (s *ProgressStatusError) Err() error {
 	return s.e
 }
 
 type ProgressStatusUpdate struct {
 	ProgressStatus
-	Increment int
-	Msg       string
+	change interface{}
+}
+
+func (s *ProgressStatusUpdate) SetChange(change interface{}) {
+	s.change = change
+}
+
+func (s *ProgressStatusUpdate) Change() interface{} {
+	return s.change
 }
 
 type ProgressStatusComplete struct {
 	ProgressStatus
-	Result interface{}
+	result interface{}
+}
+
+func (s *ProgressStatusComplete) SetResult(result interface{}) {
+	s.result = result
+}
+
+func (s *ProgressStatusComplete) Result() interface{} {
+	return s.result
 }

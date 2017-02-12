@@ -13,91 +13,50 @@ import (
 
 func exec(cmd interfaces.Commander, out chan interface{}) {
 	wg := new(sync.WaitGroup)
-	if cmd.Context().IsSet("stdin") {
-		lib.Log.Debugln("Running runPipeCommand...")
-		switch p := cmd.(type) {
-		case interfaces.StreamPipeCommander:
-			if util.Contains(p.StreamFieldOptions(), cmd.Context().String("stdin")) {
-				lib.Log.Debugln("Running HandleStreamPipe...")
-				stream, err := p.HandleStreamPipe(os.Stdin)
-				if err != nil {
-					out <- err
-					return
-				}
+	if stdin := cmd.Context().String("stdin"); stdin != "" {
+		if p, ok := cmd.(interfaces.PipeCommander); ok && util.Contains(p.PipeFieldOptions(), stdin) {
+			scanner := bufio.NewScanner(os.Stdin)
+			for scanner.Scan() {
 				wg.Add(1)
+				text := scanner.Text()
 				go func() {
 					defer wg.Done()
-					cmd.Execute(stream, out)
-				}()
-			} else {
-				switch util.Contains(p.PipeFieldOptions(), cmd.Context().String("stdin")) {
-				case true:
-					scanner := bufio.NewScanner(os.Stdin)
-					for scanner.Scan() {
-						wg.Add(1)
-						text := scanner.Text()
-						go func() {
-							p := cmd.(interfaces.PipeCommander)
-							defer wg.Done()
-							lib.Log.Debugln("Running HandlePipe...")
-							item, err := p.HandlePipe(text)
-							switch err {
-							case nil:
-								lib.Log.Debugln("Running Execute...")
-								p.Execute(item, out)
-							default:
-								out <- err
+					item, err := p.HandlePipe(text)
+					switch err {
+					case nil:
+						if proger, ok := cmd.(interfaces.Progresser); ok && proger.ShouldProgress() {
+							if pi, ok := item.(interfaces.ProgressItemer); ok {
+								lib.Log.Debugf("Sending on ProgStartCh: %+v", pi)
+								proger.ProgStartCh() <- pi
 							}
-						}()
-					}
-					if scanner.Err() != nil {
-						out <- scanner.Err()
-					}
-				default:
-					out <- fmt.Errorf("Unknown STDIN field: %s\n", cmd.Context().String("stdin"))
-				}
-			}
-		case interfaces.PipeCommander:
-			switch util.Contains(p.PipeFieldOptions(), cmd.Context().String("stdin")) {
-			case true:
-				scanner := bufio.NewScanner(os.Stdin)
-				for scanner.Scan() {
-					wg.Add(1)
-					text := scanner.Text()
-					go func() {
-						p := cmd.(interfaces.PipeCommander)
-						defer wg.Done()
-						lib.Log.Debugln("Running HandlePipe...")
-						item, err := p.HandlePipe(text)
-						switch err {
-						case nil:
-							lib.Log.Debugln("Running Execute...")
-							p.Execute(item, out)
-						default:
-							out <- err
 						}
-					}()
-				}
-				if scanner.Err() != nil {
-					out <- scanner.Err()
-				}
-			default:
-				out <- fmt.Errorf("Unknown STDIN field: %s\n", cmd.Context().String("stdin"))
+						p.Execute(item, out)
+					default:
+						out <- err
+					}
+				}()
 			}
-		default:
+			if scanner.Err() != nil {
+				out <- scanner.Err()
+			}
+		} else {
+			out <- fmt.Errorf("Unknown STDIN field: %s\n", stdin)
 		}
 	} else {
-		lib.Log.Debugln("Running single command...")
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			switch cmd.(type) {
-			case interfaces.PipeCommander, interfaces.StreamPipeCommander:
-				lib.Log.Debugln("Running HandleSingle...")
-				item, err := cmd.(interfaces.PipeCommander).HandleSingle()
+			switch pc := cmd.(type) {
+			case interfaces.PipeCommander:
+				item, err := pc.HandleSingle()
 				switch err {
 				case nil:
-					lib.Log.Debugln("Running Execute...")
+					if proger, ok := cmd.(interfaces.Progresser); ok && proger.ShouldProgress() {
+						if pi, ok := item.(interfaces.ProgressItemer); ok {
+							lib.Log.Debugf("Sending on ProgStartCh: %+v", pi)
+							proger.ProgStartCh() <- pi
+						}
+					}
 					cmd.Execute(item, out)
 				default:
 					out <- err
@@ -110,6 +69,10 @@ func exec(cmd interfaces.Commander, out chan interface{}) {
 
 	go func() {
 		wg.Wait()
+		if proger, ok := cmd.(interfaces.Progresser); ok && proger.ShouldProgress() {
+			lib.Log.Debugln("closing proger.ProgStartCh")
+			close(proger.ProgStartCh())
+		}
 		close(out)
 	}()
 }

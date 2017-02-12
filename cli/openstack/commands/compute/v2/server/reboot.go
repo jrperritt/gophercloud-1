@@ -135,8 +135,14 @@ func (c *CommandReboot) WaitFor(raw interface{}, out chan<- interface{}) {
 	}
 }
 
-func (c *CommandReboot) InitProgress(donech chan interface{}) {
-	c.RunningMsg = "Rebooting"
-	c.DoneMsg = "Rebooted"
-	c.TextProgressable.InitProgress(donech)
+func (c *CommandReboot) InitProgress() {
+	c.TextProgressable.InitProgress()
+}
+
+func (c *CommandReboot) RunningMsg() string {
+	return "Rebooting"
+}
+
+func (c *CommandReboot) DoneMsg() string {
+	return "Rebooted"
 }

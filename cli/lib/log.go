@@ -47,6 +47,7 @@ func (l *logger) Debugln(v ...interface{}) {
 func (l *logger) Debugf(format string, v ...interface{}) {
 	if l.debug {
 		l.Printf(format, v...)
+		l.Println()
 	}
 }
 

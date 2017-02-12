@@ -136,8 +136,14 @@ func (c *CommandResize) WaitFor(raw interface{}, out chan<- interface{}) {
 	}
 }
 
-func (c *CommandResize) InitProgress(donech chan interface{}) {
-	c.RunningMsg = "Resizing"
-	c.DoneMsg = "Resized"
-	c.TextProgressable.InitProgress(donech)
+func (c *CommandResize) InitProgress() {
+	c.TextProgressable.InitProgress()
+}
+
+func (c *CommandResize) RunningMsg() string {
+	return "Resizing"
+}
+
+func (c *CommandResize) DoneMsg() string {
+	return "Resized"
 }

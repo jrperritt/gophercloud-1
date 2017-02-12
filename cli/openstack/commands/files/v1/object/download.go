@@ -86,15 +86,17 @@ func (c *commandDownload) Execute(_ interface{}, out chan interface{}) {
 	if res.Err != nil {
 		lib.Log.Debugf("err from objects.Download: %s\n", res.Err)
 	}
-	dh, err := res.Extract()
-	if err != nil {
-		lib.Log.Debugf("err from res.Extract: %s\n", err)
-		out <- err
-		return
-	}
+	/*
+		dh, err := res.Extract()
+		if err != nil {
+			lib.Log.Debugf("err from res.Extract: %s\n", err)
+			out <- err
+			return
+		}
+	*/
 	if c.ShouldProgress() {
 		id := fmt.Sprintf("%s/%s", c.name, c.container)
-		c.Sizes.Set(id, int(dh.ContentLength))
+		//c.Sizes.Set(id, int(dh.ContentLength))
 		out <- id
 
 		go func() {
