@@ -13,7 +13,7 @@ import (
 type commandList struct {
 	FlavorCommand
 	traits.Waitable
-	traits.DataResp
+	traits.Fieldsable
 	traits.Tableable
 	opts flavors.ListOptsBuilder
 }

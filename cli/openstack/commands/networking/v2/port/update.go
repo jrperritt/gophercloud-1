@@ -16,7 +16,7 @@ import (
 type CommandUpdate struct {
 	PortV2Command
 	traits.Waitable
-	traits.DataResp
+	
 	opts ports.UpdateOptsBuilder
 }
 

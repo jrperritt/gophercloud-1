@@ -1,7 +1,6 @@
 package volumeattachment
 
 import (
-	"github.com/gophercloud/gophercloud/cli/lib/traits"
 	"github.com/gophercloud/gophercloud/cli/openstack"
 	"github.com/gophercloud/gophercloud/cli/util"
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/extensions/volumeattach"
@@ -10,7 +9,7 @@ import (
 
 type CommandGet struct {
 	VolumeAttachmentV2Command
-	traits.DataResp
+
 	serverID     string
 	attachmentID string
 }

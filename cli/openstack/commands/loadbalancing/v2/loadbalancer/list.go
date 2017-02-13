@@ -14,7 +14,7 @@ import (
 type CommandList struct {
 	LoadbalancerV2Command
 	traits.Waitable
-	traits.DataResp
+	traits.Fieldsable
 	traits.Tableable
 	opts loadbalancers.ListOptsBuilder
 }

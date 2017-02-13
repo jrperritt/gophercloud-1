@@ -13,7 +13,7 @@ import (
 type CommandList struct {
 	ContainerV1Command
 	traits.Waitable
-	traits.DataResp
+	traits.Fieldsable
 	traits.Tableable
 	opts containers.ListOptsBuilder
 }

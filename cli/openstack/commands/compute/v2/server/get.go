@@ -13,7 +13,7 @@ type CommandGet struct {
 	ServerV2Command
 	traits.Pipeable
 	traits.Waitable
-	traits.DataResp
+	traits.Fieldsable
 }
 
 var (

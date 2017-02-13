@@ -99,11 +99,3 @@ func (c *Commandable) ValidateStructFlag(flagValues []string) ([]map[string]inte
 	}
 	return valSliceMap, nil
 }
-
-type DataResp struct{}
-
-func (c *DataResp) Fields() []string {
-	return []string{""}
-}
-
-type MsgResp struct{}

@@ -13,7 +13,7 @@ type CommandCreate struct {
 	VolumeAttachmentV2Command
 	traits.Waitable
 	traits.Pipeable
-	traits.DataResp
+
 	opts     volumeattach.CreateOptsBuilder
 	serverID string
 }

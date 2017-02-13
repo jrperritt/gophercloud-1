@@ -105,8 +105,13 @@ func prog(p interfaces.Progresser, outch chan interface{}) {
 		pi := pi
 		lib.Log.Debugf("recvd progress item: %+v", pi)
 		id := pi.ID()
-		b := p.CreateBar(pi)
-		p.StartBar()
+
+		var b interfaces.ProgressBarrer
+
+		if p.ShouldProgress() {
+			b = p.CreateBar(pi)
+			p.StartBar()
+		}
 
 		wg.Add(1)
 		go func() {
@@ -144,37 +149,6 @@ func prog(p interfaces.Progresser, outch chan interface{}) {
 					}
 				}
 			}
-
-			/*
-				for up := range pi.UpCh() {
-					s := new(traits.ProgressStatusUpdate)
-					s.SetBarID(id)
-					s.SetChange(up)
-					if p.ShouldProgress() {
-						b.Update(s)
-					}
-				}
-
-				switch t := (<-pi.EndCh()).(type) {
-				case error:
-					s := new(traits.ProgressStatusError)
-					s.SetBarID(id)
-					s.SetErr(t)
-					//b.Error(s)
-					if p.ShouldProgress() {
-						p.ErrorBar()
-					}
-					waitch <- t
-				default:
-					s := new(traits.ProgressStatusComplete)
-					s.SetBarID(id)
-					if p.ShouldProgress() {
-						b.Complete(s)
-						p.CompleteBar()
-					}
-					waitch <- t
-				}
-			*/
 		}()
 	}
 

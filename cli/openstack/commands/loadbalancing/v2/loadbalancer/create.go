@@ -11,7 +11,7 @@ import (
 
 type CommandCreate struct {
 	LoadbalancerV2Command
-	traits.DataResp
+	traits.Fieldsable
 	opts loadbalancers.CreateOptsBuilder
 }
 

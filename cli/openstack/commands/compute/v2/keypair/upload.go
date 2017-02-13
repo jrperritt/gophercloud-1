@@ -3,7 +3,6 @@ package keypair
 import (
 	"io/ioutil"
 
-	"github.com/gophercloud/gophercloud/cli/lib/traits"
 	"github.com/gophercloud/gophercloud/cli/openstack"
 	"github.com/gophercloud/gophercloud/cli/util"
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/extensions/keypairs"
@@ -12,7 +11,7 @@ import (
 
 type CommandUpload struct {
 	KeypairV2Command
-	traits.DataResp
+
 	opts keypairs.CreateOptsBuilder
 }
 

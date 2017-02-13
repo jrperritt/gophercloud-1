@@ -1,9 +1,6 @@
 package openstack
 
 import (
-	"fmt"
-	"strings"
-
 	"github.com/gophercloud/gophercloud/cli/lib/interfaces"
 
 	"gopkg.in/urfave/cli.v1"
@@ -16,18 +13,7 @@ func CommandFlags(c interfaces.Commander) []cli.Flag {
 	flags := c.Flags()
 
 	if fieldser, ok := c.(interfaces.Fieldser); ok {
-		keys := fieldser.Fields()
-		if len(keys) > 0 {
-			usage := "[optional] Only return these comma-separated case-insensitive fields."
-			usage = fmt.Sprintf(usage+"\n\tChoices: %s", strings.Join(keys, ", "))
-
-			flagFields := cli.StringFlag{
-				Name:  "fields",
-				Usage: usage,
-			}
-
-			flags = append(flags, flagFields)
-		}
+		flags = append(flags, fieldser.FieldsFlags()...)
 	}
 
 	if waiter, ok := c.(interfaces.Waiter); ok {

@@ -17,7 +17,7 @@ import (
 type CommandList struct {
 	SubnetV2Command
 	traits.Waitable
-	traits.DataResp
+	traits.Fieldsable
 	traits.Tableable
 	opts subnets.ListOptsBuilder
 }

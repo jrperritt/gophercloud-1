@@ -13,7 +13,7 @@ type CommandList struct {
 	VolumeAttachmentV2Command
 	traits.Waitable
 	traits.Pipeable
-	traits.DataResp
+	traits.Fieldsable
 	traits.Tableable
 }
 

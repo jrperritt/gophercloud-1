@@ -11,7 +11,7 @@ import (
 
 type CommandList struct {
 	KeypairV2Command
-	traits.DataResp
+	traits.Fieldsable
 	traits.Tableable
 	opts keypairs.CreateOptsBuilder
 }

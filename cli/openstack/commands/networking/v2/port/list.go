@@ -16,7 +16,7 @@ import (
 type CommandList struct {
 	PortV2Command
 	traits.Waitable
-	traits.DataResp
+	traits.Fieldsable
 	opts ports.ListOptsBuilder
 }
 

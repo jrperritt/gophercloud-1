@@ -12,7 +12,7 @@ import (
 type CommandGet struct {
 	PortV2Command
 	traits.Waitable
-	traits.DataResp
+	
 }
 
 var (

@@ -13,7 +13,7 @@ import (
 type CommandList struct {
 	SecurityGroupV2Command
 	traits.Waitable
-	traits.DataResp
+	traits.Fieldsable
 	traits.Tableable
 	opts groups.ListOpts
 }

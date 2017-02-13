@@ -15,7 +15,6 @@ type CommandDelete struct {
 	KeypairV2Command
 	traits.Waitable
 	traits.Pipeable
-	traits.DataResp
 }
 
 var (

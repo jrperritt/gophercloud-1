@@ -13,7 +13,7 @@ type CommandCreate struct {
 	SecurityGroupV2Command
 	traits.Pipeable
 	traits.Waitable
-	traits.DataResp
+	traits.Fieldsable
 	opts groups.CreateOptsBuilder
 }
 

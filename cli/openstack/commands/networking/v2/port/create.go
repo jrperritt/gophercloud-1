@@ -13,7 +13,7 @@ import (
 type CommandCreate struct {
 	PortV2Command
 	traits.Waitable
-	traits.DataResp
+	
 	opts ports.CreateOptsBuilder
 }
 

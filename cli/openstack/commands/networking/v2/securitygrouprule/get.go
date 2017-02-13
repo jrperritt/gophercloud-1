@@ -13,7 +13,7 @@ type CommandGet struct {
 	SecurityGroupRuleV2Command
 	traits.Pipeable
 	traits.Waitable
-	traits.DataResp
+	traits.Fieldsable
 }
 
 var (

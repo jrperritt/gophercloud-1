@@ -14,7 +14,7 @@ import (
 type CommandCreate struct {
 	SecurityGroupRuleV2Command
 	traits.Waitable
-	traits.DataResp
+	traits.Fieldsable
 	opts rules.CreateOptsBuilder
 }
 

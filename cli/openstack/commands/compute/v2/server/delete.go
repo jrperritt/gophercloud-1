@@ -15,7 +15,6 @@ type CommandDelete struct {
 	ServerV2Command
 	traits.Waitable
 	traits.TextProgressable
-	traits.MsgResp
 }
 
 var (
@@ -92,7 +91,7 @@ func (c *CommandDelete) WaitFor(raw interface{}, out chan<- interface{}) {
 			out <- fmt.Sprintf("Deleted server [%s]", id)
 			return true, nil
 		}
-		c.ProgUpdateChIn() <- c.RunningMsg()
+		//c.ProgUpdateChIn() <- c.RunningMsg()
 		return false, nil
 	})
 

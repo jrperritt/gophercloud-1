@@ -14,7 +14,7 @@ import (
 
 type CommandCreate struct {
 	SubnetV2Command
-	traits.DataResp
+	traits.Fieldsable
 	opts subnets.CreateOptsBuilder
 }
 

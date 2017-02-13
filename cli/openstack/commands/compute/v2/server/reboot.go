@@ -15,7 +15,7 @@ type CommandReboot struct {
 	ServerV2Command
 	traits.Waitable
 	traits.TextProgressable
-	traits.MsgResp
+	traits.Fieldsable
 	opts servers.RebootOptsBuilder
 }
 
@@ -123,9 +123,7 @@ func (c *CommandReboot) WaitFor(raw interface{}, out chan<- interface{}) {
 			out <- fmt.Sprintf("Rebooted server [%s]", id)
 			return true, nil
 		default:
-			if c.ShouldProgress() {
-				c.ProgUpdateChIn() <- m["server"]["status"]
-			}
+			//c.ProgUpdateChIn() <- m["server"]["status"]
 			return false, nil
 		}
 	})

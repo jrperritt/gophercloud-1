@@ -13,7 +13,6 @@ type CommandGet struct {
 	FlavorCommand
 	traits.Waitable
 	traits.Pipeable
-	traits.DataResp
 }
 
 var (

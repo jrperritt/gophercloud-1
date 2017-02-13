@@ -16,7 +16,7 @@ import (
 type CommandList struct {
 	NetworkV2Command
 	traits.Waitable
-	traits.DataResp
+	traits.Fieldsable
 	traits.Tableable
 	opts networks.ListOptsBuilder
 }

@@ -35,11 +35,7 @@ func (b *ProgressBar) Error(s interfaces.ProgressErrorStatuser) string {
 }
 
 type ProgressBarPercentage struct {
-	*ProgressBar
-}
-
-func (p *ProgressBarPercentage) TotalSize() int64 {
-	return 100
+	ProgressBar
 }
 
 func (p *ProgressBarPercentage) Start(s interfaces.ProgressStartStatuser) interfaces.ProgressBarrer {
@@ -51,12 +47,8 @@ func (b *ProgressBarPercentage) Update(s interfaces.ProgressUpdateStatuser) {
 }
 
 type ProgressBarBytes struct {
-	*ProgressBar
+	ProgressBar
 	size int64
-}
-
-func (p *ProgressBarBytes) TotalSize() int64 {
-	return p.size
 }
 
 func (b *ProgressBarBytes) Start(s interfaces.ProgressStartStatuser) interfaces.ProgressBarrer {
@@ -68,12 +60,8 @@ func (b *ProgressBarBytes) Update(s interfaces.ProgressUpdateStatuser) {
 }
 
 type ProgressBarText struct {
-	*ProgressBar
+	ProgressBar
 	donemsg, runmsg string
-}
-
-func (p *ProgressBarText) TotalSize() int64 {
-	return 2
 }
 
 func (p *ProgressBarText) DoneMsg() string {
@@ -100,7 +88,7 @@ func (b *ProgressBarText) setBarToText() {
 }
 
 type ProgressStatsBar struct {
-	*ProgressBarText
+	ProgressBarText
 	totals struct {
 		*sync.RWMutex
 		active    int

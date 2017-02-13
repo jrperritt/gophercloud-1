@@ -124,9 +124,7 @@ func (c *CommandResize) WaitFor(raw interface{}, out chan<- interface{}) {
 			out <- fmt.Sprintf("Resized server [%s]", id)
 			return true, nil
 		default:
-			if c.ShouldProgress() {
-				c.ProgUpdateChIn() <- m["server"]["status"]
-			}
+			//c.ProgUpdateChIn() <- m["server"]["status"]
 			return false, nil
 		}
 	})

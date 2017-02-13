@@ -43,7 +43,6 @@ func (d *downloaddata) Write(p []byte) (n int, err error) {
 var (
 	cDownload                            = new(commandDownload)
 	_         interfaces.BytesProgresser = cDownload
-	//_         interfaces.CustomWriterer = cDownload
 
 	_ interfaces.WriteBytesProgressItemer = new(downloaddata)
 
@@ -52,7 +51,7 @@ var (
 
 var download = cli.Command{
 	Name:         "download",
-	Usage:        util.Usage(commandPrefix, "download", "--container <containerName> --name <objectName>"),
+	Usage:        util.Usage(commandPrefix, "download", "--container CONTAINER --name NAME"),
 	Description:  "Downloads an object",
 	Action:       func(ctx *cli.Context) error { return openstack.Action(ctx, cDownload) },
 	Flags:        flagsDownload,
@@ -100,14 +99,14 @@ func (c *commandDownload) HandleFlags() error {
 			if os.IsExist(err) {
 				reader := bufio.NewReader(os.Stdin)
 				for {
-					fmt.Printf("\nA file named %s already exists. Overwrite? (y/n): ", c.file)
+					fmt.Printf("A file named %s already exists. Overwrite? (y/n): ", c.file)
 					choice, _ := reader.ReadString('\n')
 					choice = strings.TrimSpace(choice)
 					switch strings.ToLower(choice) {
 					case "y", "yes":
 						return nil
 					case "n", "no":
-						return err
+						return fmt.Errorf("File (%s) already exists. Aborting...", c.file)
 					default:
 						continue
 					}
@@ -136,7 +135,8 @@ func (c *commandDownload) Execute(_ interface{}, out chan interface{}) {
 
 	d.SetSize(dh.ContentLength)
 	d.SetID(fmt.Sprintf("%s/%s", c.container, c.name))
-	f, err := os.OpenFile(c.file, os.O_RDWR|os.O_CREATE, 0666)
+	//	f, err := os.OpenFile(c.file, os.O_RDWR|os.O_CREATE, 0666)
+	f, err := os.Create(c.file)
 	if err != nil {
 		d.EndCh() <- err
 		return

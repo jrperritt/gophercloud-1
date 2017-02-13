@@ -14,7 +14,7 @@ type commandList struct {
 	ObjectV1Command
 	traits.Pipeable
 	traits.Waitable
-	traits.DataResp
+	traits.Fieldsable
 	traits.Tableable
 	opts objects.ListOptsBuilder
 }

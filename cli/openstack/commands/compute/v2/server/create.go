@@ -24,15 +24,15 @@ type CommandCreate struct {
 	traits.Waitable
 	traits.Pipeable
 	traits.PercentageProgressable
-	traits.DataResp
+	traits.Fieldsable
 	opts servers.CreateOptsBuilder
 }
 
 var (
-	cCreate                          = new(CommandCreate)
-	_       interfaces.PipeCommander = cCreate
-	_       interfaces.Waiter        = cCreate
-	_       interfaces.Progresser    = cCreate
+	cCreate                              = new(CommandCreate)
+	_       interfaces.PipeCommander     = cCreate
+	_       interfaces.Waiter            = cCreate
+	_       interfaces.PercentProgresser = cCreate
 
 	flagsCreate = openstack.CommandFlags(cCreate)
 )
@@ -345,10 +345,7 @@ func (c *CommandCreate) WaitFor(raw interface{}, donech chan<- interface{}) {
 			lib.Log.Debugf("returning from WaitFor for item: %s", id)
 			return true, nil
 		default:
-			if c.ShouldProgress() {
-				lib.Log.Debugf("putting item %s in c.Updatechin", id)
-				c.ProgUpdateChIn() <- m["server"]["progress"].(float64)
-			}
+			//c.ProgUpdateChIn() <- m["server"]["progress"].(float64)
 			return false, nil
 		}
 	})

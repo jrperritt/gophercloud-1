@@ -11,40 +11,48 @@ import (
 )
 
 type Progressable struct {
-	quiet      bool
-	updatechin chan interface{}
-	startch    chan interfaces.ProgressItemer
-	bt         BarType
-	stats      *ProgressStatsBar
-	info       *mpb.Progress
+	quiet   bool
+	startch chan interfaces.ProgressItemer
+	stats   *ProgressStatsBar
+	info    *mpb.Progress
 }
 
-func (c *Progressable) init() {
-	c.updatechin = make(chan interface{})
+func (c *Progressable) ProgressFlags() []cli.Flag {
+	return []cli.Flag{
+		cli.BoolFlag{
+			Name:  "quiet",
+			Usage: "[optional] If provided, only final results are printed.",
+		},
+	}
+}
+
+func (c *Progressable) SetProgress(b bool) {
+	c.quiet = b
+}
+
+func (c *Progressable) ShouldProgress() bool {
+	return !c.quiet
+}
+
+func (c *Progressable) InitProgress() {
 	c.startch = make(chan interfaces.ProgressItemer)
 	c.info = mpb.New(nil)
-	c.stats = new(ProgressStatsBar)
-	c.stats.totals.RWMutex = new(sync.RWMutex)
 }
 
 func (c *Progressable) AddSummaryBar() {
-	c.stats.ProgressBarText = new(ProgressBarText)
-	c.stats.ProgressBarText.ProgressBar = new(ProgressBar)
-	c.stats.ProgressBarText.Bar = c.info.AddBar(2).PrependFunc(func(b *mpb.Statistics) string {
+	c.stats = new(ProgressStatsBar)
+	c.stats.totals.RWMutex = new(sync.RWMutex)
+	c.stats.Bar = c.info.AddBar(2).PrependFunc(func(b *mpb.Statistics) string {
 		c.stats.totals.Lock()
 		defer c.stats.totals.Unlock()
 		return fmt.Sprintf("\tActive: %d\tCompleted: %d\tErrored: %d", c.stats.totals.active, c.stats.totals.completed, c.stats.totals.errored)
-	}).PrependElapsed(2)
+	})
 	c.stats.id = "summary"
 	c.stats.setBarToText()
 }
 
 func (c *Progressable) ProgStartCh() chan interfaces.ProgressItemer {
 	return c.startch
-}
-
-func (c *Progressable) ProgUpdateChIn() chan interface{} {
-	return c.updatechin
 }
 
 func (p *Progressable) StartBar() {
@@ -69,23 +77,12 @@ func (p *Progressable) ErrorBar() {
 
 type BytesProgressable struct {
 	Progressable
-	updatechin chan interface{}
-}
-
-func (c *BytesProgressable) ProgUpdateCh() chan interface{} {
-	return c.updatechin
-}
-
-func (p *BytesProgressable) InitProgress() {
-	p.init()
-	p.bt = BarBytes
 }
 
 func (p *BytesProgressable) CreateBar(pi interfaces.ProgressItemer) interfaces.ProgressBarrer {
 	b := new(ProgressBarBytes)
-	b.ProgressBar = new(ProgressBar)
 	if p.ShouldProgress() {
-		b.ProgressBar.Bar = p.info.AddBar(pi.Size()).PrependElapsed(2).AppendPercentage().AppendFunc(func(s *mpb.Statistics) string {
+		b.Bar = p.info.AddBar(pi.Size()).PrependElapsed(6).PrependETA(6).AppendPercentage().AppendFunc(func(s *mpb.Statistics) string {
 			return pi.ID()
 		})
 	}
@@ -93,26 +90,43 @@ func (p *BytesProgressable) CreateBar(pi interfaces.ProgressItemer) interfaces.P
 }
 
 type PercentageProgressable struct {
-	BytesProgressable
+	Progressable
+}
+
+func (p *PercentageProgressable) CreateBar(pi interfaces.ProgressItemer) interfaces.ProgressBarrer {
+	b := new(ProgressBarBytes)
+	if p.ShouldProgress() {
+		b.Bar = p.info.AddBar(pi.Size()).PrependElapsed(6).AppendPercentage().AppendFunc(func(s *mpb.Statistics) string {
+			return pi.ID()
+		})
+	}
+	return b
 }
 
 type TextProgressable struct {
 	BytesProgressable
+	donesmg, runmsg string
 }
 
-func (c *Progressable) ProgressFlags() []cli.Flag {
-	return []cli.Flag{
-		cli.BoolFlag{
-			Name:  "quiet",
-			Usage: "[optional] If provided, only final results are printed.",
-		},
+func (p *TextProgressable) RunningMsg() string {
+	return p.runmsg
+}
+
+func (p *TextProgressable) DoneMsg() string {
+	return p.donesmg
+}
+
+func (p *TextProgressable) CreateBar(pi interfaces.ProgressItemer) interfaces.ProgressBarrer {
+	b := new(ProgressBarBytes)
+	if p.ShouldProgress() {
+		b.Bar = p.info.AddBar(pi.Size()).PrependElapsed(6).AppendPercentage().AppendFunc(func(s *mpb.Statistics) string {
+			return pi.ID()
+		}).AppendFunc(func(s *mpb.Statistics) string {
+			if s.Current == s.Total {
+				return p.DoneMsg()
+			}
+			return p.RunningMsg()
+		})
 	}
-}
-
-func (c *Progressable) SetProgress(b bool) {
-	c.quiet = b
-}
-
-func (c *Progressable) ShouldProgress() bool {
-	return !c.quiet
+	return b
 }

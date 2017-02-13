@@ -15,7 +15,7 @@ import (
 type CommandList struct {
 	SecurityGroupRuleV2Command
 	traits.Waitable
-	traits.DataResp
+	traits.Fieldsable
 	traits.Tableable
 	opts rules.ListOpts
 }

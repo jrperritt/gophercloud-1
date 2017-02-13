@@ -3,7 +3,6 @@ package volumeattachment
 import (
 	"fmt"
 
-	"github.com/gophercloud/gophercloud/cli/lib/traits"
 	"github.com/gophercloud/gophercloud/cli/openstack"
 	"github.com/gophercloud/gophercloud/cli/util"
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/extensions/volumeattach"
@@ -12,7 +11,7 @@ import (
 
 type CommandDelete struct {
 	VolumeAttachmentV2Command
-	traits.DataResp
+
 	serverID     string
 	attachmentID string
 }

@@ -17,7 +17,7 @@ type CommandRebuild struct {
 	ServerV2Command
 	traits.Waitable
 	traits.TextProgressable
-	traits.DataResp
+	traits.Fieldsable
 	opts servers.RebuildOptsBuilder
 }
 
@@ -213,9 +213,7 @@ func (c *CommandRebuild) WaitFor(raw interface{}, out chan<- interface{}) {
 			out <- m["server"]
 			return true, nil
 		default:
-			if c.ShouldProgress() {
-				c.ProgUpdateChIn() <- m["server"]["progress"].(float64)
-			}
+			//c.ProgUpdateChIn() <- m["server"]["progress"].(float64)
 			return false, nil
 		}
 	})
