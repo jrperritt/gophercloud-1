@@ -74,9 +74,13 @@ func Action(ctx *cli.Context, cmd interfaces.Commander) error {
 	}
 
 	execchout := make(chan interface{})
-	if p, ok := cmd.(interfaces.Progresser); ok && p.ShouldProgress() {
+	if p, ok := cmd.(interfaces.Progresser); ok {
 		progchout := make(chan interface{})
 		p.InitProgress()
+		lib.Log.Debugf("p.ShouldProgress: %v", p.ShouldProgress())
+		if p.ShouldProgress() {
+			p.AddSummaryBar()
+		}
 		exec(cmd, execchout)
 		go prog(p, progchout)
 		err = outres(cmd, progchout)
@@ -110,7 +114,9 @@ func prog(p interfaces.Progresser, outch chan interface{}) {
 				s := new(traits.ProgressStatusUpdate)
 				s.SetBarID(id)
 				s.SetChange(up)
-				b.Update(s)
+				if p.ShouldProgress() {
+					b.Update(s)
+				}
 			}
 
 			switch t := (<-pi.EndCh()).(type) {
@@ -119,13 +125,17 @@ func prog(p interfaces.Progresser, outch chan interface{}) {
 				s.SetBarID(id)
 				s.SetErr(t)
 				//b.Error(s)
-				p.ErrorBar()
+				if p.ShouldProgress() {
+					p.ErrorBar()
+				}
 				waitch <- t
 			default:
 				s := new(traits.ProgressStatusComplete)
 				s.SetBarID(id)
-				b.Complete(s)
-				p.CompleteBar()
+				if p.ShouldProgress() {
+					b.Complete(s)
+					p.CompleteBar()
+				}
 				waitch <- t
 			}
 		}()

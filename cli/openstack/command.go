@@ -6,7 +6,6 @@ import (
 	"os"
 	"sync"
 
-	"github.com/gophercloud/gophercloud/cli/lib"
 	"github.com/gophercloud/gophercloud/cli/lib/interfaces"
 	"github.com/gophercloud/gophercloud/cli/util"
 )
@@ -22,18 +21,11 @@ func exec(cmd interfaces.Commander, out chan interface{}) {
 				go func() {
 					defer wg.Done()
 					item, err := p.HandlePipe(text)
-					switch err {
-					case nil:
-						if proger, ok := cmd.(interfaces.Progresser); ok && proger.ShouldProgress() {
-							if pi, ok := item.(interfaces.ProgressItemer); ok {
-								lib.Log.Debugf("Sending on ProgStartCh: %+v", pi)
-								proger.ProgStartCh() <- pi
-							}
-						}
-						p.Execute(item, out)
-					default:
+					if err != nil {
 						out <- err
+						return
 					}
+					handleitem(cmd, out, item)
 				}()
 			}
 			if scanner.Err() != nil {
@@ -49,18 +41,11 @@ func exec(cmd interfaces.Commander, out chan interface{}) {
 			switch pc := cmd.(type) {
 			case interfaces.PipeCommander:
 				item, err := pc.HandleSingle()
-				switch err {
-				case nil:
-					if proger, ok := cmd.(interfaces.Progresser); ok && proger.ShouldProgress() {
-						if pi, ok := item.(interfaces.ProgressItemer); ok {
-							lib.Log.Debugf("Sending on ProgStartCh: %+v", pi)
-							proger.ProgStartCh() <- pi
-						}
-					}
-					cmd.Execute(item, out)
-				default:
+				if err != nil {
 					out <- err
+					return
 				}
+				handleitem(cmd, out, item)
 			default:
 				cmd.Execute(nil, out)
 			}
@@ -69,10 +54,18 @@ func exec(cmd interfaces.Commander, out chan interface{}) {
 
 	go func() {
 		wg.Wait()
-		if proger, ok := cmd.(interfaces.Progresser); ok && proger.ShouldProgress() {
-			lib.Log.Debugln("closing proger.ProgStartCh")
+		if proger, ok := cmd.(interfaces.Progresser); ok {
 			close(proger.ProgStartCh())
 		}
 		close(out)
 	}()
+}
+
+func handleitem(cmd interfaces.Commander, out chan interface{}, item interface{}) {
+	if proger, ok := cmd.(interfaces.Progresser); ok {
+		if pi, ok := item.(interfaces.ProgressItemer); ok {
+			proger.ProgStartCh() <- pi
+		}
+	}
+	cmd.Execute(item, out)
 }

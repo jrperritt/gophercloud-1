@@ -262,7 +262,7 @@ func (c *commandUpload) HandleSingle() (interface{}, error) {
 	return pd, err
 }
 
-func (c *commandUpload) Execute(item interface{}, out chan interface{}) {
+func (c *commandUpload) Execute(item interface{}, _ chan interface{}) {
 	pd := item.(*pipedata)
 
 	defer func() {

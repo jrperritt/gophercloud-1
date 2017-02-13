@@ -27,7 +27,10 @@ func NewProgressable(bt BarType) *Progressable {
 	c.bt = bt
 	c.stats = new(ProgressStatsBar)
 	c.stats.totals.RWMutex = new(sync.RWMutex)
-	c.stats.totals.bars = make(map[string]interfaces.ProgressBarrer)
+	return c
+}
+
+func (c *Progressable) AddSummaryBar() {
 	c.stats.ProgressBarText = new(ProgressBarText)
 	c.stats.ProgressBarText.ProgressBar = new(ProgressBar)
 	c.stats.ProgressBarText.Bar = c.info.AddBar(2).PrependFunc(func(b *mpb.Statistics) string {
@@ -37,8 +40,6 @@ func NewProgressable(bt BarType) *Progressable {
 	}).PrependElapsed(2)
 	c.stats.id = "summary"
 	c.stats.setBarToText()
-
-	return c
 }
 
 func (c *Progressable) ProgStartCh() chan interfaces.ProgressItemer {
@@ -79,15 +80,23 @@ func (c *BytesProgressable) ProgUpdateCh() chan interface{} {
 }
 
 func (p *BytesProgressable) InitProgress() {
-	p.Progressable = *NewProgressable(BarBytes)
+	//p.Progressable = *NewProgressable(BarBytes)
+	p.updatechin = make(chan interface{})
+	p.startch = make(chan interfaces.ProgressItemer)
+	p.info = mpb.New(nil)
+	p.bt = BarBytes
+	p.stats = new(ProgressStatsBar)
+	p.stats.totals.RWMutex = new(sync.RWMutex)
 }
 
 func (p *BytesProgressable) CreateBar(pi interfaces.ProgressItemer) interfaces.ProgressBarrer {
 	b := new(ProgressBarBytes)
 	b.ProgressBar = new(ProgressBar)
-	b.ProgressBar.Bar = p.info.AddBar(pi.Size()).PrependElapsed(2).AppendPercentage().AppendFunc(func(s *mpb.Statistics) string {
-		return pi.ID()
-	})
+	if p.ShouldProgress() {
+		b.ProgressBar.Bar = p.info.AddBar(pi.Size()).PrependElapsed(2).AppendPercentage().AppendFunc(func(s *mpb.Statistics) string {
+			return pi.ID()
+		})
+	}
 	return b
 }
 

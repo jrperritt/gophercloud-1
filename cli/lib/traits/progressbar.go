@@ -106,6 +106,5 @@ type ProgressStatsBar struct {
 		active    int
 		completed int
 		errored   int
-		bars      map[string]interfaces.ProgressBarrer
 	}
 }
