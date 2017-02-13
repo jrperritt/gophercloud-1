@@ -136,13 +136,7 @@ func prog(p interfaces.Progresser, outch chan interface{}) {
 		close(waitch)
 	}()
 
-	progressResults := make([]interface{}, 0)
-
 	for r := range waitch {
-		progressResults = append(progressResults, r)
-	}
-
-	for _, r := range progressResults {
 		outch <- r
 	}
 }
