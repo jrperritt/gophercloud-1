@@ -7,7 +7,6 @@ import (
 	"os"
 	"strings"
 
-	"github.com/gophercloud/gophercloud/cli/lib"
 	"github.com/gophercloud/gophercloud/cli/lib/interfaces"
 	"github.com/gophercloud/gophercloud/cli/lib/traits"
 	"github.com/gophercloud/gophercloud/cli/openstack"
@@ -22,10 +21,31 @@ type commandDownload struct {
 	file string
 }
 
+type downloaddata struct {
+	traits.ProgressItemBytesWrite
+}
+
+func newdownloaddata() *downloaddata {
+	d := new(downloaddata)
+	d.ProgressItem.Init()
+	return d
+}
+
+func (d *downloaddata) Write(p []byte) (n int, err error) {
+	n, err = d.Writer().Write(p)
+	if err != nil {
+		return
+	}
+	d.UpCh() <- n
+	return
+}
+
 var (
-	cDownload                           = new(commandDownload)
-	_         interfaces.Progresser     = cDownload
-	_         interfaces.CustomWriterer = cDownload
+	cDownload                            = new(commandDownload)
+	_         interfaces.BytesProgresser = cDownload
+	//_         interfaces.CustomWriterer = cDownload
+
+	_ interfaces.WriteBytesProgressItemer = new(downloaddata)
 
 	flagsDownload = openstack.CommandFlags(cDownload)
 )
@@ -70,85 +90,65 @@ func (c *commandDownload) HandleFlags() error {
 		if err != nil {
 			return err
 		}
-		c.file = c.Context().String("file")
+	}
+
+	c.file = c.Context().String("file")
+
+	if c.file != "" {
+		_, err := os.OpenFile(c.file, os.O_RDWR|os.O_CREATE|os.O_EXCL, 0666)
+		if err != nil {
+			if os.IsExist(err) {
+				reader := bufio.NewReader(os.Stdin)
+				for {
+					fmt.Printf("\nA file named %s already exists. Overwrite? (y/n): ", c.file)
+					choice, _ := reader.ReadString('\n')
+					choice = strings.TrimSpace(choice)
+					switch strings.ToLower(choice) {
+					case "y", "yes":
+						return nil
+					case "n", "no":
+						return err
+					default:
+						continue
+					}
+				}
+			}
+		}
 	}
 
 	return nil
 }
 
 func (c *commandDownload) Execute(_ interface{}, out chan interface{}) {
-	w, err := c.CustomWriter()
-	if err != nil {
-		out <- err
-		return
-	}
+	d := newdownloaddata()
+
 	res := objects.Download(c.ServiceClient(), c.container, c.name, nil)
 	if res.Err != nil {
-		lib.Log.Debugf("err from objects.Download: %s\n", res.Err)
-	}
-	/*
-		dh, err := res.Extract()
-		if err != nil {
-			lib.Log.Debugf("err from res.Extract: %s\n", err)
-			out <- err
-			return
-		}
-	*/
-	if c.ShouldProgress() {
-		id := fmt.Sprintf("%s/%s", c.name, c.container)
-		//c.Sizes.Set(id, int(dh.ContentLength))
-		out <- id
-
-		go func() {
-			_, err = io.Copy(w, res.Body)
-			if err != nil {
-				lib.Log.Debugf("Error copying (io.Reader) result: %s\n", err)
-			}
-		}()
-	}
-}
-
-type filecontent struct {
-	writer      io.Writer
-	bytessentch chan (interface{})
-}
-
-func (b *filecontent) Write(p []byte) (n int, err error) {
-	n, err = b.writer.Write(p)
-	if err != nil {
+		d.EndCh() <- res.Err
 		return
 	}
-	b.bytessentch <- n
-	lib.Log.Debugf("wrote %d bytes to bytessentch", n)
-	return
-}
 
-func (c *commandDownload) CustomWriter() (io.Writer, error) {
-	f, err := os.OpenFile(c.file, os.O_RDWR|os.O_CREATE|os.O_EXCL, 0666)
+	dh, err := res.Extract()
 	if err != nil {
-		if os.IsExist(err) {
-			reader := bufio.NewReader(os.Stdin)
-			for {
-				fmt.Printf("\nA file named %s already exists. Overwrite? (y/n): ", c.file)
-				choice, _ := reader.ReadString('\n')
-				choice = strings.TrimSpace(choice)
-				switch strings.ToLower(choice) {
-				case "y", "yes":
-					goto done
-				case "n", "no":
-					return nil, err
-				default:
-					continue
-				}
-			}
-		} else {
-			return nil, err
-		}
+		d.EndCh() <- err
+		return
 	}
 
-done:
-	fc := new(filecontent)
-	fc.writer = f
-	fc.bytessentch = c.ProgUpdateChIn()
-	return fc, nil
+	d.SetSize(dh.ContentLength)
+	d.SetID(fmt.Sprintf("%s/%s", c.container, c.name))
+	f, err := os.OpenFile(c.file, os.O_RDWR|os.O_CREATE, 0666)
+	if err != nil {
+		d.EndCh() <- err
+		return
+	}
+	defer f.Close()
+	d.SetWriter(f)
+
+	c.ProgStartCh() <- d
+	_, err = io.Copy(d, res.Body)
+	if err != nil {
+		d.EndCh() <- err
+	}
+
+	d.EndCh() <- fmt.Sprintf("Successfully downloaded %s to %s", d.ID(), c.file)
 }

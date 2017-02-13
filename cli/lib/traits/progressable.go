@@ -19,15 +19,12 @@ type Progressable struct {
 	info       *mpb.Progress
 }
 
-func NewProgressable(bt BarType) *Progressable {
-	c := new(Progressable)
+func (c *Progressable) init() {
 	c.updatechin = make(chan interface{})
 	c.startch = make(chan interfaces.ProgressItemer)
 	c.info = mpb.New(nil)
-	c.bt = bt
 	c.stats = new(ProgressStatsBar)
 	c.stats.totals.RWMutex = new(sync.RWMutex)
-	return c
 }
 
 func (c *Progressable) AddSummaryBar() {
@@ -80,13 +77,8 @@ func (c *BytesProgressable) ProgUpdateCh() chan interface{} {
 }
 
 func (p *BytesProgressable) InitProgress() {
-	//p.Progressable = *NewProgressable(BarBytes)
-	p.updatechin = make(chan interface{})
-	p.startch = make(chan interfaces.ProgressItemer)
-	p.info = mpb.New(nil)
+	p.init()
 	p.bt = BarBytes
-	p.stats = new(ProgressStatsBar)
-	p.stats.totals.RWMutex = new(sync.RWMutex)
 }
 
 func (p *BytesProgressable) CreateBar(pi interfaces.ProgressItemer) interfaces.ProgressBarrer {

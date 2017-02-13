@@ -1,6 +1,10 @@
 package interfaces
 
-import "gopkg.in/urfave/cli.v1"
+import (
+	"io"
+
+	"gopkg.in/urfave/cli.v1"
+)
 
 // Waiter should be implemented by commands that launch background operations
 // that will continue even if the command ends
@@ -36,19 +40,30 @@ type Progresser interface {
 }
 
 type ProgressItemer interface {
+	SetUpCh(chan interface{})
 	UpCh() chan interface{}
 	SetEndCh(chan interface{})
 	EndCh() chan interface{}
+	SetID(string)
 	ID() string
 	Size() int64
 }
 
-type ReadBytesProgresser interface {
-	Progresser
+type BytesProgressItemer interface {
+	ProgressItemer
+	SetSize(int64)
 }
 
-type WriteBytesProgresser interface {
-	Progresser
+type ReadBytesProgressItemer interface {
+	BytesProgressItemer
+	SetReader(io.Reader)
+	Reader() io.Reader
+}
+
+type WriteBytesProgressItemer interface {
+	BytesProgressItemer
+	SetWriter(io.Writer)
+	Writer() io.Writer
 }
 
 type BytesProgresser interface {
@@ -68,10 +83,6 @@ type ProgressBarrer interface {
 	Error(ProgressErrorStatuser) string
 	ID() string
 	TotalSize() int64
-}
-
-type ProgressBytesBarrer interface {
-	ProgressBarrer
 }
 
 // Tabler is the interface a command implements if it offers tabular output.

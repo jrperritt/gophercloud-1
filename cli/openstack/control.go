@@ -74,10 +74,10 @@ func Action(ctx *cli.Context, cmd interfaces.Commander) error {
 	}
 
 	execchout := make(chan interface{})
+
 	if p, ok := cmd.(interfaces.Progresser); ok {
 		progchout := make(chan interface{})
 		p.InitProgress()
-		lib.Log.Debugf("p.ShouldProgress: %v", p.ShouldProgress())
 		if p.ShouldProgress() {
 			p.AddSummaryBar()
 		}
@@ -103,6 +103,7 @@ func prog(p interfaces.Progresser, outch chan interface{}) {
 
 	for pi := range p.ProgStartCh() {
 		pi := pi
+		lib.Log.Debugf("recvd progress item: %+v", pi)
 		id := pi.ID()
 		b := p.CreateBar(pi)
 		p.StartBar()
@@ -110,34 +111,70 @@ func prog(p interfaces.Progresser, outch chan interface{}) {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			for up := range pi.UpCh() {
-				s := new(traits.ProgressStatusUpdate)
-				s.SetBarID(id)
-				s.SetChange(up)
-				if p.ShouldProgress() {
-					b.Update(s)
+			for {
+				select {
+				case up := <-pi.UpCh():
+					s := new(traits.ProgressStatusUpdate)
+					s.SetBarID(id)
+					s.SetChange(up)
+					if p.ShouldProgress() {
+						b.Update(s)
+					}
+				case res := <-pi.EndCh():
+					switch t := res.(type) {
+					case error:
+						s := new(traits.ProgressStatusError)
+						s.SetBarID(id)
+						s.SetErr(t)
+						//b.Error(s)
+						if p.ShouldProgress() {
+							p.ErrorBar()
+						}
+						waitch <- t
+						return
+					default:
+						s := new(traits.ProgressStatusComplete)
+						s.SetBarID(id)
+						if p.ShouldProgress() {
+							b.Complete(s)
+							p.CompleteBar()
+						}
+						waitch <- t
+						return
+					}
 				}
 			}
 
-			switch t := (<-pi.EndCh()).(type) {
-			case error:
-				s := new(traits.ProgressStatusError)
-				s.SetBarID(id)
-				s.SetErr(t)
-				//b.Error(s)
-				if p.ShouldProgress() {
-					p.ErrorBar()
+			/*
+				for up := range pi.UpCh() {
+					s := new(traits.ProgressStatusUpdate)
+					s.SetBarID(id)
+					s.SetChange(up)
+					if p.ShouldProgress() {
+						b.Update(s)
+					}
 				}
-				waitch <- t
-			default:
-				s := new(traits.ProgressStatusComplete)
-				s.SetBarID(id)
-				if p.ShouldProgress() {
-					b.Complete(s)
-					p.CompleteBar()
+
+				switch t := (<-pi.EndCh()).(type) {
+				case error:
+					s := new(traits.ProgressStatusError)
+					s.SetBarID(id)
+					s.SetErr(t)
+					//b.Error(s)
+					if p.ShouldProgress() {
+						p.ErrorBar()
+					}
+					waitch <- t
+				default:
+					s := new(traits.ProgressStatusComplete)
+					s.SetBarID(id)
+					if p.ShouldProgress() {
+						b.Complete(s)
+						p.CompleteBar()
+					}
+					waitch <- t
 				}
-				waitch <- t
-			}
+			*/
 		}()
 	}
 
