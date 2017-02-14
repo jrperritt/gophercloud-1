@@ -144,7 +144,7 @@ func (c *commandDownload) Execute(_ interface{}, out chan interface{}) {
 	defer f.Close()
 	d.SetWriter(f)
 
-	c.ProgStartCh() <- d
+	out <- d
 	_, err = io.Copy(d, res.Body)
 	if err != nil {
 		d.EndCh() <- err

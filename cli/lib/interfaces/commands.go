@@ -11,7 +11,7 @@ type Commander interface {
 	HandleFlags() error
 	Execute(item interface{}, out chan interface{})
 	Flags() []cli.Flag
-	SetServiceClient(*gophercloud.ServiceClient) error
+	SetServiceClient(*gophercloud.ServiceClient)
 	ServiceClient() *gophercloud.ServiceClient
 	SetContext(*cli.Context) error
 	Context() *cli.Context

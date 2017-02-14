@@ -27,7 +27,8 @@ func exec(cmd interfaces.Commander, out chan interface{}) {
 						out <- err
 						return
 					}
-					handleitem(cmd, out, item)
+					out <- item
+					cmd.Execute(item, out)
 				}()
 			}
 			if scanner.Err() != nil {
@@ -48,7 +49,8 @@ func exec(cmd interfaces.Commander, out chan interface{}) {
 					out <- err
 					return
 				}
-				handleitem(cmd, out, item)
+				out <- item
+				cmd.Execute(item, out)
 			default:
 				cmd.Execute(nil, out)
 			}
@@ -57,18 +59,6 @@ func exec(cmd interfaces.Commander, out chan interface{}) {
 
 	go func() {
 		wg.Wait()
-		if proger, ok := cmd.(interfaces.Progresser); ok {
-			close(proger.ProgStartCh())
-		}
 		close(out)
 	}()
-}
-
-func handleitem(cmd interfaces.Commander, out chan interface{}, item interface{}) {
-	if proger, ok := cmd.(interfaces.Progresser); ok {
-		if pi, ok := item.(interfaces.ProgressItemer); ok {
-			proger.ProgStartCh() <- pi
-		}
-	}
-	cmd.Execute(item, out)
 }

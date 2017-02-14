@@ -68,27 +68,24 @@ func Action(ctx *cli.Context, cmd interfaces.Commander) error {
 		lib.Log.Debugln("p.ShouldProgress() : ", p.ShouldProgress())
 	}
 
+	if w, ok := cmd.(interfaces.Waiter); ok {
+		lib.Log.Debugln("cmd implements Waiter")
+		w.SetWait(cmd.Context().IsSet("wait"))
+		lib.Log.Debugln("w.ShouldWait() : ", w.ShouldWait())
+	}
+
 	err = cmd.HandleFlags()
 	if err != nil {
 		return ErrExit1{err}
 	}
 
-	execchout := make(chan interface{})
+	progch := make(chan interface{})
+	outch := make(chan interface{})
 
-	if p, ok := cmd.(interfaces.Progresser); ok {
-		progchout := make(chan interface{})
-		p.InitProgress()
-		if p.ShouldProgress() {
-			p.AddSummaryBar()
-		}
-		exec(cmd, execchout)
-		go prog(p, progchout)
-		err = outres(cmd, progchout)
-	} else {
-		go exec(cmd, execchout)
-		err = outres(cmd, execchout)
-	}
+	go exec(cmd, progch)
+	go prog(cmd, progch, outch)
 
+	err = outres(cmd, outch)
 	if err != nil {
 		return ErrExit1{err}
 	}
@@ -96,68 +93,95 @@ func Action(ctx *cli.Context, cmd interfaces.Commander) error {
 	return nil
 }
 
-func prog(p interfaces.Progresser, outch chan interface{}) {
-	defer close(outch)
-	waitch := make(chan interface{})
-	wg := new(sync.WaitGroup)
-
-	for pi := range p.ProgStartCh() {
-		pi := pi
-		lib.Log.Debugf("recvd progress item: %+v", pi)
-		id := pi.ID()
-
-		var b interfaces.ProgressBarrer
-
-		if p.ShouldProgress() {
-			b = p.CreateBar(pi)
-			p.StartBar()
-		}
+func prog(cmd interfaces.Commander, in, out chan interface{}) {
+	if p, ok := cmd.(interfaces.Progresser); ok {
+		waitch := make(chan interface{})
+		wg := new(sync.WaitGroup)
+		var once sync.Once
 
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			for {
-				select {
-				case up := <-pi.UpCh():
-					s := new(traits.ProgressStatusUpdate)
-					s.SetBarID(id)
-					s.SetChange(up)
-					if p.ShouldProgress() {
-						b.Update(s)
-					}
-				case res := <-pi.EndCh():
-					switch t := res.(type) {
-					case error:
-						s := new(traits.ProgressStatusError)
-						s.SetBarID(id)
-						s.SetErr(t)
-						//b.Error(s)
+			for res := range in {
+				switch t := res.(type) {
+				case error:
+					waitch <- t
+				default:
+					if pi, ok := t.(interfaces.ProgressItemer); ok {
+						id := pi.ID()
+						var b interfaces.ProgressBarrer
 						if p.ShouldProgress() {
-							p.ErrorBar()
+							once.Do(func() {
+								p.InitProgress()
+								p.AddSummaryBar()
+							})
+
+							if p.ShouldProgress() {
+								b = p.CreateBar(pi)
+								p.StartBar()
+							}
 						}
-						waitch <- t
-						return
-					default:
-						s := new(traits.ProgressStatusComplete)
-						s.SetBarID(id)
-						if p.ShouldProgress() {
-							b.Complete(s)
-							p.CompleteBar()
-						}
-						waitch <- t
-						return
+
+						wg.Add(1)
+						go func() {
+							defer wg.Done()
+							for {
+								select {
+								case up := <-pi.UpCh():
+									s := new(traits.ProgressStatusUpdate)
+									s.SetBarID(id)
+									s.SetChange(up)
+									if p.ShouldProgress() {
+										b.Update(s)
+									}
+								case res := <-pi.EndCh():
+									switch t := res.(type) {
+									case error:
+										s := new(traits.ProgressStatusError)
+										s.SetBarID(id)
+										s.SetErr(t)
+										if p.ShouldProgress() {
+											//b.Error(s)
+											p.ErrorBar()
+										}
+										waitch <- t
+										return
+									default:
+										s := new(traits.ProgressStatusComplete)
+										s.SetBarID(id)
+										if p.ShouldProgress() {
+											b.Complete(s)
+											p.CompleteBar()
+										}
+										waitch <- t
+										return
+									}
+								}
+							}
+						}()
+
 					}
 				}
 			}
 		}()
+
+		go func() {
+			wg.Wait()
+			close(waitch)
+		}()
+
+		go func() {
+			defer close(out)
+			for r := range waitch {
+				out <- r
+			}
+		}()
+
+		return
 	}
 
-	go func() {
-		wg.Wait()
-		close(waitch)
-	}()
-
-	for r := range waitch {
-		outch <- r
+	defer close(out)
+	for r := range in {
+		out <- r
 	}
 }

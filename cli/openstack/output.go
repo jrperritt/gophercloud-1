@@ -19,8 +19,9 @@ var outreg = os.Stdout
 var outerr = os.Stderr
 
 // outres prints the results of the command
-func outres(cmd interfaces.Commander, alldonech chan interface{}) error {
-	for result := range alldonech {
+func outres(cmd interfaces.Commander, in chan interface{}) error {
+	for result := range in {
+		lib.Log.Debugf("rcvd result on outch: %+v", result)
 		switch r := result.(type) {
 		case error:
 			outputError(r)
@@ -28,10 +29,10 @@ func outres(cmd interfaces.Commander, alldonech chan interface{}) error {
 			outputMap(cmd, r)
 		case []map[string]interface{}:
 			outputMap(cmd, r)
-		case io.Reader:
-			outputReader(cmd, r)
 		case string:
 			fmt.Fprintf(outreg, "%v\n", r)
+		case io.Reader:
+			outputReader(cmd, r)
 		default:
 			defaultJSON(r)
 		}

@@ -10,8 +10,10 @@ import (
 )
 
 type Commandable struct {
-	ctx *cli.Context
-	sc  *gophercloud.ServiceClient
+	ctx    *cli.Context
+	sc     *gophercloud.ServiceClient
+	execch chan interface{}
+	outch  chan interface{}
 }
 
 func (c *Commandable) SetContext(ctx *cli.Context) error {
@@ -23,9 +25,8 @@ func (c *Commandable) Context() *cli.Context {
 	return c.ctx
 }
 
-func (c *Commandable) SetServiceClient(sc *gophercloud.ServiceClient) error {
+func (c *Commandable) SetServiceClient(sc *gophercloud.ServiceClient) {
 	c.sc = sc
-	return nil
 }
 
 func (c *Commandable) ServiceClient() *gophercloud.ServiceClient {

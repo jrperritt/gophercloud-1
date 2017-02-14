@@ -262,7 +262,9 @@ func (c *commandUpload) Execute(item interface{}, _ chan interface{}) {
 
 	header, err := objects.Create(c.ServiceClient(), d.container, d.object, &opts).Extract()
 	if err != nil {
+		fmt.Println(err)
 		d.EndCh() <- err
+		fmt.Println(err)
 		return
 	}
 
