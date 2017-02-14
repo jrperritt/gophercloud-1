@@ -84,8 +84,8 @@ func Action(ctx *cli.Context, cmd interfaces.Commander) error {
 
 	go exec(cmd, progch)
 	go prog(cmd, progch, outch)
-
 	err = outres(cmd, outch)
+
 	if err != nil {
 		return ErrExit1{err}
 	}
@@ -93,95 +93,91 @@ func Action(ctx *cli.Context, cmd interfaces.Commander) error {
 	return nil
 }
 
-func prog(cmd interfaces.Commander, in, out chan interface{}) {
+func prog(cmd interfaces.Commander, inch, outch chan interface{}) {
 	if p, ok := cmd.(interfaces.Progresser); ok {
 		waitch := make(chan interface{})
 		wg := new(sync.WaitGroup)
 		var once sync.Once
 
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			for res := range in {
-				switch t := res.(type) {
-				case error:
-					waitch <- t
-				default:
-					if pi, ok := t.(interfaces.ProgressItemer); ok {
-						id := pi.ID()
-						var b interfaces.ProgressBarrer
+		for res := range inch {
+			switch t := res.(type) {
+			case error:
+				waitch <- t
+			default:
+				if pi, ok := t.(interfaces.ProgressItemer); ok {
+					id := pi.ID()
+					var b interfaces.ProgressBarrer
+					if p.ShouldProgress() {
+						once.Do(func() {
+							p.InitProgress()
+							p.AddSummaryBar()
+						})
+
 						if p.ShouldProgress() {
-							once.Do(func() {
-								p.InitProgress()
-								p.AddSummaryBar()
-							})
-
-							if p.ShouldProgress() {
-								b = p.CreateBar(pi)
-								p.StartBar()
-							}
+							b = p.CreateBar(pi)
+							p.StartBar()
 						}
+					}
 
-						wg.Add(1)
-						go func() {
-							defer wg.Done()
-							for {
-								select {
-								case up := <-pi.UpCh():
-									s := new(traits.ProgressStatusUpdate)
+					wg.Add(1)
+					go func() {
+						defer wg.Done()
+						for {
+							select {
+							case up := <-pi.UpCh():
+								s := new(traits.ProgressStatusUpdate)
+								s.SetBarID(id)
+								s.SetChange(up)
+								if p.ShouldProgress() {
+									b.Update(s)
+								}
+							case res := <-pi.EndCh():
+								switch t := res.(type) {
+								case error:
+									s := new(traits.ProgressStatusError)
 									s.SetBarID(id)
-									s.SetChange(up)
+									s.SetErr(t)
 									if p.ShouldProgress() {
-										b.Update(s)
+										//b.Error(s)
+										p.ErrorBar()
 									}
-								case res := <-pi.EndCh():
-									switch t := res.(type) {
-									case error:
-										s := new(traits.ProgressStatusError)
-										s.SetBarID(id)
-										s.SetErr(t)
-										if p.ShouldProgress() {
-											//b.Error(s)
-											p.ErrorBar()
-										}
-										waitch <- t
-										return
-									default:
-										s := new(traits.ProgressStatusComplete)
-										s.SetBarID(id)
-										if p.ShouldProgress() {
-											b.Complete(s)
-											p.CompleteBar()
-										}
-										waitch <- t
-										return
+									waitch <- t
+									return
+								default:
+									s := new(traits.ProgressStatusComplete)
+									s.SetBarID(id)
+									if p.ShouldProgress() {
+										b.Complete(s)
+										p.CompleteBar()
 									}
+									waitch <- t
+									return
 								}
 							}
-						}()
+						}
+					}()
 
-					}
 				}
 			}
-		}()
+		}
 
 		go func() {
+			defer close(waitch)
 			wg.Wait()
-			close(waitch)
 		}()
 
 		go func() {
-			defer close(out)
+			defer close(outch)
 			for r := range waitch {
-				out <- r
+				outch <- r
 			}
 		}()
 
 		return
 	}
 
-	defer close(out)
-	for r := range in {
-		out <- r
+	defer close(outch)
+	for r := range inch {
+		outch <- r
 	}
 }
