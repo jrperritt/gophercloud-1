@@ -26,3 +26,9 @@ type PipeCommander interface {
 	HandlePipe(string) (interface{}, error)
 	PipeFieldOptions() []string
 }
+
+type StreamPipeCommander interface {
+	Commander
+	HandleStreamPipe() (interface{}, error)
+	StreamPipeFieldOptions() []string
+}

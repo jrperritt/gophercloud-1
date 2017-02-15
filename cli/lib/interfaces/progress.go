@@ -14,6 +14,7 @@ type Progresser interface {
 	ProgressFlags() []cli.Flag
 
 	InitProgress()
+	//ProgressItem() ProgressItemer
 	AddSummaryBar()
 	ProgStartCh() chan ProgressItemer
 

@@ -8,9 +8,10 @@ import (
 type loglevel uint
 
 const (
-	info loglevel = iota
-	warn
-	debug
+	Info loglevel = iota
+	Warn
+	Debug
+	Dev
 )
 
 // Log is a global logger. It may be called from anywhere in the CLI. It has a mutex that allows
@@ -19,7 +20,7 @@ var Log *logger
 
 type logger struct {
 	*log.Logger
-	debug bool
+	//debug bool
 	level loglevel
 }
 
@@ -30,35 +31,44 @@ func InitLog(out io.Writer) {
 	Log.SetOutput(out)
 }
 
-func (l *logger) SetLevel(level loglevel) {
-	l.level = level
+func (l *logger) SetLevel(level uint) {
+	l.level = loglevel(level)
 }
 
-func (l *logger) SetDebug(b bool) {
-	l.debug = b
+func (l *logger) Devln(v ...interface{}) {
+	if l.level >= Dev {
+		l.Println(v...)
+	}
+}
+
+func (l *logger) Devf(format string, v ...interface{}) {
+	if l.level >= Dev {
+		l.Printf(format, v...)
+		l.Println()
+	}
 }
 
 func (l *logger) Debugln(v ...interface{}) {
-	if l.debug {
+	if l.level >= Debug {
 		l.Println(v...)
 	}
 }
 
 func (l *logger) Debugf(format string, v ...interface{}) {
-	if l.debug {
+	if l.level >= Debug {
 		l.Printf(format, v...)
 		l.Println()
 	}
 }
 
 func (l *logger) Warnln(v ...interface{}) {
-	if l.level >= warn {
+	if l.level >= Warn {
 		l.Println(v...)
 	}
 }
 
 func (l *logger) Warnf(format string, v ...interface{}) {
-	if l.level >= warn {
+	if l.level >= Warn {
 		l.Printf(format, v...)
 	}
 }

@@ -3,6 +3,7 @@ package traits
 import (
 	"fmt"
 	"sync"
+	"time"
 
 	"github.com/gophercloud/gophercloud/cli/lib/interfaces"
 	"github.com/vbauerster/mpb"
@@ -18,8 +19,7 @@ const (
 
 type ProgressBar struct {
 	*mpb.Bar
-	id       string
-	updatech chan interface{}
+	id string
 }
 
 func (b *ProgressBar) ID() string {
@@ -28,6 +28,14 @@ func (b *ProgressBar) ID() string {
 
 func (b *ProgressBar) Complete(_ interfaces.ProgressCompleteStatuser) {
 	b.Completed()
+	for b.InProgress() {
+		time.Sleep(100 * time.Millisecond)
+	}
+	/*
+		for b.Bar.GetStatistics().Current != b.Bar.GetStatistics().Total {
+			time.Sleep(100 * time.Millisecond)
+		}
+	*/
 }
 
 func (b *ProgressBar) Error(s interfaces.ProgressErrorStatuser) string {

@@ -2,6 +2,7 @@ package traits
 
 import (
 	"fmt"
+	"math"
 	"sync"
 
 	"github.com/gophercloud/gophercloud/cli/lib/interfaces"
@@ -13,7 +14,7 @@ import (
 type Progressable struct {
 	quiet   bool
 	startch chan interfaces.ProgressItemer
-	stats   *ProgressStatsBar
+	stats   ProgressStatsBar
 	info    *mpb.Progress
 }
 
@@ -40,7 +41,7 @@ func (c *Progressable) InitProgress() {
 }
 
 func (c *Progressable) AddSummaryBar() {
-	c.stats = new(ProgressStatsBar)
+	//c.stats = new(ProgressStatsBar)
 	c.stats.totals.RWMutex = new(sync.RWMutex)
 	c.stats.Bar = c.info.AddBar(2).PrependFunc(func(b *mpb.Statistics) string {
 		c.stats.totals.Lock()
@@ -117,7 +118,7 @@ func (p *TextProgressable) DoneMsg() string {
 }
 
 func (p *TextProgressable) CreateBar(pi interfaces.ProgressItemer) interfaces.ProgressBarrer {
-	b := new(ProgressBarBytes)
+	b := new(ProgressBarText)
 	if p.ShouldProgress() {
 		b.Bar = p.info.AddBar(pi.Size()).PrependElapsed(6).AppendPercentage().AppendFunc(func(s *mpb.Statistics) string {
 			return pi.ID()
@@ -126,6 +127,26 @@ func (p *TextProgressable) CreateBar(pi interfaces.ProgressItemer) interfaces.Pr
 				return p.DoneMsg()
 			}
 			return p.RunningMsg()
+		})
+	}
+	return b
+}
+
+type BytesStreamProgressable struct {
+	TextProgressable
+}
+
+func (p *BytesStreamProgressable) CreateBar(pi interfaces.ProgressItemer) interfaces.ProgressBarrer {
+	b := new(ProgressBarBytes)
+	if p.ShouldProgress() {
+		var size int64
+		if pi.Size() != 0 {
+			size = pi.Size()
+		} else {
+			size = math.MaxInt64
+		}
+		b.Bar = p.info.AddBar(size).SetWidth(50).PrependElapsed(0).AppendFunc(func(s *mpb.Statistics) string {
+			return fmt.Sprintf("%s\t%s", pi.ID(), mpb.Format(s.Current).To(mpb.UnitBytes))
 		})
 	}
 	return b

@@ -46,9 +46,10 @@ var globalFlags = []cli.Flag{
 		Name:  "no-cache",
 		Usage: "Do not get or set authentication credentials in the cache.",
 	},
-	cli.BoolFlag{
-		Name:  "debug",
-		Usage: "Print debug information from the command.",
+	cli.StringFlag{
+		Name: "log",
+		Usage: "Print variout levels of information from the command." +
+			"\nOptions are debug, info, warn",
 	},
 }
 

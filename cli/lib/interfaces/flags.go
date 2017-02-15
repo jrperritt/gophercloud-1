@@ -22,7 +22,7 @@ type Fieldser interface {
 // `TableFlags` and `ShouldHeader` are common to all `Tabler`s, so a command
 // need only have `DefaultTableFields` method
 type Tabler interface {
-	Fieldser
+	//Fieldser
 	TableFlags() []cli.Flag
 	DefaultTableFields() []string
 	SetTable(bool)

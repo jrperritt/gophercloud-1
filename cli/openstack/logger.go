@@ -58,9 +58,11 @@ func (lrt *LogRoundTripper) RoundTrip(request *http.Request) (*http.Response, er
 	if response == nil {
 		return nil, err
 	}
-	response.Body, err = lrt.logResponseBody(response.Body, response.Header)
-	if err != nil {
-		lib.Log.Debugf("Unable to log response body: %s", err)
+
+	var err2 error
+	response.Body, err2 = lrt.logResponseBody(response.Body, response.Header)
+	if err2 != nil {
+		lib.Log.Debugf("Unable to log response body: %s", err2)
 	}
 
 	if response.StatusCode == http.StatusUnauthorized {
@@ -72,9 +74,10 @@ func (lrt *LogRoundTripper) RoundTrip(request *http.Request) (*http.Response, er
 
 	lib.Log.Debugf("Response Status: %s\n", response.Status)
 
-	info, err = json.MarshalIndent(response.Header, "", "  ")
+	var err3 error
+	info, err3 = json.MarshalIndent(response.Header, "", "  ")
 	if err != nil {
-		lib.Log.Debugf(fmt.Sprintf("Error logging response headers: %s\n", err))
+		lib.Log.Debugf(fmt.Sprintf("Error logging response headers: %s\n", err3))
 	}
 	lib.Log.Debugf("Response Headers: %+v\n", string(info))
 

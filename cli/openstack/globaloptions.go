@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/gophercloud/gophercloud"
+	"github.com/gophercloud/gophercloud/cli/lib"
 	"github.com/gophercloud/gophercloud/cli/util"
 
 	"gopkg.in/ini.v1"
@@ -26,7 +27,7 @@ type GlobalOptions struct {
 	urlType     gophercloud.Availability
 	profile     string
 	noCache     bool
-	debug       bool
+	loglevel    uint
 	have        map[string]GlobalOption
 	want        []GlobalOption
 	fields      []string
@@ -45,7 +46,7 @@ func globalopts(ctx *cli.Context) (gopts *GlobalOptions, err error) {
 		{name: "auth-url"},
 		{name: "region"},
 		{name: "profile"},
-		{name: "debug"},
+		{name: "log"},
 	}
 	gopts.have = make(map[string]GlobalOption)
 
@@ -106,8 +107,15 @@ func (gopts *GlobalOptions) set() error {
 			case bool:
 				gopts.noCache = t
 			}
-		case "debug":
-			gopts.debug = true
+		case "log":
+			switch opt.value.(string) {
+			case "dev":
+				gopts.loglevel = uint(lib.Dev)
+			case "debug":
+				gopts.loglevel = uint(lib.Debug)
+			case "warn":
+			case "info":
+			}
 		}
 	}
 

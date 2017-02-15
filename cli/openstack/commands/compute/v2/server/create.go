@@ -28,6 +28,17 @@ type CommandCreate struct {
 	opts servers.CreateOptsBuilder
 }
 
+type createdata struct {
+	traits.ProgressItemPct
+	res map[string]interface{}
+}
+
+func newdownloaddata() *createdata {
+	d := new(createdata)
+	d.ProgressItem.Init()
+	return d
+}
+
 var (
 	cCreate                              = new(CommandCreate)
 	_       interfaces.PipeCommander     = cCreate
@@ -308,16 +319,18 @@ func (c *CommandCreate) HandleSingle() (interface{}, error) {
 }
 
 func (c *CommandCreate) Execute(item interface{}, out chan (interface{})) {
+	d := item.(*createdata)
 	var m map[string]map[string]interface{}
 	opts := *c.opts.(*servers.CreateOpts)
 	opts.Name = item.(string)
 	err := servers.Create(c.ServiceClient(), opts).ExtractInto(&m)
-	switch err {
-	case nil:
-		out <- m["server"]
-	default:
+	if err != nil {
 		out <- err
+		return
 	}
+	d.res = m["server"]
+	d.SetID(d.res["id"].(string))
+	out <- d
 }
 
 func (c *CommandCreate) PipeFieldOptions() []string {
@@ -325,37 +338,28 @@ func (c *CommandCreate) PipeFieldOptions() []string {
 }
 
 func (c *CommandCreate) WaitFor(raw interface{}, donech chan<- interface{}) {
-	orig := raw.(map[string]interface{})
-	id := orig["id"].(string)
+	d := raw.(*createdata)
 
 	err := util.WaitFor(900, func() (bool, error) {
 		var m map[string]map[string]interface{}
-		lib.Log.Debugf("running servers.Get for item: %s", id)
-		err := servers.Get(c.ServiceClient(), id).ExtractInto(&m)
+		lib.Log.Debugf("running servers.Get for item: %s", d.ID())
+		err := servers.Get(c.ServiceClient(), d.ID()).ExtractInto(&m)
 		if err != nil {
 			return false, err
 		}
 
 		switch m["server"]["status"].(string) {
 		case "ACTIVE":
-			lib.Log.Debugf("server %s is active", id)
-			m["server"]["adminPass"] = orig["adminPass"].(string)
-			lib.Log.Debugf("putting item %s in c.Donechin", id)
-			donech <- m["server"]
-			lib.Log.Debugf("returning from WaitFor for item: %s", id)
+			m["server"]["adminPass"] = d.res["adminPass"].(string)
+			d.EndCh() <- m["server"]
 			return true, nil
 		default:
-			//c.ProgUpdateChIn() <- m["server"]["progress"].(float64)
+			d.UpCh() <- m["server"]["progress"].(float64)
 			return false, nil
 		}
 	})
 
 	if err != nil {
-		donech <- err
+		d.EndCh() <- err
 	}
-}
-
-func (c *CommandCreate) BarID(raw interface{}) string {
-	orig := raw.(map[string]interface{})
-	return orig["id"].(string)
 }

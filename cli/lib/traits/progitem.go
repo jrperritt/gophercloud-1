@@ -8,8 +8,8 @@ type ProgressItem struct {
 }
 
 func (pi *ProgressItem) Init() {
-	pi.SetUpCh(make(chan interface{}))
-	pi.SetEndCh(make(chan interface{}))
+	pi.endch = make(chan interface{})
+	pi.upch = make(chan interface{})
 }
 
 func (pi *ProgressItem) SetEndCh(endch chan interface{}) {

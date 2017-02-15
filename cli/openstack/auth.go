@@ -20,7 +20,7 @@ type authopts struct {
 
 // auth authenticates a user against an endpoint
 func auth(ao *authopts) (sc *gophercloud.ServiceClient, err error) {
-	ao.gao.AllowReauth = true
+	//ao.gao.AllowReauth = true
 
 	if !ao.nocache {
 		sc, err = AuthFromCache(ao)
@@ -36,7 +36,6 @@ func auth(ao *authopts) (sc *gophercloud.ServiceClient, err error) {
 		}
 	}
 
-	//gctx.ServiceClient.HTTPClient.Transport.(*LogRoundTripper).Logger = gctx.GlobalOptions.logger
 	return sc, err
 }
 

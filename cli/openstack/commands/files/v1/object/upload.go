@@ -20,49 +20,16 @@ import (
 
 type commandUpload struct {
 	ObjectV1Command
-	traits.BytesProgressable
+	traits.Progressable
 	opts       objects.CreateOptsBuilder
 	pipedField string
-}
-
-type uploaddata struct {
-	traits.ProgressItemBytesRead
-	container string
-	object    string
-	opts      createopts
-	hash      hash.Hash
-	checksum  string
-}
-
-func newuploaddata() *uploaddata {
-	d := new(uploaddata)
-	d.hash = md5.New()
-	d.ProgressItem.Init()
-	return d
-}
-
-func (d *uploaddata) ID() string {
-	return d.object
-}
-
-func (d *uploaddata) Read(p []byte) (n int, err error) {
-	n, err = d.Reader().Read(p)
-	if err != nil {
-		return
-	}
-	_, err = io.CopyN(d.hash, bytes.NewReader(p), int64(n))
-	if err != nil {
-		return
-	}
-
-	d.UpCh() <- n
-	return
+	proger     interfaces.Progresser
 }
 
 var (
-	cUpload                            = new(commandUpload)
-	_       interfaces.PipeCommander   = cUpload
-	_       interfaces.BytesProgresser = cUpload
+	cUpload                                = new(commandUpload)
+	_       interfaces.StreamPipeCommander = cUpload
+	_       interfaces.BytesProgresser     = cUpload
 
 	_ interfaces.ReadBytesProgressItemer = new(uploaddata)
 
@@ -98,7 +65,7 @@ func (c *commandUpload) Flags() []cli.Flag {
 		},
 		cli.StringFlag{
 			Name:  "stdin",
-			Usage: "[optional; required if `file` or `content` isn't provided] The field being piped to STDIN, if any. Valid values are: file, content.",
+			Usage: "[optional; required if `file` or `content` isn't provided] The field being piped to STDIN, if any. Valid values are: file, container, content.",
 		},
 		cli.StringFlag{
 			Name:  "content-type",
@@ -262,9 +229,7 @@ func (c *commandUpload) Execute(item interface{}, _ chan interface{}) {
 
 	header, err := objects.Create(c.ServiceClient(), d.container, d.object, &opts).Extract()
 	if err != nil {
-		fmt.Println(err)
 		d.EndCh() <- err
-		fmt.Println(err)
 		return
 	}
 
@@ -278,5 +243,64 @@ func (c *commandUpload) Execute(item interface{}, _ chan interface{}) {
 }
 
 func (c *commandUpload) PipeFieldOptions() []string {
-	return []string{"file", "container", "content"}
+	return []string{"file", "container"}
+}
+
+func (c *commandUpload) HandleStreamPipe() (interface{}, error) {
+	err := c.CheckFlagsSet([]string{"container", "name"})
+	if err != nil {
+		return nil, err
+	}
+
+	d := newuploaddata()
+	d.SetReader(os.Stdin)
+	d.container = c.Context().String("container")
+	d.object = c.Context().String("name")
+	d.SetID(d.object)
+	return d, nil
+}
+
+func (c *commandUpload) StreamPipeFieldOptions() []string {
+	return []string{"content"}
+}
+
+func (c *commandUpload) CreateBar(pi interfaces.ProgressItemer) interfaces.ProgressBarrer {
+	if c.pipedField == "content" {
+		proger := new(traits.BytesStreamProgressable)
+		proger.Progressable = c.Progressable
+		return proger.CreateBar(pi)
+	}
+	proger := new(traits.BytesProgressable)
+	proger.Progressable = c.Progressable
+	return proger.CreateBar(pi)
+}
+
+func newuploaddata() *uploaddata {
+	d := new(uploaddata)
+	d.hash = md5.New()
+	d.ProgressItem.Init()
+	return d
+}
+
+type uploaddata struct {
+	traits.ProgressItemBytesRead
+	container string
+	object    string
+	opts      createopts
+	hash      hash.Hash
+	checksum  string
+}
+
+func (d *uploaddata) Read(p []byte) (n int, err error) {
+	n, err = d.Reader().Read(p)
+	if err != nil {
+		return
+	}
+	_, err = io.CopyN(d.hash, bytes.NewReader(p), int64(n))
+	if err != nil {
+		return
+	}
+
+	d.UpCh() <- n
+	return
 }

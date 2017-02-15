@@ -21,35 +21,35 @@ var outerr = os.Stderr
 // outres prints the results of the command
 func outres(cmd interfaces.Commander, in chan interface{}) error {
 	for result := range in {
-		lib.Log.Debugf("rcvd result on outch: %+v", result)
+		lib.Log.Debugf("rcvd result on in: %+v", result)
 		switch r := result.(type) {
 		case error:
-			outputError(r)
+			errout(r)
 		case map[string]interface{}:
-			outputMap(cmd, r)
+			mapout(cmd, r)
 		case []map[string]interface{}:
-			outputMap(cmd, r)
+			mapout(cmd, r)
 		case string:
 			fmt.Fprintf(outreg, "%v\n", r)
 		case io.Reader:
-			outputReader(cmd, r)
+			readerout(cmd, r)
 		default:
-			defaultJSON(r)
+			defaultjson(r)
 		}
 	}
 	return nil
 }
 
-func outputJSON(i interface{}) {
+func jsonout(i interface{}) {
 	j, _ := json.MarshalIndent(i, "", "  ")
 	fmt.Fprintln(outreg, string(j))
 }
 
-func outputError(e error) {
-	outputJSON(map[string]interface{}{"error": e.Error()})
+func errout(e error) {
+	jsonout(map[string]interface{}{"error": e.Error()})
 }
 
-func outputTable(cmd interfaces.Commander, i interface{}) {
+func tableout(tabler interfaces.Tabler, i interface{}) {
 	ms, ok := i.([]map[string]interface{})
 	if !ok {
 		fmt.Fprintln(outreg, fmt.Sprintf("Don't know how to properly print type (%T)", i))
@@ -57,46 +57,54 @@ func outputTable(cmd interfaces.Commander, i interface{}) {
 	}
 
 	w := tabwriter.NewWriter(outreg, 0, 8, 1, '\t', 0)
-	if preTabler, ok := cmd.(interfaces.PreTabler); ok {
+	if preTabler, ok := tabler.(interfaces.PreTabler); ok {
 		err := preTabler.PreTable(ms)
 		if err != nil {
 			fmt.Fprintln(w, fmt.Sprintf("Error formatting table: %s", err))
 			return
 		}
 	}
-	if f, ok := cmd.(interfaces.Fieldser); ok {
-		if cmd.(interfaces.Tabler).ShouldHeader() {
-			fmt.Fprintln(w, strings.Join(f.Fields(), "\t"))
-		}
-		for _, m := range ms {
-			s := []string{}
-			for _, k := range f.Fields() {
-				s = append(s, fmt.Sprint(m[k]))
-			}
-			fmt.Fprintln(w, strings.Join(s, "\t"))
-		}
-		w.Flush()
-	}
-}
 
-func outputMap(cmd interfaces.Commander, i interface{}) {
-	LimitFields(cmd, i)
-	if t, ok := cmd.(interfaces.Tabler); ok && t.ShouldTable() {
-		outputTable(cmd, i)
+	var fields []string
+	if f, ok := tabler.(interfaces.Fieldser); ok {
+		fields = f.Fields()
 	} else {
-		outputJSON(i)
+		fields = tabler.DefaultTableFields()
 	}
+
+	if tabler.ShouldHeader() {
+		fmt.Fprintln(w, strings.Join(fields, "\t"))
+	}
+
+	for _, m := range ms {
+		s := []string{}
+		for _, k := range fields {
+			s = append(s, fmt.Sprint(m[k]))
+		}
+		fmt.Fprintln(w, strings.Join(s, "\t"))
+	}
+	w.Flush()
+
 }
 
-func outputReader(cmd interfaces.Commander, r io.Reader) {
-	lib.Log.Debugln("outputting reader..")
+func mapout(cmd interfaces.Commander, i interface{}) {
+	LimitFields(cmd, i)
+	if tabler, ok := cmd.(interfaces.Tabler); ok && tabler.ShouldTable() {
+		tableout(tabler, i)
+		return
+	}
+	jsonout(i)
+}
+
+func readerout(cmd interfaces.Commander, r io.Reader) {
 	if rc, ok := r.(io.ReadCloser); ok {
 		defer rc.Close()
 	}
 	if customWriterer, ok := cmd.(interfaces.CustomWriterer); ok {
 		writer, err := customWriterer.CustomWriter()
 		if err != nil {
-
+			fmt.Fprintf(outerr, "Error creating custom writer: %s\n", err)
+			return
 		}
 		_, err = io.Copy(writer, r)
 		if err != nil {
@@ -115,7 +123,8 @@ func outputReader(cmd interfaces.Commander, r io.Reader) {
 		fmt.Fprintf(outerr, "Error reading (io.Reader) result: %s\n", err)
 		return
 	}
-	defaultJSON(string(bytes))
+
+	defaultjson(string(bytes))
 }
 
 // LimitFields reduces the number of fields in the output
@@ -165,7 +174,7 @@ func LimitFields(cmd interfaces.Commander, r interface{}) {
 	}
 }
 
-func defaultJSON(i interface{}) {
+func defaultjson(i interface{}) {
 	m := map[string]interface{}{"result": i}
-	outputJSON(m)
+	jsonout(m)
 }

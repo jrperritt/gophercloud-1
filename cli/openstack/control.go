@@ -31,7 +31,7 @@ func Action(ctx *cli.Context, cmd interfaces.Commander) error {
 		return ErrExit1{err}
 	}
 
-	lib.Log.SetDebug(gopts.debug)
+	lib.Log.SetLevel(gopts.loglevel)
 
 	ao := &authopts{
 		cmd:     cmd,
@@ -94,29 +94,33 @@ func Action(ctx *cli.Context, cmd interfaces.Commander) error {
 }
 
 func prog(cmd interfaces.Commander, inch, outch chan interface{}) {
-	if p, ok := cmd.(interfaces.Progresser); ok {
-		waitch := make(chan interface{})
+	if p, okp := cmd.(interfaces.Progresser); okp {
+		holdch := make(chan interface{})
 		wg := new(sync.WaitGroup)
 		var once sync.Once
 
 		for res := range inch {
 			switch t := res.(type) {
 			case error:
-				waitch <- t
+				holdch <- t
 			default:
-				if pi, ok := t.(interfaces.ProgressItemer); ok {
+				if pi, okpi := t.(interfaces.ProgressItemer); okpi {
 					id := pi.ID()
+					if w, okw := cmd.(interfaces.Waiter); okw {
+						go w.WaitFor(pi, nil)
+					}
 					var b interfaces.ProgressBarrer
 					if p.ShouldProgress() {
 						once.Do(func() {
+							lib.Log.Devln("initializing progress...")
 							p.InitProgress()
+							lib.Log.Devln("adding summary bar...")
 							p.AddSummaryBar()
 						})
-
-						if p.ShouldProgress() {
-							b = p.CreateBar(pi)
-							p.StartBar()
-						}
+						lib.Log.Devln("creating bar...")
+						b = p.CreateBar(pi)
+						lib.Log.Devln("created bar. starting bar...")
+						p.StartBar()
 					}
 
 					wg.Add(1)
@@ -125,32 +129,32 @@ func prog(cmd interfaces.Commander, inch, outch chan interface{}) {
 						for {
 							select {
 							case up := <-pi.UpCh():
-								s := new(traits.ProgressStatusUpdate)
-								s.SetBarID(id)
-								s.SetChange(up)
 								if p.ShouldProgress() {
+									s := new(traits.ProgressStatusUpdate)
+									s.SetBarID(id)
+									s.SetChange(up)
 									b.Update(s)
 								}
 							case res := <-pi.EndCh():
 								switch t := res.(type) {
 								case error:
-									s := new(traits.ProgressStatusError)
-									s.SetBarID(id)
-									s.SetErr(t)
 									if p.ShouldProgress() {
+										s := new(traits.ProgressStatusError)
+										s.SetBarID(id)
+										s.SetErr(t)
 										//b.Error(s)
 										p.ErrorBar()
 									}
-									waitch <- t
+									holdch <- t
 									return
 								default:
-									s := new(traits.ProgressStatusComplete)
-									s.SetBarID(id)
 									if p.ShouldProgress() {
+										s := new(traits.ProgressStatusComplete)
+										s.SetBarID(id)
 										b.Complete(s)
 										p.CompleteBar()
 									}
-									waitch <- t
+									holdch <- t
 									return
 								}
 							}
@@ -162,13 +166,13 @@ func prog(cmd interfaces.Commander, inch, outch chan interface{}) {
 		}
 
 		go func() {
-			defer close(waitch)
+			defer close(holdch)
 			wg.Wait()
 		}()
 
 		go func() {
 			defer close(outch)
-			for r := range waitch {
+			for r := range holdch {
 				outch <- r
 			}
 		}()
