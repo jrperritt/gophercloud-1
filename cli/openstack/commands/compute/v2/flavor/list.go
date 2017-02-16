@@ -11,7 +11,7 @@ import (
 )
 
 type commandList struct {
-	FlavorCommand
+	FlavorV2Command
 	traits.Waitable
 	traits.Fieldsable
 	traits.Tableable

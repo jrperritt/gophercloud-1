@@ -7,8 +7,7 @@ import (
 
 var commandPrefix = "compute flavor"
 
-type FlavorCommand struct {
-	traits.Commandable
+type FlavorV2Command struct {
 	traits.ComputeV2able
 }
 
@@ -17,5 +16,6 @@ func Get() []cli.Command {
 	return []cli.Command{
 		list,
 		get,
+		create,
 	}
 }

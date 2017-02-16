@@ -5,7 +5,9 @@ import (
 	"github.com/gophercloud/gophercloud/openstack"
 )
 
-type Computeable struct{}
+type Computeable struct {
+	Commandable
+}
 
 func (_ Computeable) ServiceType() string {
 	return "compute"
@@ -23,7 +25,9 @@ func (_ ComputeV2able) ServiceClientFunc() interfaces.ServiceClientFunc {
 	return openstack.NewComputeV2
 }
 
-type Filesable struct{}
+type Filesable struct {
+	Commandable
+}
 
 func (_ Filesable) ServiceType() string {
 	return "files"
@@ -41,7 +45,9 @@ func (_ FilesV1able) ServiceClientFunc() interfaces.ServiceClientFunc {
 	return openstack.NewObjectStorageV1
 }
 
-type BlockStorageable struct{}
+type BlockStorageable struct {
+	Commandable
+}
 
 func (_ BlockStorageable) ServiceType() string {
 	return "block-storage"
@@ -59,7 +65,9 @@ func (_ BlockStorageV2able) ServiceClientFunc() interfaces.ServiceClientFunc {
 	return openstack.NewBlockStorageV2
 }
 
-type Networkingable struct{}
+type Networkingable struct {
+	Commandable
+}
 
 func (_ Networkingable) ServiceType() string {
 	return "networking"

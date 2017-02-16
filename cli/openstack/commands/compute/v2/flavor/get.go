@@ -10,7 +10,7 @@ import (
 )
 
 type CommandGet struct {
-	FlavorCommand
+	FlavorV2Command
 	traits.Waitable
 	traits.Pipeable
 }
