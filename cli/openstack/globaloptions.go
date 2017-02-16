@@ -26,7 +26,7 @@ type GlobalOptions struct {
 	region      string
 	urlType     gophercloud.Availability
 	profile     string
-	noCache     bool
+	nocache     bool
 	loglevel    uint
 	have        map[string]GlobalOption
 	want        []GlobalOption
@@ -103,9 +103,9 @@ func (gopts *GlobalOptions) set() error {
 		case "no-cache":
 			switch t := opt.value.(type) {
 			case string:
-				gopts.noCache, err = strconv.ParseBool(t)
+				gopts.nocache, err = strconv.ParseBool(t)
 			case bool:
-				gopts.noCache = t
+				gopts.nocache = t
 			}
 		case "log":
 			switch opt.value.(string) {

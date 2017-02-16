@@ -9,22 +9,24 @@ import (
 // CommandFlags returns the flags for a given command. It takes as a parameter
 // a function for returning flags specific to that command, and then appends those
 // flags with flags that are valid for all commands.
-func CommandFlags(c interfaces.Commander) []cli.Flag {
-	flags := c.Flags()
+func CommandFlags(cmd interfaces.Commander) (flags []cli.Flag) {
+	if flagser, ok := cmd.(interfaces.Flagser); ok {
+		flags = flagser.Flags()
+	}
 
-	if fieldser, ok := c.(interfaces.Fieldser); ok {
+	if fieldser, ok := cmd.(interfaces.Fieldser); ok {
 		flags = append(flags, fieldser.FieldsFlags()...)
 	}
 
-	if waiter, ok := c.(interfaces.Waiter); ok {
+	if waiter, ok := cmd.(interfaces.Waiter); ok {
 		flags = append(flags, waiter.WaitFlags()...)
 	}
 
-	if progresser, ok := c.(interfaces.Progresser); ok {
+	if progresser, ok := cmd.(interfaces.Progresser); ok {
 		flags = append(flags, progresser.ProgressFlags()...)
 	}
 
-	if tabler, ok := c.(interfaces.Tabler); ok {
+	if tabler, ok := cmd.(interfaces.Tabler); ok {
 		flags = append(flags, tabler.TableFlags()...)
 	}
 

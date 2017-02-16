@@ -37,7 +37,7 @@ func Action(ctx *cli.Context, cmd interfaces.Commander) error {
 		cmd:     cmd,
 		region:  gopts.region,
 		gao:     gopts.authOptions,
-		nocache: gopts.noCache,
+		nocache: gopts.nocache,
 		urltype: gopts.urlType,
 	}
 	sc, err := auth(ao)
@@ -45,7 +45,7 @@ func Action(ctx *cli.Context, cmd interfaces.Commander) error {
 		return ErrExit1{err}
 	}
 
-	if !gopts.noCache {
+	if !gopts.nocache {
 		defer cachecreds(ao, sc)
 	}
 
@@ -74,9 +74,11 @@ func Action(ctx *cli.Context, cmd interfaces.Commander) error {
 		lib.Log.Debugln("w.ShouldWait() : ", w.ShouldWait())
 	}
 
-	err = cmd.HandleFlags()
-	if err != nil {
-		return ErrExit1{err}
+	if flagser, ok := cmd.(interfaces.Flagser); ok {
+		err = flagser.HandleFlags()
+		if err != nil {
+			return ErrExit1{err}
+		}
 	}
 
 	progch := make(chan interface{})

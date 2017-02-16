@@ -27,9 +27,9 @@ type commandUpload struct {
 }
 
 var (
-	cUpload                                = new(commandUpload)
-	_       interfaces.StreamPipeCommander = cUpload
-	_       interfaces.BytesProgresser     = cUpload
+	cUpload                            = new(commandUpload)
+	_       interfaces.StreamCommander = cUpload
+	_       interfaces.BytesProgresser = cUpload
 
 	_ interfaces.ReadBytesProgressItemer = new(uploaddata)
 
@@ -246,7 +246,7 @@ func (c *commandUpload) PipeFieldOptions() []string {
 	return []string{"file", "container"}
 }
 
-func (c *commandUpload) HandleStreamPipe() (interface{}, error) {
+func (c *commandUpload) HandleStream() (interface{}, error) {
 	err := c.CheckFlagsSet([]string{"container", "name"})
 	if err != nil {
 		return nil, err
@@ -260,7 +260,7 @@ func (c *commandUpload) HandleStreamPipe() (interface{}, error) {
 	return d, nil
 }
 
-func (c *commandUpload) StreamPipeFieldOptions() []string {
+func (c *commandUpload) StreamFieldOptions() []string {
 	return []string{"content"}
 }
 

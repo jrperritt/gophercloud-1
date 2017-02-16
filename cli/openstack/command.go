@@ -15,17 +15,17 @@ func exec(cmd interfaces.Commander, out chan interface{}) {
 	wg := new(sync.WaitGroup)
 
 	if stdin := cmd.Context().String("stdin"); stdin != "" {
-		if sp, ok := cmd.(interfaces.StreamPipeCommander); ok && util.Contains(sp.StreamPipeFieldOptions(), stdin) {
+		if sp, ok := cmd.(interfaces.StreamCommander); ok && util.Contains(sp.StreamFieldOptions(), stdin) {
 			wg.Add(1)
 			go func() {
 				defer wg.Done()
-				item, err := sp.HandleStreamPipe()
+				item, err := sp.HandleStream()
 				if err != nil {
 					out <- err
 					return
 				}
 				out <- item
-				sp.Execute(item, out)
+				cmd.Execute(item, out)
 			}()
 		} else if p, ok := cmd.(interfaces.PipeCommander); ok && util.Contains(p.PipeFieldOptions(), stdin) {
 			scanner := bufio.NewScanner(os.Stdin)
@@ -40,7 +40,7 @@ func exec(cmd interfaces.Commander, out chan interface{}) {
 						return
 					}
 					out <- item
-					p.Execute(item, out)
+					cmd.Execute(item, out)
 				}()
 			}
 			if scanner.Err() != nil {

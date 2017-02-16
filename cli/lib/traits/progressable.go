@@ -83,7 +83,9 @@ type BytesProgressable struct {
 func (p *BytesProgressable) CreateBar(pi interfaces.ProgressItemer) interfaces.ProgressBarrer {
 	b := new(ProgressBarBytes)
 	if p.ShouldProgress() {
-		b.Bar = p.info.AddBar(pi.Size()).PrependElapsed(6).PrependETA(6).AppendPercentage().AppendFunc(func(s *mpb.Statistics) string {
+		b.Bar = p.info.AddBar(pi.Size()).PrependElapsed(6).PrependFunc(func(_ *mpb.Statistics) string {
+			return fmt.Sprintf("\t")
+		}).PrependETA(4).AppendPercentage().AppendFunc(func(s *mpb.Statistics) string {
 			return pi.ID()
 		})
 	}

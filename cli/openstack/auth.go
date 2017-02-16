@@ -8,6 +8,7 @@ import (
 	"github.com/gophercloud/gophercloud/cli/lib/interfaces"
 	"github.com/gophercloud/gophercloud/cli/util"
 	"github.com/gophercloud/gophercloud/openstack"
+	"github.com/gophercloud/gophercloud/openstack/identity/v3/tokens"
 )
 
 type authopts struct {
@@ -20,7 +21,7 @@ type authopts struct {
 
 // auth authenticates a user against an endpoint
 func auth(ao *authopts) (sc *gophercloud.ServiceClient, err error) {
-	//ao.gao.AllowReauth = true
+	ao.gao.AllowReauth = true
 
 	if !ao.nocache {
 		sc, err = AuthFromCache(ao)
@@ -34,6 +35,10 @@ func auth(ao *authopts) (sc *gophercloud.ServiceClient, err error) {
 		if err != nil {
 			return nil, err
 		}
+	}
+
+	sc.ReauthFunc = func() error {
+		return openstack.AuthenticateV3(sc.ProviderClient, ao.gao, gophercloud.EndpointOpts{})
 	}
 
 	return sc, err
@@ -52,6 +57,7 @@ func AuthFromScratch(ao *authopts) (sc *gophercloud.ServiceClient, err error) {
 		return nil, err
 	}
 	pc.HTTPClient = newHTTPClient()
+	pc.UserAgent.Prepend(util.UserAgent)
 
 	err = openstack.Authenticate(pc, *ao.gao)
 	if err != nil {
@@ -62,7 +68,6 @@ func AuthFromScratch(ao *authopts) (sc *gophercloud.ServiceClient, err error) {
 		Region:       ao.region,
 		Availability: ao.urltype,
 	})
-
 	if err != nil {
 		return sc, err
 	}
@@ -72,7 +77,7 @@ func AuthFromScratch(ao *authopts) (sc *gophercloud.ServiceClient, err error) {
 	}
 
 	lib.Log.Debugf("Created %s service client: %+v", serviceType, sc)
-	sc.UserAgent.Prepend(util.UserAgent)
+
 	return sc, nil
 }
 
@@ -88,17 +93,18 @@ func AuthFromCache(ao *authopts) (sc *gophercloud.ServiceClient, err error) {
 		lib.Log.Debugf("Using token from cache: %s", creds.TokenID)
 		pc, err := openstack.NewClient(ao.gao.IdentityEndpoint)
 		if err == nil {
-			pc.UserAgent.Prepend(util.UserAgent)
 			pc.TokenID = creds.GetToken()
 			pc.HTTPClient = newHTTPClient()
-			pc.ReauthFunc = func() error {
-				return openstack.AuthenticateV3(pc, ao.gao, gophercloud.EndpointOpts{})
-			}
 			sc = &gophercloud.ServiceClient{
 				ProviderClient: pc,
 				Endpoint:       creds.ServiceEndpoint,
 			}
-			return sc, nil
+			sc.UserAgent.Prepend(util.UserAgent)
+
+			ok, err := tokens.Validate(sc, pc.TokenID)
+			if err == nil && ok {
+				return sc, nil
+			}
 		}
 	}
 	return AuthFromScratch(ao)

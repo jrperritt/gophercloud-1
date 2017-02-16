@@ -8,9 +8,7 @@ import (
 type ServiceClientFunc func(*gophercloud.ProviderClient, gophercloud.EndpointOpts) (*gophercloud.ServiceClient, error)
 
 type Commander interface {
-	HandleFlags() error
 	Execute(item interface{}, out chan interface{})
-	Flags() []cli.Flag
 	SetServiceClient(*gophercloud.ServiceClient)
 	ServiceClient() *gophercloud.ServiceClient
 	SetContext(*cli.Context) error
@@ -20,15 +18,25 @@ type Commander interface {
 	ServiceVersion() string
 }
 
+type Flagser interface {
+	Flags() []cli.Flag
+	HandleFlags() error
+}
+
+type Singler interface {
+	HandleSingle() (interface{}, error)
+}
+
 type PipeCommander interface {
 	Commander
-	HandleSingle() (interface{}, error)
+	Singler
 	HandlePipe(string) (interface{}, error)
 	PipeFieldOptions() []string
 }
 
-type StreamPipeCommander interface {
+type StreamCommander interface {
 	Commander
-	HandleStreamPipe() (interface{}, error)
-	StreamPipeFieldOptions() []string
+	Singler
+	HandleStream() (interface{}, error)
+	StreamFieldOptions() []string
 }
