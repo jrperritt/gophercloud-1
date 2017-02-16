@@ -58,21 +58,22 @@ func (c *CommandCreate) HandleFlags() error {
 		return err
 	}
 
+	disk := c.Context().Int("disk")
+
 	opts := new(flavors.CreateOpts)
 	opts.Name = c.Context().String("name")
-	opts.Disk = c.Context().String("disk")
-	opts.RAM = c.Context().String("ram")
-	opts.VCPUs = c.Context().String("vcpus")
+	opts.Disk = &disk
+	opts.RAM = c.Context().Int("ram")
+	opts.VCPUs = c.Context().Int("vcpus")
 	opts.ID = c.Context().String("id")
 
 	c.opts = opts
-	return
+	return nil
 }
 
 func (c *CommandCreate) Execute(item interface{}, out chan interface{}) {
-	opts := item.(flavors.CreateOptsBuilder)
 	var m map[string]map[string]interface{}
-	err := flavors.Create(c.ServiceClient(), opts).ExtractInto(&m)
+	err := flavors.Create(c.ServiceClient(), c.opts).ExtractInto(&m)
 	switch err {
 	case nil:
 		out <- m["flavor"]
