@@ -6,6 +6,7 @@ import (
 	"github.com/gophercloud/gophercloud/cli/openstack/commands/blockstorage"
 	"github.com/gophercloud/gophercloud/cli/openstack/commands/compute"
 	"github.com/gophercloud/gophercloud/cli/openstack/commands/files"
+	"github.com/gophercloud/gophercloud/cli/openstack/commands/images"
 	"github.com/gophercloud/gophercloud/cli/openstack/commands/loadbalancing"
 	"github.com/gophercloud/gophercloud/cli/openstack/commands/networking"
 	"github.com/gophercloud/gophercloud/cli/setup"
@@ -65,5 +66,10 @@ var commands = []cli.Command{
 		Name:        "load-balancing",
 		Usage:       "Software-defined LBs.",
 		Subcommands: loadbalancing.Get(),
+	},
+	{
+		Name:        "images",
+		Usage:       "Virtual machine images",
+		Subcommands: images.Get(),
 	},
 }

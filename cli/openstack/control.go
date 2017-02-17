@@ -54,12 +54,16 @@ func Action(ctx *cli.Context, cmd interfaces.Commander) error {
 	if t, ok := cmd.(interfaces.Tabler); ok {
 		lib.Log.Debugln("cmd implements Tabler")
 		t.SetTable(cmd.Context().IsSet("table"))
+		lib.Log.Debugln("p.ShouldTable() : ", t.ShouldTable())
 		t.SetHeader(cmd.Context().IsSet("no-header"))
+		lib.Log.Debugln("p.ShouldHeader() : ", t.ShouldHeader())
 	}
 
 	if f, ok := cmd.(interfaces.Fieldser); ok {
 		lib.Log.Debugln("cmd implements Fieldser")
-		f.SetFields(strings.Split(cmd.Context().String("fields"), ","))
+		if len(f.Fields()) > 0 {
+			f.SetFields(strings.Split(cmd.Context().String("fields"), ","))
+		}
 	}
 
 	if p, ok := cmd.(interfaces.Progresser); ok {

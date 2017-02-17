@@ -84,3 +84,23 @@ func (_ NetworkingV2able) ServiceVersion() string {
 func (_ NetworkingV2able) ServiceClientFunc() interfaces.ServiceClientFunc {
 	return openstack.NewNetworkV2
 }
+
+type Imagesable struct {
+	Commandable
+}
+
+func (_ Imagesable) ServiceType() string {
+	return "images"
+}
+
+type ImagesV2able struct {
+	Imagesable
+}
+
+func (_ ImagesV2able) ServiceVersion() string {
+	return "v2"
+}
+
+func (_ ImagesV2able) ServiceClientFunc() interfaces.ServiceClientFunc {
+	return openstack.NewImageServiceV2
+}
