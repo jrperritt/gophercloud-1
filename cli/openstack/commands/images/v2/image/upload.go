@@ -110,12 +110,11 @@ func (c *CommandUpload) HandleSingle() (interface{}, error) {
 func (c *CommandUpload) Execute(item interface{}, out chan interface{}) {
 	d := item.(*uploaddata)
 	err := imagedata.Upload(c.ServiceClient(), d.ID(), d.Reader()).ExtractErr()
-	switch err {
-	case nil:
-		out <- fmt.Sprintf("Successfully uploaded image data to image [%s]", d.ID())
-	default:
-		out <- err
+	if err != nil {
+		d.EndCh() <- err
 	}
+
+	d.EndCh() <- fmt.Sprintf("Successfully uploaded image data to image [%s]", d.ID())
 }
 
 func (c *CommandUpload) HandleStream() (interface{}, error) {
@@ -149,7 +148,6 @@ func newuploaddata() *uploaddata {
 
 type uploaddata struct {
 	traits.ProgressItemBytesRead
-	content  io.Reader
 	hash     hash.Hash
 	checksum string
 }

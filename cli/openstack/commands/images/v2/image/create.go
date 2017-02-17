@@ -48,8 +48,12 @@ func (c *CommandCreate) Flags() []cli.Flag {
 			Usage: "[optional] Comma-separated values associated with the image",
 		},
 		cli.StringFlag{
-			Name:  "format",
+			Name:  "container-format",
 			Usage: "[optional] The container format. Options: ami, ari, aki, bare, ovf",
+		},
+		cli.StringFlag{
+			Name:  "disk-format",
+			Usage: "[optional] The disk format. Options: ami, ari, aki, vhd, vmdk, raw, qcow2, vdi, iso",
 		},
 		cli.IntFlag{
 			Name:  "min-disk",
@@ -79,7 +83,8 @@ func (c *CommandCreate) HandleFlags() error {
 	opts := new(images.CreateOpts)
 	opts.Name = c.Context().String("name")
 	opts.ID = c.Context().String("id")
-	opts.ContainerFormat = c.Context().String("format")
+	opts.ContainerFormat = c.Context().String("container-format")
+	opts.DiskFormat = c.Context().String("disk-format")
 	opts.Tags = strings.Split(c.Context().String("tags"), ",")
 	opts.MinDisk = c.Context().Int("min-disk")
 	opts.MinRAM = c.Context().Int("min-ram")

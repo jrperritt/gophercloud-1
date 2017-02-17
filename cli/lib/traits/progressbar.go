@@ -64,7 +64,14 @@ func (b *ProgressBarBytes) Start(s interfaces.ProgressStartStatuser) interfaces.
 }
 
 func (b *ProgressBarBytes) Update(s interfaces.ProgressUpdateStatuser) {
-	b.Incr(s.Change().(int))
+	var incr int
+	switch inc := s.Change().(type) {
+	case int:
+		incr = inc
+	case float64:
+		incr = int(inc)
+	}
+	b.Incr(incr)
 }
 
 type ProgressBarText struct {

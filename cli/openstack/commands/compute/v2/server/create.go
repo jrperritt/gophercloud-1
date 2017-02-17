@@ -33,7 +33,7 @@ type createdata struct {
 	res map[string]interface{}
 }
 
-func newdownloaddata() *createdata {
+func newcreatedata() *createdata {
 	d := new(createdata)
 	d.ProgressItem.Init()
 	return d
@@ -319,7 +319,6 @@ func (c *CommandCreate) HandleSingle() (interface{}, error) {
 }
 
 func (c *CommandCreate) Execute(item interface{}, out chan (interface{})) {
-	d := item.(*createdata)
 	var m map[string]map[string]interface{}
 	opts := *c.opts.(*servers.CreateOpts)
 	opts.Name = item.(string)
@@ -328,6 +327,7 @@ func (c *CommandCreate) Execute(item interface{}, out chan (interface{})) {
 		out <- err
 		return
 	}
+	d := newcreatedata()
 	d.res = m["server"]
 	d.SetID(d.res["id"].(string))
 	out <- d

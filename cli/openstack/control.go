@@ -61,8 +61,11 @@ func Action(ctx *cli.Context, cmd interfaces.Commander) error {
 
 	if f, ok := cmd.(interfaces.Fieldser); ok {
 		lib.Log.Debugln("cmd implements Fieldser")
-		if len(f.Fields()) > 0 {
-			f.SetFields(strings.Split(cmd.Context().String("fields"), ","))
+		if cmd.Context().IsSet("fields") {
+			fields := cmd.Context().String("fields")
+			if len(strings.Split(fields, ",")) > 0 {
+				f.SetFields(strings.Split(cmd.Context().String("fields"), ","))
+			}
 		}
 	}
 

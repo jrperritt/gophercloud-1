@@ -54,6 +54,15 @@ func exec(cmd interfaces.Commander, out chan interface{}) {
 		go func() {
 			defer wg.Done()
 			switch pc := cmd.(type) {
+			case interfaces.StreamCommander:
+				item, err := pc.HandleSingle()
+				if err != nil {
+					lib.Log.Debugf("Error from HandleSingle: %s", err)
+					out <- err
+					return
+				}
+				out <- item
+				cmd.Execute(item, out)
 			case interfaces.PipeCommander:
 				item, err := pc.HandleSingle()
 				if err != nil {
