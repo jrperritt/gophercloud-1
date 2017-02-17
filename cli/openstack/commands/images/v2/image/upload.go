@@ -1,11 +1,7 @@
 package image
 
 import (
-	"bytes"
-	"crypto/md5"
 	"fmt"
-	"hash"
-	"io"
 	"os"
 	"strings"
 
@@ -112,6 +108,7 @@ func (c *CommandUpload) Execute(item interface{}, out chan interface{}) {
 	err := imagedata.Upload(c.ServiceClient(), d.ID(), d.Reader()).ExtractErr()
 	if err != nil {
 		d.EndCh() <- err
+		return
 	}
 
 	d.EndCh() <- fmt.Sprintf("Successfully uploaded image data to image [%s]", d.ID())
@@ -141,23 +138,16 @@ func (c *CommandUpload) CreateBar(pi interfaces.ProgressItemer) interfaces.Progr
 
 func newuploaddata() *uploaddata {
 	d := new(uploaddata)
-	d.hash = md5.New()
 	d.ProgressItem.Init()
 	return d
 }
 
 type uploaddata struct {
 	traits.ProgressItemBytesRead
-	hash     hash.Hash
-	checksum string
 }
 
 func (d *uploaddata) Read(p []byte) (n int, err error) {
 	n, err = d.Reader().Read(p)
-	if err != nil {
-		return
-	}
-	_, err = io.CopyN(d.hash, bytes.NewReader(p), int64(n))
 	if err != nil {
 		return
 	}
