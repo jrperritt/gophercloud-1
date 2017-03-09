@@ -2,11 +2,12 @@ package testing
 
 import (
 	"fmt"
+	"net/http"
+	"testing"
+
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/hypervisors"
 	"github.com/gophercloud/gophercloud/testhelper"
 	"github.com/gophercloud/gophercloud/testhelper/client"
-	"net/http"
-	"testing"
 )
 
 // The first hypervisor represents what the specification says (~Newton)
@@ -84,7 +85,7 @@ const HypervisorListBody = `
 
 var (
 	HypervisorFake = hypervisors.Hypervisor{
-		CpuInfo: hypervisors.CpuInfo{
+		CPUInfo: hypervisors.CPUInfo{
 			Arch:   "x86_64",
 			Model:  "Nehalem",
 			Vendor: "Intel",
